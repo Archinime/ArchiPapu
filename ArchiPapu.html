@@ -150,7 +150,7 @@
       -webkit-overflow-scrolling:touch;
       position:relative;
     }
-    /* Smooth transitions for main media - fade + slight transform for 'smoothness' */
+    /* Smooth transitions for main media - fade only (REMOVED transform to avoid 'movement') */
     .modal-card img,
     .modal-card video,
     .modal-card iframe{
@@ -160,7 +160,8 @@
       object-fit:contain;
       border-radius:10px;
       display:block;
-      transition: opacity .32s ease, transform .22s ease;
+      /* Solo transición de opacidad para evitar movimientos/transform */
+      transition: opacity .32s ease;
       opacity:1;
       cursor: zoom-in;
       user-select:none;
@@ -169,10 +170,11 @@
       border: 6px solid rgba(255,255,255,0.03);
       box-shadow: 0 8px 30px rgba(0,0,0,0.5);
     }
+    /* Eliminada la escala/transform en la clase hidden para que NO "se mueva" al cambiar imágenes */
     .modal-card img.hidden,
     .modal-card video.hidden,
     .modal-card iframe.hidden {
-      opacity:0; transform: scale(0.995);
+      opacity:0;
       pointer-events: none;
     }
     .modal-card img.zoomed,
@@ -406,6 +408,9 @@
      * - Transiciones suaves (fade) al cambiar imágenes/videos/iframe en el modal.
      * - En móviles, las thumbnails/miniaturas usan object-fit:contain para mostrar toda la imagen.
      * - Mantuvimos TODO lo demás del archivo original (datos, estructura, slideshow en tarjetas, música).
+     *
+     * CAMBIO ESPECÍFICO AHORA: He quitado la transición/transform que causaba el movimiento
+     * en las imágenes del modal al cambiar a otra imagen. Solo queda una transición por opacidad.
      **************************************************************************/
 
     const PLACEHOLDER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
