@@ -21,6 +21,8 @@
     *{box-sizing:border-box}
     html,body{height:100%; margin:0; background:linear-gradient(180deg,var(--bg) 0%, #071428 60%); color:var(--text); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;}
     body{line-height:1.45; font-size:16px;}
+    /* Prevent horizontal overflow on small devices */
+    html, body { overflow-x: hidden; }
 
     /* Header: logo + central search */
     header.hero{
@@ -51,7 +53,7 @@
     }
 
     /* Layout */
-    .container{display:grid; grid-template-columns:300px 1fr; gap:22px; padding:22px; max-width:1200px; margin:0 auto;}
+    .container{display:grid; grid-template-columns:300px 1fr; gap:22px; padding:22px; max-width:1200px; margin:0 auto; width:100%;}
     @media (max-width:1000px){ .container{grid-template-columns:1fr; padding:14px;} .sidebar{order:2} .main{order:1} }
 
     /* Sidebar - simple and large */
@@ -76,8 +78,8 @@
     /* Product card with larger text for elders */
     .card{background:var(--panel); padding:14px; border-radius:12px; overflow:hidden; transition:transform .18s ease, box-shadow .18s; border:1px solid rgba(255,255,255,0.02); cursor:pointer; min-height:330px; display:flex; flex-direction:column; justify-content:space-between}
     .card:hover{transform:translateY(-6px); box-shadow:0 16px 40px rgba(2,6,23,0.65)}
-    /* Card thumbnail: fixed height, cover to keep grid tidy */
-    .thumb{width:100%; height:220px; object-fit:cover; border-radius:10px; display:block; transition:opacity .45s ease; /* fondo transparente para PNGs */ background:transparent !important; }
+    /* Card thumbnail: fixed height on desktop, more flexible on mobile */
+    .thumb{width:100%; height:220px; object-fit:cover; border-radius:10px; display:block; transition:opacity .45s ease, transform .22s ease; background:transparent !important; }
     .thumb-video{width:100%; height:220px; object-fit:cover; border-radius:10px; display:block; background:transparent !important;}
     .p-title{font-weight:800; margin:12px 0 6px; font-size:18px}
     .p-subtitle{color:var(--accent-1); font-weight:700; margin-bottom:8px; font-size:14px}
@@ -118,6 +120,16 @@
     }
     @media (max-width:900px){ .modal-card{grid-template-columns:1fr; padding:14px;} }
 
+    /* Ensure modal never causes horizontal overflow and fits better on mobile */
+    @media (max-width:420px){
+      .modal-card{padding:12px; gap:10px; max-height: calc(100vh - 36px); }
+      .modal-card img{max-height: calc(45vh - 60px)}
+      header.hero{padding:10px}
+      .brand img.logo{width:52px;height:52px}
+      .modal-top-close{width:40px;height:40px; top:8px; right:8px}
+      .delivery-bottom-left{left:12px; bottom:12px; font-size:12px}
+    }
+
     /* Image area: allow scrolling & zooming inside */
     .image-frame{
       border-radius:12px;
@@ -138,6 +150,7 @@
       -webkit-overflow-scrolling:touch;
       position:relative;
     }
+    /* Smooth transitions for main media - fade + slight transform for 'smoothness' */
     .modal-card img,
     .modal-card video,
     .modal-card iframe{
@@ -147,13 +160,20 @@
       object-fit:contain;
       border-radius:10px;
       display:block;
-      transition: transform .22s ease;
+      transition: opacity .32s ease, transform .22s ease;
+      opacity:1;
       cursor: zoom-in;
       user-select:none;
       -webkit-user-drag:none;
       background:transparent !important; /* <-- clave: fondo transparente para PNGs */
       border: 6px solid rgba(255,255,255,0.03);
       box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    }
+    .modal-card img.hidden,
+    .modal-card video.hidden,
+    .modal-card iframe.hidden {
+      opacity:0; transform: scale(0.995);
+      pointer-events: none;
     }
     .modal-card img.zoomed,
     .modal-card iframe.zoomed,
@@ -187,8 +207,9 @@
     }
     .modal-top-close:focus{outline:2px solid rgba(124,58,237,0.25)}
 
-    .thumb-strip{display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; align-items:center}
-    .thumb-strip img, .thumb-strip video{width:72px; height:72px; object-fit:cover; border-radius:8px; cursor:pointer; opacity:.9; border:2px solid transparent; background:transparent !important;}
+    /* Thumbs: make horizontally scrollable on small screens and keep neat on desktop */
+    .thumb-strip{display:flex; gap:10px; margin-top:10px; align-items:center; overflow-x:auto; white-space:nowrap; flex-wrap:nowrap; padding-bottom:6px;}
+    .thumb-strip img, .thumb-strip video{width:72px; height:72px; object-fit:cover; border-radius:8px; cursor:pointer; opacity:.9; border:2px solid transparent; background:transparent !important; display:inline-block; flex:0 0 auto;}
     .thumb-strip img.active, .thumb-strip video.active{border-color:rgba(255,255,255,0.12); opacity:1}
 
     .modal-subtitle{color:var(--accent-1); font-weight:700; margin-top:6px; font-size:15px}
@@ -224,7 +245,7 @@
     body.modal-open{overflow:hidden;}
 
     /* WhatsApp floating */
-    .whatsapp-area{position:fixed; right:18px; bottom:18px; z-index:300; display:flex; gap:8px; flex-direction:column; align-items:flex-end}
+    .whatsapp-area{position:fixed; right:18px; bottom:18px; z-index:300; display:flex; gap:8px; flex-direction:column; align-items:flex-end; transition:opacity .22s ease, transform .22s ease;}
     .phone-large{background:rgba(2,6,23,0.95); color:var(--text); padding:10px 14px; border-radius:12px; font-weight:900; font-size:18px; box-shadow:var(--soft-shadow)}
     .whatsapp-cta{display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:999px; background:linear-gradient(90deg,#25D366,#128C7E); color:white; text-decoration:none; font-weight:900}
 
@@ -247,6 +268,7 @@
       font-size:13px;
       letter-spacing:0.6px;
       text-shadow: 0 2px 12px rgba(2,6,23,0.6);
+      transition:opacity .22s ease, transform .22s ease;
     }
     .delivery-bottom-left .pill{
       background: linear-gradient(90deg,var(--accent-2),var(--accent-1));
@@ -258,13 +280,21 @@
       pointer-events:auto;
     }
 
-    @media (max-width:420px){
-      .modal-card{padding:12px; gap:10px}
-      .modal-card img{max-height: calc(45vh - 60px)}
-      header.hero{padding:10px}
-      .brand img.logo{width:52px;height:52px}
-      .modal-top-close{width:40px;height:40px; top:8px; right:8px}
-      .delivery-bottom-left{left:12px; bottom:12px; font-size:12px}
+    /* Hide Whatsapp + Delivery when modal is open (JS sets body.modal-open) */
+    body.modal-open .whatsapp-area,
+    body.modal-open #deliveryBottom {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      transform: translateY(8px);
+      pointer-events: none !important;
+    }
+
+    /* Mobile-specific tweaks: show full thumb images instead of cropped */
+    @media (max-width:640px){
+      .thumb{height:180px; object-fit:contain;}
+      .modal-card img{max-height: calc(45vh);}
+      .modal-card{max-height: calc(100vh - 48px);}
+      .modal-image-wrap{padding:6px;}
     }
   </style>
 </head>
@@ -365,18 +395,17 @@
   <!-- Delivery text: UNA sola vez, esquina inferior izquierda, no clickable -->
   <div id="deliveryBottom" class="delivery-bottom-left" role="note" aria-hidden="false">
     <div class="pill">ENTREGA A DOMICILIO</div>
-
   </div>
 
   <script>
     /**************************************************************************
      * Cambios aplicados:
-     * - Se eliminan otros botones/textos "ENTREGA A DOMICILIO" y se coloca UNO
-     *   en la esquina inferior izquierda (no clicable).
-     * - Productos mostrados en orden ALEATORIO.
-     * - Búsqueda en tiempo real (debounce) **solo** en título del producto.
-     * - Panel de categorías incluye opción "Todos".
-     * Mantuvimos transparencia PNG, modal, slideshow, música, etc.
+     * - Mejoras de adaptabilidad móvil y prevención de overflow horizontal.
+     * - Thumbs en modal son scrollables horizontalmente en móvil.
+     * - Al abrir el modal, ocultamos WhatsApp y la etiqueta "ENTREGA A DOMICILIO".
+     * - Transiciones suaves (fade) al cambiar imágenes/videos/iframe en el modal.
+     * - En móviles, las thumbnails/miniaturas usan object-fit:contain para mostrar toda la imagen.
+     * - Mantuvimos TODO lo demás del archivo original (datos, estructura, slideshow en tarjetas, música).
      **************************************************************************/
 
     const PLACEHOLDER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
@@ -826,7 +855,7 @@
       const imgEl = cardEl.querySelector('.thumb');
       if(!imgEl) return;
       cardIndices.set(cardEl, 0);
-      imgEl.style.transition = 'opacity 0.45s ease';
+      imgEl.style.transition = 'opacity 0.45s ease, transform .22s ease';
 
       function startCycle(){
         if(cardIntervals.has(cardEl)) return;
@@ -839,7 +868,7 @@
             const newSrc = getMediaPreviewSrc(images[idx]);
             const tmp = new Image();
             tmp.onload = () => { imgEl.src = newSrc; imgEl.style.opacity = '1'; };
-            tmp.onerror = () => { imgEl.src = PLACEHOLDER_SVG; imgEl.style.opacity = '1'; };
+            tmp.onerror = () => { imgEl.src = PLACEHOLDER_SVG; imgEl.style.opacity = '1'; imgEl.style.objectFit='contain'; };
             tmp.src = newSrc;
           }, 280);
         }, SLIDE_INTERVAL);
@@ -878,38 +907,86 @@
       try{ modalVideo.pause(); modalVideo.removeAttribute('src'); modalVideo.load(); }catch(e){}
       modalImage.src = '';
       try{ modalYoutube.src = ''; }catch(e){}
-      modalImage.style.display = 'none';
-      modalVideo.style.display = 'none';
-      modalYoutube.style.display = 'none';
+      // hide all visually with smooth classes
+      [modalImage, modalVideo, modalYoutube].forEach(el => {
+        if(el){ el.classList.add('hidden'); setTimeout(()=>{ try{ el.style.display='none'; }catch(_){} }, 340); }
+      });
+    }
+
+    // Utility: fade-then-set for main media (smooth transitions)
+    function fadeToMedia(type, src){
+      // types: 'image', 'video', 'youtube', '' (empty)
+      // First hide currently visible media
+      const visibles = [modalImage, modalVideo, modalYoutube];
+      visibles.forEach(v => {
+        if(!v) return;
+        v.classList.add('hidden');
+      });
+
+      // after brief delay set up new media then show
+      setTimeout(() => {
+        // hide all (display none), then configure the chosen one
+        try{ modalVideo.pause(); modalVideo.removeAttribute('src'); modalVideo.load(); }catch(e){}
+        modalImage.style.display = 'none'; modalVideo.style.display = 'none'; modalYoutube.style.display = 'none';
+        modalImage.classList.remove('zoomed'); modalVideo.classList.remove('zoomed'); modalYoutube.classList.remove('zoomed');
+
+        if(!type){
+          // show placeholder image
+          modalImage.src = PLACEHOLDER_SVG;
+          modalImage.style.display = 'block';
+          // small timeout to allow CSS transition
+          setTimeout(()=>{ modalImage.classList.remove('hidden'); }, 30);
+          resumeBackgroundMusicAfterVideo();
+          return;
+        }
+
+        if(type === 'youtube'){
+          pauseBackgroundMusicForVideo();
+          modalYoutube.src = src;
+          modalYoutube.style.display = 'block';
+          setTimeout(()=>{ modalYoutube.classList.remove('hidden'); }, 30);
+          return;
+        }
+
+        if(type === 'video'){
+          pauseBackgroundMusicForVideo();
+          modalVideo.src = src;
+          modalVideo.style.display = 'block';
+          modalVideo.currentTime = 0;
+          // try to autoplay muted preview on hover/click? keep controls per original
+          setTimeout(()=>{ modalVideo.classList.remove('hidden'); }, 30);
+          return;
+        }
+
+        // image
+        resumeBackgroundMusicAfterVideo();
+        const tmp = new Image();
+        tmp.onload = () => {
+          modalImage.src = src;
+          modalImage.style.display = 'block';
+          setTimeout(()=>{ modalImage.classList.remove('hidden'); }, 30);
+        };
+        tmp.onerror = () => {
+          modalImage.src = PLACEHOLDER_SVG;
+          modalImage.style.display = 'block';
+          setTimeout(()=>{ modalImage.classList.remove('hidden'); }, 30);
+        };
+        tmp.src = src;
+      }, 260);
     }
 
     function setModalMedia(src){
-      clearAllMedia();
-      if(!src){
-        resumeBackgroundMusicAfterVideo();
-        modalImage.src = PLACEHOLDER_SVG;
-        modalImage.style.display = 'block';
-        return;
-      }
+      if(!src){ fadeToMedia('', ''); return; }
       const ytId = isYouTubeUrl(src);
       if(ytId){
-        pauseBackgroundMusicForVideo();
-        modalYoutube.src = getYouTubeEmbedUrl(ytId);
-        modalYoutube.style.display = 'block';
+        fadeToMedia('youtube', getYouTubeEmbedUrl(ytId));
         return;
       }
       if(isVideoFile(src)){
-        pauseBackgroundMusicForVideo();
-        modalVideo.src = src;
-        modalVideo.style.display = 'block';
-        modalVideo.currentTime = 0;
+        fadeToMedia('video', src);
         return;
       }
-      resumeBackgroundMusicAfterVideo();
-      const tmp = new Image();
-      tmp.onload = () => { modalImage.src = src; modalImage.style.display = 'block'; };
-      tmp.onerror = () => { modalImage.src = PLACEHOLDER_SVG; modalImage.style.display = 'block'; };
-      tmp.src = src;
+      fadeToMedia('image', src);
     }
 
     function openModal(productId){
@@ -979,6 +1056,8 @@
               setModalMedia(src);
               const mc = document.querySelector('.modal-card'); if(mc) mc.scrollTop = 0;
               const mw = document.getElementById('modalImageWrap'); if(mw) mw.scrollTop = 0;
+              // smooth scroll thumbnail into view
+              vid.scrollIntoView({behavior:'smooth', inline:'center'});
             };
             modalThumbs.appendChild(vid);
           } else {
@@ -993,10 +1072,13 @@
               setModalMedia(src);
               const mc = document.querySelector('.modal-card'); if(mc) mc.scrollTop = 0;
               const mw = document.getElementById('modalImageWrap'); if(mw) mw.scrollTop = 0;
+              // ensure clicked thumb becomes visible on small screens
+              im.scrollIntoView({behavior:'smooth', inline:'center'});
             };
             modalThumbs.appendChild(im);
           }
         });
+        // show first media
         setModalMedia(p.images[0]);
       } else {
         setModalMedia('');
@@ -1004,7 +1086,7 @@
 
       modal.classList.add('show');
       modal.setAttribute('aria-hidden','false');
-      document.body.classList.add('modal-open');
+      document.body.classList.add('modal-open'); // <-- this hides whatsapp & delivery via CSS
 
       const mc = document.querySelector('.modal-card'); if(mc){ mc.scrollTop = 0; mc.scrollLeft = 0; }
       const mw = document.getElementById('modalImageWrap'); if(mw){ mw.scrollTop = 0; mw.scrollLeft = 0; }
