@@ -1,0 +1,1121 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ArchiPapu — Catálogo</title>
+  <meta name="description" content="ArchiPapu - Productos de salud y bienestar" />
+  <style>
+    :root{
+      --bg:#031425;
+      --panel: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      --accent-1:#06b6d4;
+      --accent-2:#7c3aed;
+      --muted:#a6b3bd;
+      --text:#e7f2f7;
+      --card-radius:14px;
+      --soft-shadow: 0 10px 30px rgba(2,6,23,0.6);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%; margin:0; background:linear-gradient(180deg,var(--bg) 0%, #071428 60%); color:var(--text); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;}
+    body{line-height:1.45; font-size:16px;}
+
+    /* Header: logo + central search */
+    header.hero{
+      display:flex; align-items:center; gap:18px; padding:16px 20px; position:sticky; top:0; z-index:200;
+      background: rgba(2,6,23,0.6); backdrop-filter: blur(6px); border-bottom:1px solid rgba(255,255,255,0.03);
+    }
+    .brand{display:flex; align-items:center; gap:14px; min-width:220px}
+    .brand img.logo{
+      width:64px; height:64px; border-radius:14px; object-fit:cover; background:linear-gradient(135deg,var(--accent-2),var(--accent-1));
+      box-shadow: var(--soft-shadow);
+    }
+    .site-title{font-size:20px; font-weight:800; margin:0}
+    .site-sub{font-size:13px; color:var(--muted); margin:0;}
+
+    /* Big, clear search bar */
+    .searchbar{flex:1; display:flex; align-items:center; justify-content:center; padding:6px}
+    .search-input{
+      width:100%; max-width:980px; display:flex; gap:8px; align-items:center;
+      background:var(--panel); padding:12px; border-radius:14px; border:1px solid rgba(255,255,255,0.03);
+      box-shadow: 0 6px 18px rgba(2,6,23,0.45);
+    }
+    .search-input input{
+      flex:1; background:transparent; border:0; outline:none; color:var(--text); font-size:18px; padding:8px 12px;
+    }
+    .search-input button{
+      background:linear-gradient(90deg,var(--accent-2),var(--accent-1)); border:0; color:#02181a; padding:10px 14px; border-radius:10px;
+      font-weight:800; cursor:pointer; font-size:15px;
+    }
+
+    /* Layout */
+    .container{display:grid; grid-template-columns:300px 1fr; gap:22px; padding:22px; max-width:1200px; margin:0 auto;}
+    @media (max-width:1000px){ .container{grid-template-columns:1fr; padding:14px;} .sidebar{order:2} .main{order:1} }
+
+    /* Sidebar - simple and large */
+    .sidebar{background:var(--panel); padding:18px; border-radius:12px; box-shadow: var(--soft-shadow)}
+    h4{margin:6px 0 12px; font-size:17px}
+    .category-list{display:flex; flex-direction:column; gap:10px}
+    .category-item{padding:12px 14px; border-radius:12px; cursor:pointer; color:var(--text); display:flex; justify-content:space-between; align-items:center; font-size:16px}
+    .category-item:hover{background:rgba(255,255,255,0.02)}
+    .category-item.active{background:linear-gradient(90deg, rgba(124,58,237,0.08), rgba(6,182,212,0.06)); border:1px solid rgba(124,58,237,0.08)}
+    .subcats{margin-top:12px; display:flex; gap:8px; flex-wrap:wrap}
+    .chip{background:rgba(255,255,255,0.03); padding:8px 12px; border-radius:999px; font-size:14px; cursor:pointer}
+    .chip.active{background:linear-gradient(90deg,var(--accent-1),var(--accent-2)); color:#02181a; font-weight:700}
+
+    /* Main product area */
+    .main{min-height:360px}
+    .filters-row{display:flex; align-items:center; gap:12px; margin-bottom:14px}
+    .badge{background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:999px; color:var(--muted); font-size:14px}
+    .products{display:grid; grid-template-columns:repeat(3,1fr); gap:20px}
+    @media (max-width:1100px){ .products{grid-template-columns:repeat(2,1fr)} }
+    @media (max-width:640px){ .products{grid-template-columns:1fr} }
+
+    /* Product card with larger text for elders */
+    .card{background:var(--panel); padding:14px; border-radius:12px; overflow:hidden; transition:transform .18s ease, box-shadow .18s; border:1px solid rgba(255,255,255,0.02); cursor:pointer; min-height:330px; display:flex; flex-direction:column; justify-content:space-between}
+    .card:hover{transform:translateY(-6px); box-shadow:0 16px 40px rgba(2,6,23,0.65)}
+    /* Card thumbnail: fixed height, cover to keep grid tidy */
+    .thumb{width:100%; height:220px; object-fit:cover; border-radius:10px; display:block; transition:opacity .45s ease; /* fondo transparente para PNGs */ background:transparent !important; }
+    .thumb-video{width:100%; height:220px; object-fit:cover; border-radius:10px; display:block; background:transparent !important;}
+    .p-title{font-weight:800; margin:12px 0 6px; font-size:18px}
+    .p-subtitle{color:var(--accent-1); font-weight:700; margin-bottom:8px; font-size:14px}
+    .p-desc{color:var(--muted); font-size:15px; min-height:54px}
+    .p-meta{color:var(--muted); font-size:14px; margin-top:10px}
+
+    /* Modal: responsive & scrollable - improved for full images */
+    .modal{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding:24px 12px 36px;
+      padding-top:6vh;
+      background:rgba(2,6,23,0.72);
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .18s;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+      z-index:400;
+    }
+    .modal.show{opacity:1; pointer-events:auto}
+    .modal-card{
+      width:min(1100px,98%);
+      background:linear-gradient(180deg,#071428,#061226);
+      border-radius:12px;
+      padding:18px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:16px;
+      box-shadow: 0 18px 48px rgba(0,0,0,0.6);
+      max-height: calc(100vh - 80px);
+      overflow:auto;
+      -webkit-overflow-scrolling:touch;
+      position:relative;
+    }
+    @media (max-width:900px){ .modal-card{grid-template-columns:1fr; padding:14px;} }
+
+    /* Image area: allow scrolling & zooming inside */
+    .image-frame{
+      border-radius:12px;
+      padding:10px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.05);
+      box-shadow: 0 10px 30px rgba(6,30,45,0.45), inset 0 1px 0 rgba(255,255,255,0.015);
+    }
+    .modal-image-wrap{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:auto;
+      background:transparent;
+      border-radius:8px;
+      padding:8px;
+      -webkit-overflow-scrolling:touch;
+      position:relative;
+    }
+    .modal-card img,
+    .modal-card video,
+    .modal-card iframe{
+      max-width:100%;
+      height:auto;
+      max-height: calc(60vh - 80px);
+      object-fit:contain;
+      border-radius:10px;
+      display:block;
+      transition: transform .22s ease;
+      cursor: zoom-in;
+      user-select:none;
+      -webkit-user-drag:none;
+      background:transparent !important; /* <-- clave: fondo transparente para PNGs */
+      border: 6px solid rgba(255,255,255,0.03);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    }
+    .modal-card img.zoomed,
+    .modal-card iframe.zoomed,
+    .modal-card video.zoomed{
+      cursor: zoom-out;
+      transform-origin: center center;
+      max-height: none;
+      max-width: none;
+    }
+
+    .modal-controls{display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-bottom:6px}
+    .control-btn{background:rgba(255,255,255,0.03); border:0; padding:8px 10px; border-radius:8px; color:var(--muted); cursor:pointer}
+
+    /* corner close button */
+    .modal-top-close{
+      position:absolute;
+      top:10px;
+      right:10px;
+      background:linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      border:0;
+      width:44px;
+      height:44px;
+      border-radius:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--muted);
+      font-size:18px;
+      cursor:pointer;
+      box-shadow: 0 8px 20px rgba(2,6,23,0.45);
+    }
+    .modal-top-close:focus{outline:2px solid rgba(124,58,237,0.25)}
+
+    .thumb-strip{display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; align-items:center}
+    .thumb-strip img, .thumb-strip video{width:72px; height:72px; object-fit:cover; border-radius:8px; cursor:pointer; opacity:.9; border:2px solid transparent; background:transparent !important;}
+    .thumb-strip img.active, .thumb-strip video.active{border-color:rgba(255,255,255,0.12); opacity:1}
+
+    .modal-subtitle{color:var(--accent-1); font-weight:700; margin-top:6px; font-size:15px}
+    .modal-details{color:var(--muted); margin-top:12px; font-size:15px; white-space:pre-wrap}
+    .modal-bullets{margin-top:10px; color:var(--muted); font-size:15px; padding-left:18px}
+
+    /* Styled section titles for Beneficios & Contenido */
+    .section-title-beneficios{
+      display:inline-block;
+      padding:8px 12px;
+      border-radius:10px;
+      background: linear-gradient(90deg,#1db95433,#0db67a33);
+      color:#dff7ea;
+      font-weight:800;
+      margin-top:6px;
+      letter-spacing:0.6px;
+      box-shadow: 0 6px 18px rgba(13,182,122,0.08);
+    }
+    .section-title-contenido{
+      display:inline-block;
+      padding:8px 12px;
+      border-radius:10px;
+      background: linear-gradient(90deg,var(--accent-2),var(--accent-1));
+      color:#012427;
+      font-weight:800;
+      margin-top:12px;
+      letter-spacing:0.6px;
+      box-shadow: 0 6px 18px rgba(124,58,237,0.08);
+    }
+
+    .beneficios-list{margin-top:10px; padding-left:18px; color:#e6ffef; font-size:15px; line-height:1.5}
+    .contenido-list{margin-top:8px; padding-left:18px; color:var(--muted); font-size:15px; line-height:1.5}
+    body.modal-open{overflow:hidden;}
+
+    /* WhatsApp floating */
+    .whatsapp-area{position:fixed; right:18px; bottom:18px; z-index:300; display:flex; gap:8px; flex-direction:column; align-items:flex-end}
+    .phone-large{background:rgba(2,6,23,0.95); color:var(--text); padding:10px 14px; border-radius:12px; font-weight:900; font-size:18px; box-shadow:var(--soft-shadow)}
+    .whatsapp-cta{display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:999px; background:linear-gradient(90deg,#25D366,#128C7E); color:white; text-decoration:none; font-weight:900}
+
+    /* Delivery informative text in bottom-left (single text, not clickable) */
+    .delivery-bottom-left{
+      position:fixed;
+      left:18px;
+      bottom:18px;
+      z-index:550;
+      background:transparent;
+      color:#e6f9f8;
+      padding:8px 12px;
+      border-radius:999px;
+      font-weight:800;
+      box-shadow:none;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      pointer-events:none;
+      font-size:13px;
+      letter-spacing:0.6px;
+      text-shadow: 0 2px 12px rgba(2,6,23,0.6);
+    }
+    .delivery-bottom-left .pill{
+      background: linear-gradient(90deg,var(--accent-2),var(--accent-1));
+      color:#02181a;
+      padding:6px 10px;
+      border-radius:999px;
+      font-weight:900;
+      display:inline-block;
+      pointer-events:auto;
+    }
+
+    @media (max-width:420px){
+      .modal-card{padding:12px; gap:10px}
+      .modal-card img{max-height: calc(45vh - 60px)}
+      header.hero{padding:10px}
+      .brand img.logo{width:52px;height:52px}
+      .modal-top-close{width:40px;height:40px; top:8px; right:8px}
+      .delivery-bottom-left{left:12px; bottom:12px; font-size:12px}
+    }
+  </style>
+</head>
+<body>
+  <header class="hero" role="banner">
+    <div class="brand">
+      <img class="logo" id="siteLogo" src="logo-placeholder.png" alt="ArchiPapu logo">
+      <div>
+        <p class="site-title" id="siteTitle">ArchiPapu</p>
+        <p class="site-sub" id="siteLead">Tu espacio de salud y bienestar</p>
+      </div>
+    </div>
+
+    <div class="searchbar" role="search">
+      <div class="search-input" aria-label="Barra de búsqueda">
+        <input id="globalSearch" type="search" placeholder="Buscar por título del producto..." aria-label="Buscar productos">
+        <button id="searchBtn" title="Buscar">Buscar</button>
+      </div>
+    </div>
+
+    <div class="header-right" aria-hidden="true"></div>
+  </header>
+
+  <main class="container" role="main">
+    <aside class="sidebar" aria-label="Filtros y categorías">
+      <div>
+        <h4>Categorías</h4>
+        <div class="category-list" id="categoryList" role="list"></div>
+
+        <div style="margin-top:14px">
+          <h4>Subcategorías</h4>
+          <div class="subcats" id="subcatList" role="list"></div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="main" aria-live="polite">
+      <div class="filters-row" style="align-items:center;">
+        <h3 id="currentFilter">Todos los productos</h3>
+        <div class="spacer"></div>
+        <div class="badge" id="resultsCount">0 resultados</div>
+      </div>
+
+      <div class="products" id="productsGrid" aria-label="Productos disponibles"></div>
+    </section>
+  </main>
+
+  <footer>
+    <small>© <span id="year"></span> ArchiPapu — Demo</small>
+  </footer>
+
+  <!-- Modal de detalle -->
+  <div class="modal" id="productModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <button class="modal-top-close" id="modalClose" aria-label="Cerrar detalles">✕</button>
+
+      <div>
+        <div class="modal-controls" style="margin-top:6px;">
+          <div class="spacer"></div>
+        </div>
+
+        <div class="image-frame">
+          <div class="modal-image-wrap" id="modalImageWrap">
+            <img id="modalImage" src="" alt="Imagen producto" style="display:none;">
+            <video id="modalVideo" controls playsinline style="display:none;"></video>
+            <iframe id="modalYoutube" style="display:none;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+          </div>
+          <div class="thumb-strip" id="modalThumbs" aria-hidden="false"></div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column;">
+        <div style="display:flex; align-items:start; gap:12px;">
+          <div>
+            <h2 id="modalTitle">Título</h2>
+            <div class="modal-subtitle" id="modalSubtitle">Subtítulo</div>
+            <div class="p-meta" id="modalCat">Categoría • Subcategoría</div>
+          </div>
+          <div class="spacer"></div>
+        </div>
+
+        <div id="modalBeneficiosWrap" style="margin-top:12px;"></div>
+        <div id="modalContenidoWrap" style="margin-top:12px;"></div>
+        <div class="modal-details" id="modalDesc" style="display:none">Descripción</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WhatsApp floating area (derecha, permanece) -->
+  <div class="whatsapp-area" aria-hidden="false">
+    <div class="phone-large">922016636</div>
+    <a id="whatsappCta" class="whatsapp-cta" href="https://wa.me/message/Q6ABSBEH2JP4L1" target="_blank" rel="noopener noreferrer">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="width:20px;height:20px"><path fill="white" d="M12.04 2C6.55 2 2 6.53 2 12.01c0 2.12.56 4.09 1.54 5.84L2 22l4.31-1.45A9.96 9.96 0 0012.04 22c5.49 0 10.04-4.53 10.04-9.99C22.08 6.53 17.53 2 12.04 2zm5.2 14.37c-.2.56-1.17 1.08-1.6 1.15-.42.07-.93.1-1.95-.18-3.01-.86-5.02-3.56-5.18-3.74-.15-.18-1.3-1.49-1.3-2.84 0-1.34.7-1.99.95-2.27.25-.28.55-.34.74-.34.19 0 .38 0 .55.01.17.02.41-.07.64.48.23.56.78 1.92.85 2.06.07.14.12.33.03.54-.09.21-.14.34-.28.52-.14.18-.29.4-.42.55-.14.15-.29.28-.13.55.16.27.71 1.15 1.52 1.86 1.04.88 1.9 1.16 2.17 1.29.27.12.43.1.59-.06.16-.16.67-.77.86-1.04.19-.27.38-.22.66-.13.28.09 1.78.83 2.08.98.3.15.5.23.57.36.07.12.07.69-.13 1.25z"/></svg>
+      <span>Contactar</span>
+    </a>
+  </div>
+
+  <!-- Delivery text: UNA sola vez, esquina inferior izquierda, no clickable -->
+  <div id="deliveryBottom" class="delivery-bottom-left" role="note" aria-hidden="false">
+    <div class="pill">ENTREGA A DOMICILIO</div>
+
+  </div>
+
+  <script>
+    /**************************************************************************
+     * Cambios aplicados:
+     * - Se eliminan otros botones/textos "ENTREGA A DOMICILIO" y se coloca UNO
+     *   en la esquina inferior izquierda (no clicable).
+     * - Productos mostrados en orden ALEATORIO.
+     * - Búsqueda en tiempo real (debounce) **solo** en título del producto.
+     * - Panel de categorías incluye opción "Todos".
+     * Mantuvimos transparencia PNG, modal, slideshow, música, etc.
+     **************************************************************************/
+
+    const PLACEHOLDER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">' +
+      '<rect width="100%" height="100%" fill="#071428"/>' +
+      '<text x="50%" y="50%" fill="#6b7280" font-family="Arial,Helvetica,sans-serif" font-size="28" text-anchor="middle" alignment-baseline="middle">Imagen no disponible</text>' +
+      '</svg>'
+    );
+
+    // --- Helpers to detect media type ---
+    function isVideoFile(url){
+      if(!url) return false;
+      const clean = url.split('?')[0].toLowerCase();
+      return /\.(mp4|webm|ogg|mov|m4v)$/.test(clean);
+    }
+    function isYouTubeUrl(url){
+      if(!url) return false;
+      const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([A-Za-z0-9_-]{11})/);
+      return m ? m[1] : false;
+    }
+    function getYouTubeThumbnail(id){ return `https://img.youtube.com/vi/${id}/hqdefault.jpg`; }
+    function getYouTubeEmbedUrl(id){
+      return `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&enablejsapi=1&cc_load_policy=1&cc_lang_pref=es`;
+    }
+    function getMediaPreviewSrc(src){
+      const yt = isYouTubeUrl(src);
+      if(yt) return getYouTubeThumbnail(yt);
+      return src || PLACEHOLDER_SVG;
+    }
+
+    // --- Shuffle helper (Fisher-Yates) ---
+    function shuffleArray(arr){
+      const a = arr.slice();
+      for(let i = a.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    // --- Data: categories, subcats, products (images arrays) ---
+    const DATA = {
+      categories: [
+        {id:'Cosméticos', name:'Cosméticos'},
+        {id:'Nutrición', name:'Nutrición'},
+        {id:'Hogar', name:'Hogar & Bienestar'}
+      ],
+      subcats: {
+        Nutrición: ['Bajar de peso','Más energía','Vitamínas','Digestivo','Nutrición Ligera','Inmunológicos'],
+        Cosméticos: ['Cuidado facial','Maquillaje','Cabello'],
+        Hogar: ['Limpieza','Aromas','Accesorios']
+      },
+      products: [
+        {
+          id:1,
+          title:'Cafezzino',
+          subtitle: 'El equilibrio que estabas esperando. Nada como una taza de café con los mejores ingredientes, como el extracto de café verde, cromo y fibra prebiótica. Comienza tus días con Cafezzino.',
+          desc: 'Caja con 30 sobres. Contenido neto 150 g.',
+          beneficios: [
+            'Suplemento alimenticio con café colombiano.',
+            'Extracto de café verde.',
+            'Cromo',
+            'Fibra prebiótica.',
+            'Sin calorías.',
+            'Endulzantes de origen natural.'
+          ],
+          content: [
+            'Suplemento alimenticio con café colombiano.',
+            'Extracto de café verde.',
+            'Cromo',
+            'Fibra prebiótica.',
+            'Sin calorías.',
+            'Endulzantes de origen natural.',
+            'Sugerencia de consumo: Disfrútalo antes de tus alimentos, como más te guste, frío o caliente.',
+            'Caja con 30 sobres. Contenido neto 150 g.'
+          ],
+          cat:'Nutrición',
+          sub:'Nutrición Ligera',
+          images:[
+            'Cafezzino_OMNILIFE_5105932.png',
+            'Cafezzino_OMNILIFE_consumo.png',
+            'Cafezzino_OMNILIFE_mezclado_caja.png',
+            'Cafezzino_OMNILIFE_Tabla_nutrimental.jpg'
+          ]
+        },
+        {
+          id:2,
+          title:'Omnilife Probiotic',
+          subtitle: 'Añade probióticos y prebióticos a tu rutina y descubre la mejor nutrición con Omnilife Probiotic con un delicioso sabor limón-arándano.',
+          desc: 'Caja con 30 sobres. Contenido neto 150 g.',
+          beneficios: [
+            'Ayuda a eliminar la gastritis helycobacter.',
+            'Enfocado ayudar a mejorar la digestión y sistema inmunológico.',
+            'Promueve el equilibrio de la flora intestinal.',
+            'Disminuye la inflamación intestinal, el dolor.',
+            'Mejora el estreñimiento.',
+            'Eliminan bacterias.'
+          ],
+          content: [
+            'Suplemento alimenticio sabor limón-arándano.',
+            '1 billón de probióticos bacillus coagulans.',
+            'Fibra prebiótica.',
+            'Extracto de té blanco.',
+            'Vitamina B12.',
+            'Minerales.',
+            'Sin azúcar.',
+            'Sin calorías.',
+            'Endulzantes de origen natural.',
+          ],
+          cat:'Nutrición',
+          sub:'Digestivo',
+          images:[
+            'Probiotic_OMNILIFE_6724761.png',
+            'Probiotic_OMNILIFE_caja_sobre.png',
+            'Probiotic_OMNILIFE_Tabla_nutrimental.jpg',
+          ]
+        },
+        {
+          id:3,
+          title:'Omniplus',
+          subtitle: 'Las vitaminas y los minerales son nutrimentos importantes para el organismo, debido a que pueden promover su desarrollo, funcionamiento y mantenimiento.',
+          desc: 'Caja con 30 sobres 600 ml',
+          beneficios: [
+            'Aumenta las defensas/ hemoglobina.',
+            'Detiene la anemia.',
+            'Infecciones – Antibióticonatural',
+            'Desinflama el cuerpo.',
+            'Refuerza el Sistema Inmunológico',
+            'Refuerza el Sistema Respiratorio',
+            'Previene y mejora alergias, asma y bronquitis.'
+          ],
+          content: [
+            'Mezcla líquida, sabor frutas, que contiene vitaminas, minerales, concentrados, extracto de fruto del monje y glicósidos de esteviol, endulzantes de origen natural.',
+            'Vitamina A, B1,B2, B3, B5, B6, B12, C, D y E.',
+            'Biotina',
+            'Minerales calcio, zinc, magnesio, cobre, cromo, manganeso y selenio',
+            'Fruto del monje',
+          ],
+          cat:'Nutrición',
+          sub:'Inmunológicos',
+          images:[
+            '2350430.png',
+          ]
+        },
+        {
+          id:4,
+          title:'Acondicionador Revitalizante',
+          subtitle: 'Keratina para fuerza y brillo',
+          desc: 'Acondicionador enriquecido con keratina que repara la fibra capilar y deja el cabello sedoso.',
+          content: [
+            'Refuerza la estructura del cabello.',
+            'Reduce el quiebre y aporta brillo.',
+            'Apto para uso frecuente.'
+          ],
+          cat:'belleza',
+          sub:'Cabello',
+          images:[
+            'https://picsum.photos/seed/conditioner1/1000/800',
+            'https://picsum.photos/seed/conditioner2/1000/800'
+          ]
+        },
+        {
+          id:5,
+          title:'Difusor Aromas',
+          subtitle: 'Ambiente relajante instantáneo',
+          desc: 'Difusor ultrasónico con luz LED y temporizador para crear ambientes tranquilos en casa u oficina.',
+          content: [
+            'Tecnología ultrasónica silenciosa.',
+            'Capacidad 300ml, apagado automático cuando se agota el agua.',
+            'Incluye adaptador y manual.'
+          ],
+          cat:'hogar',
+          sub:'Aromas',
+          images:[
+            'https://picsum.photos/seed/diffuser1/1000/800',
+            'https://picsum.photos/seed/diffuser2/1000/800',
+            'https://picsum.photos/seed/diffuser3/1000/800'
+          ]
+        },
+        {
+          id:6,
+          title:'Multivitamínico Diario',
+          subtitle: 'Complejo esencial 1 al día',
+          desc: 'Multivitamínico diseñado para cubrir necesidades diarias clave: vitaminas, minerales y cofactores.',
+          content: [
+            'Vitaminas A, C, D, E, complejo B.',
+            'Minerales: hierro, zinc, magnesio.',
+            'Presentación: frasco 60 cápsulas.'
+          ],
+          cat:'salud',
+          sub:'Vitamínas',
+          images:[
+            'https://picsum.photos/seed/multi1/1000/800',
+            'https://picsum.photos/seed/multi2/1000/800'
+          ]
+        },
+        {
+          id:7,
+          title:'Mascarilla Arcilla',
+          subtitle: 'Purificación profunda',
+          desc: 'Mascarilla de arcilla para limpiar poros y equilibrar piel con tendencia a grasa.',
+          content: [
+            'Elimina impurezas sin resecar.',
+            'Extractos calmantes de aloe vera.',
+            'Usar 1-2 veces por semana.'
+          ],
+          cat:'belleza',
+          sub:'Cuidado facial',
+          images:[
+            'https://picsum.photos/seed/mask1/1000/800',
+            'https://picsum.photos/seed/mask2/1000/800'
+          ]
+        },
+        {
+          id:8,
+          title:'Set limpieza hogar',
+          subtitle: 'Kit esencial de limpieza',
+          desc: 'Juego con 3 productos para limpieza diaria del hogar: concentrado, limpiador multiusos y paño microfibra.',
+          content: [
+            'Concentrado económico y biodegradable.',
+            'Instrucciones de uso y dosificación incluidas.',
+            'Ideal para familias.'
+          ],
+          cat:'hogar',
+          sub:'Limpieza',
+          images:[
+            'https://picsum.photos/seed/clean1/1000/800',
+            'https://picsum.photos/seed/clean2/1000/800',
+            'https://picsum.photos/seed/clean3/1000/800'
+          ]
+        }
+      ]
+    };
+
+    // --- State & slideshow config ---
+    let state = { cat:null, sub:null, query:'', filtered:[] };
+    const cardIntervals = new Map();
+    const cardIndices = new Map();
+    const SLIDE_INTERVAL = 1400; // ms
+
+    // --- Music playlist (background only) ---
+    const musicTracks = [
+      {title:'Calm Intro', url:'m1.mp3'},
+      {title:'Soft Rhythm', url:'m2.mp3'},
+      {title:'Gentle Waves', url:'m3.mp3'},
+      {title:'Acoustic Flow', url:'m4.mp3'},
+      {title:'Ambient Night', url:'m5.mp3'},
+      {title:'Morning Breeze', url:'m6.mp3'},
+      {title:'LoFi Focus', url:'m7.mp3'},
+      {title:'Chill Outro', url:'m8.mp3'}
+    ];
+    let audio = new Audio();
+    audio.preload = 'auto';
+    audio.loop = false;
+    audio.volume = 0.6;
+    let musicStarted = false;
+    let currentTrackIdx = 0;
+    let pausedBackgroundByVideo = false;
+    let backgroundWasPlayingBeforeVideo = false;
+    let backgroundOriginalVolume = 0.6;
+    let fadeTimer = null;
+
+    function playTrackAt(index){
+      if(index < 0 || index >= musicTracks.length) index = 0;
+      currentTrackIdx = index;
+      audio.src = musicTracks[index].url;
+      audio.load();
+      backgroundOriginalVolume = audio.volume;
+      audio.play().catch(()=>{});
+    }
+    function startPlaylistRandomFirst(){
+      if(musicStarted) return;
+      musicStarted = true;
+      const r = Math.floor(Math.random() * musicTracks.length);
+      playTrackAt(r);
+    }
+    audio.addEventListener('ended', () => {
+      currentTrackIdx = (currentTrackIdx + 1) % musicTracks.length;
+      playTrackAt(currentTrackIdx);
+    });
+    document.addEventListener('click', function startMusicOnce(){
+      if(musicStarted) return;
+      startPlaylistRandomFirst();
+    }, {once:true, capture:true});
+
+    function clearFade(){ if(fadeTimer){ clearInterval(fadeTimer); fadeTimer = null; } }
+    function fadeOutBackground(duration = 600){
+      return new Promise((resolve) => {
+        try{
+          clearFade();
+          if(!audio) return resolve();
+          const startVol = parseFloat((audio.volume || 0).toFixed(3));
+          if(startVol <= 0.0001){ audio.volume = 0; return resolve(); }
+          const stepMs = 60;
+          const steps = Math.max(1, Math.round(duration / stepMs));
+          const delta = startVol / steps;
+          let currentStep = 0;
+          fadeTimer = setInterval(() => {
+            currentStep++;
+            const newVol = Math.max(0, startVol - delta * currentStep);
+            audio.volume = parseFloat(newVol.toFixed(3));
+            if(currentStep >= steps){
+              clearFade();
+              audio.volume = 0;
+              resolve();
+            }
+          }, stepMs);
+        }catch(e){ clearFade(); resolve(); }
+      });
+    }
+    function fadeInBackground(targetVol = 0.6, duration = 600){
+      return new Promise((resolve) => {
+        try{
+          clearFade();
+          if(!audio) return resolve();
+          const stepMs = 60;
+          const steps = Math.max(1, Math.round(duration / stepMs));
+          const startVol = parseFloat((audio.volume || 0).toFixed(3));
+          const delta = (targetVol - startVol) / steps;
+          let currentStep = 0;
+          fadeTimer = setInterval(() => {
+            currentStep++;
+            let newVol = startVol + delta * currentStep;
+            newVol = Math.min(targetVol, Math.max(0, newVol));
+            audio.volume = parseFloat(newVol.toFixed(3));
+            if(currentStep >= steps){
+              clearFade();
+              audio.volume = parseFloat(targetVol.toFixed(3));
+              resolve();
+            }
+          }, stepMs);
+        }catch(e){ clearFade(); resolve(); }
+      });
+    }
+
+    async function pauseBackgroundMusicForVideo(){
+      try{
+        if(!audio) return;
+        if(!audio.paused){
+          backgroundWasPlayingBeforeVideo = true;
+          backgroundOriginalVolume = audio.volume || 0.6;
+          await fadeOutBackground(600);
+          try{ audio.pause(); }catch(e){}
+          pausedBackgroundByVideo = true;
+        } else {
+          backgroundWasPlayingBeforeVideo = false;
+          pausedBackgroundByVideo = false;
+        }
+      }catch(e){
+        backgroundWasPlayingBeforeVideo = false;
+        pausedBackgroundByVideo = false;
+      }
+    }
+    async function resumeBackgroundMusicAfterVideo(){
+      try{
+        if(pausedBackgroundByVideo && backgroundWasPlayingBeforeVideo){
+          try{
+            audio.volume = 0;
+            const playPromise = audio.play();
+            if(playPromise && typeof playPromise.then === 'function'){
+              await playPromise.catch(()=>{});
+            }
+            await fadeInBackground(backgroundOriginalVolume, 600);
+          }catch(e){}
+        }
+      }catch(e){}
+      pausedBackgroundByVideo = false;
+      backgroundWasPlayingBeforeVideo = false;
+    }
+
+    // --- DOM helpers ---
+    const $ = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+
+    // --- Render categories & subcats & products ---
+    function renderCategories(){
+      const wrap = $('#categoryList'); wrap.innerHTML = '';
+      // add explicit "Todos" opción al inicio
+      const allDiv = document.createElement('div');
+      allDiv.className = 'category-item' + (state.cat === null ? ' active' : '');
+      allDiv.innerHTML = `<span>Todos</span><small class="small">›</small>`;
+      allDiv.onclick = () => { state.cat = null; state.sub = null; applyFilters(); renderCategories(); renderSubcats(); };
+      wrap.appendChild(allDiv);
+
+      DATA.categories.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'category-item' + (state.cat === c.id ? ' active' : '');
+        div.innerHTML = `<span>${c.name}</span><small class="small">›</small>`;
+        div.onclick = () => { state.cat = (state.cat === c.id ? null : c.id); state.sub = null; applyFilters(); renderCategories(); renderSubcats(); };
+        wrap.appendChild(div);
+      });
+    }
+
+    function renderSubcats(){
+      const wrap = $('#subcatList'); wrap.innerHTML = '';
+      if(!state.cat){ wrap.innerHTML = '<div class="small" style="color:var(--muted)">Selecciona una categoría</div>'; return; }
+      const subs = DATA.subcats[state.cat] || [];
+      subs.forEach(s => {
+        const chip = document.createElement('div');
+        chip.className = 'chip' + (state.sub === s ? ' active' : '');
+        chip.textContent = s;
+        chip.onclick = () => { state.sub = (state.sub === s ? null : s); applyFilters(); renderSubcats(); };
+        wrap.appendChild(chip);
+      });
+    }
+
+    function renderProducts(items){
+      const grid = $('#productsGrid'); grid.innerHTML = '';
+      items.forEach(p => {
+        const card = document.createElement('article'); card.className = 'card'; card.dataset.productId = p.id;
+        const firstMedia = p.images && p.images.length ? p.images[0] : '';
+        const snippet = (p.content && p.content.length) ? p.content[0] : (p.desc || '');
+
+        let thumbHtml = '';
+        if(isYouTubeUrl(firstMedia)){
+          const ytId = isYouTubeUrl(firstMedia);
+          thumbHtml = `<img loading="lazy" class="thumb" src="${getYouTubeThumbnail(ytId)}" alt="${escapeHtml(p.title)}">`;
+        } else if (isVideoFile(firstMedia)){
+          thumbHtml = `<img loading="lazy" class="thumb" src="${getMediaPreviewSrc(firstMedia)}" alt="${escapeHtml(p.title)}">`;
+        } else {
+          thumbHtml = `<img loading="lazy" class="thumb" src="${firstMedia}" alt="${escapeHtml(p.title)}">`;
+        }
+
+        card.innerHTML = `
+          ${thumbHtml}
+          <div>
+            <div class="p-title">${escapeHtml(p.title)}</div>
+            ${p.subtitle ? `<div class="p-subtitle">${escapeHtml(p.subtitle)}</div>` : ''}
+            <div class="p-desc">${escapeHtml(snippet)}</div>
+          </div>
+          <div class="p-meta">${escapeHtml(p.cat)} • ${escapeHtml(p.sub)}</div>
+        `;
+
+        const thumbImg = card.querySelector('.thumb');
+        if(thumbImg) thumbImg.onerror = () => { thumbImg.src = PLACEHOLDER_SVG; thumbImg.style.objectFit = 'contain'; };
+
+        attachHoverSlideshow(card, p.images);
+        card.addEventListener('click', (e) => { openModal(p.id); });
+        grid.appendChild(card);
+      });
+      $('#resultsCount').textContent = `${items.length} resultado${items.length!==1 ? 's' : ''}`;
+    }
+
+    // --- Slideshow for cards ---
+    function attachHoverSlideshow(cardEl, images){
+      if(!images || images.length <= 1) return;
+      const imgEl = cardEl.querySelector('.thumb');
+      if(!imgEl) return;
+      cardIndices.set(cardEl, 0);
+      imgEl.style.transition = 'opacity 0.45s ease';
+
+      function startCycle(){
+        if(cardIntervals.has(cardEl)) return;
+        const id = setInterval(() => {
+          imgEl.style.opacity = '0';
+          setTimeout(() => {
+            let idx = (cardIndices.get(cardEl) || 0) + 1;
+            if(idx >= images.length) idx = 0;
+            cardIndices.set(cardEl, idx);
+            const newSrc = getMediaPreviewSrc(images[idx]);
+            const tmp = new Image();
+            tmp.onload = () => { imgEl.src = newSrc; imgEl.style.opacity = '1'; };
+            tmp.onerror = () => { imgEl.src = PLACEHOLDER_SVG; imgEl.style.opacity = '1'; };
+            tmp.src = newSrc;
+          }, 280);
+        }, SLIDE_INTERVAL);
+        cardIntervals.set(cardEl, id);
+      }
+
+      function stopCycle(){
+        const id = cardIntervals.get(cardEl);
+        if(id){ clearInterval(id); cardIntervals.delete(cardEl); }
+        const first = getMediaPreviewSrc(images[0]);
+        const tmp = new Image();
+        tmp.onload = () => { imgEl.style.opacity = '0'; setTimeout(()=>{ imgEl.src = first; imgEl.style.opacity = '1'; }, 160); };
+        tmp.onerror = () => { imgEl.style.opacity = '0'; setTimeout(()=>{ imgEl.src = PLACEHOLDER_SVG; imgEl.style.objectFit='contain'; imgEl.style.opacity = '1'; }, 160); };
+        tmp.src = first;
+        cardIndices.set(cardEl, 0);
+      }
+
+      cardEl.addEventListener('mouseenter', () => { startCycle(); });
+      cardEl.addEventListener('mouseleave', () => { stopCycle(); });
+
+      let touchStarted = false;
+      cardEl.addEventListener('touchstart', () => { touchStarted = true; }, {passive:true});
+      cardEl.addEventListener('touchmove', () => { if(!touchStarted) touchStarted = true; startCycle(); }, {passive:true});
+      cardEl.addEventListener('touchend', () => { touchStarted = false; stopCycle(); }, {passive:true});
+      cardEl.addEventListener('touchcancel', () => { touchStarted = false; stopCycle(); }, {passive:true});
+    }
+
+    // --- Modal handling ---
+    const modal = $('#productModal');
+    const modalImage = $('#modalImage');
+    const modalVideo = $('#modalVideo');
+    const modalYoutube = $('#modalYoutube');
+    const modalThumbs = $('#modalThumbs');
+
+    function clearAllMedia(){
+      try{ modalVideo.pause(); modalVideo.removeAttribute('src'); modalVideo.load(); }catch(e){}
+      modalImage.src = '';
+      try{ modalYoutube.src = ''; }catch(e){}
+      modalImage.style.display = 'none';
+      modalVideo.style.display = 'none';
+      modalYoutube.style.display = 'none';
+    }
+
+    function setModalMedia(src){
+      clearAllMedia();
+      if(!src){
+        resumeBackgroundMusicAfterVideo();
+        modalImage.src = PLACEHOLDER_SVG;
+        modalImage.style.display = 'block';
+        return;
+      }
+      const ytId = isYouTubeUrl(src);
+      if(ytId){
+        pauseBackgroundMusicForVideo();
+        modalYoutube.src = getYouTubeEmbedUrl(ytId);
+        modalYoutube.style.display = 'block';
+        return;
+      }
+      if(isVideoFile(src)){
+        pauseBackgroundMusicForVideo();
+        modalVideo.src = src;
+        modalVideo.style.display = 'block';
+        modalVideo.currentTime = 0;
+        return;
+      }
+      resumeBackgroundMusicAfterVideo();
+      const tmp = new Image();
+      tmp.onload = () => { modalImage.src = src; modalImage.style.display = 'block'; };
+      tmp.onerror = () => { modalImage.src = PLACEHOLDER_SVG; modalImage.style.display = 'block'; };
+      tmp.src = src;
+    }
+
+    function openModal(productId){
+      const p = DATA.products.find(x => x.id === productId); if(!p) return;
+
+      $('#modalTitle').textContent = p.title;
+      $('#modalSubtitle').textContent = p.subtitle || '';
+      $('#modalCat').textContent = `${p.cat} • ${p.sub}`;
+      $('#modalDesc').style.display = p.desc ? 'block' : 'none';
+      $('#modalDesc').textContent = p.desc || '';
+
+      const beneficiosWrap = $('#modalBeneficiosWrap');
+      beneficiosWrap.innerHTML = '';
+      if(p.beneficios && Array.isArray(p.beneficios) && p.beneficios.length){
+        const title = document.createElement('div');
+        title.className = 'section-title-beneficios';
+        title.textContent = 'BENEFICIOS:';
+        beneficiosWrap.appendChild(title);
+
+        const ul = document.createElement('ul');
+        ul.className = 'beneficios-list';
+        p.beneficios.forEach(b => {
+          const li = document.createElement('li');
+          li.textContent = b;
+          ul.appendChild(li);
+        });
+        beneficiosWrap.appendChild(ul);
+      }
+
+      const contenidoWrap = $('#modalContenidoWrap');
+      contenidoWrap.innerHTML = '';
+      const titleC = document.createElement('div');
+      titleC.className = 'section-title-contenido';
+      titleC.textContent = 'Contenido:';
+      contenidoWrap.appendChild(titleC);
+
+      const contenidoList = document.createElement('ul');
+      contenidoList.className = 'contenido-list';
+      if(p.content && Array.isArray(p.content) && p.content.length){
+        p.content.forEach(c => {
+          const li = document.createElement('li');
+          li.textContent = c;
+          contenidoList.appendChild(li);
+        });
+      } else if(p.desc){
+        const li = document.createElement('li');
+        li.textContent = p.desc;
+        contenidoList.appendChild(li);
+      }
+      contenidoWrap.appendChild(contenidoList);
+
+      modalThumbs.innerHTML = '';
+      if(p.images && p.images.length){
+        p.images.forEach((src, i) => {
+          if(isVideoFile(src)){
+            const vid = document.createElement('video');
+            vid.src = src;
+            vid.muted = true;
+            vid.loop = true;
+            vid.playsInline = true;
+            vid.addEventListener('mouseenter', () => vid.play().catch(()=>{}));
+            vid.addEventListener('mouseleave', () => { vid.pause(); vid.currentTime = 0; });
+            if(i === 0) vid.classList.add('active');
+            vid.onclick = () => {
+              $$('#modalThumbs img, #modalThumbs video').forEach(x => x.classList.remove('active'));
+              vid.classList.add('active');
+              setModalMedia(src);
+              const mc = document.querySelector('.modal-card'); if(mc) mc.scrollTop = 0;
+              const mw = document.getElementById('modalImageWrap'); if(mw) mw.scrollTop = 0;
+            };
+            modalThumbs.appendChild(vid);
+          } else {
+            const im = document.createElement('img');
+            im.src = getMediaPreviewSrc(src);
+            im.alt = `${p.title} ${i+1}`;
+            im.addEventListener('error', ()=> { im.src = PLACEHOLDER_SVG; im.style.objectFit='contain'; });
+            if(i === 0) im.classList.add('active');
+            im.onclick = () => {
+              $$('#modalThumbs img, #modalThumbs video').forEach(x => x.classList.remove('active'));
+              im.classList.add('active');
+              setModalMedia(src);
+              const mc = document.querySelector('.modal-card'); if(mc) mc.scrollTop = 0;
+              const mw = document.getElementById('modalImageWrap'); if(mw) mw.scrollTop = 0;
+            };
+            modalThumbs.appendChild(im);
+          }
+        });
+        setModalMedia(p.images[0]);
+      } else {
+        setModalMedia('');
+      }
+
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden','false');
+      document.body.classList.add('modal-open');
+
+      const mc = document.querySelector('.modal-card'); if(mc){ mc.scrollTop = 0; mc.scrollLeft = 0; }
+      const mw = document.getElementById('modalImageWrap'); if(mw){ mw.scrollTop = 0; mw.scrollLeft = 0; }
+      modalImage.classList.remove('zoomed'); modalVideo.classList.remove('zoomed'); modalYoutube.classList.remove('zoomed');
+
+      setTimeout(()=>{ $('#modalClose').focus(); }, 150);
+    }
+
+    function closeModal(){
+      try{ modalVideo.pause(); modalVideo.removeAttribute('src'); modalVideo.load(); }catch(e){}
+      try{ modalYoutube.src = ''; }catch(e){}
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden','true');
+      document.body.classList.remove('modal-open');
+      modalImage.src = '';
+      modalThumbs.innerHTML = '';
+      resumeBackgroundMusicAfterVideo();
+    }
+
+    modalImage.addEventListener('click', (e) => {
+      if(!modalImage.src) return;
+      const isZoomed = modalImage.classList.toggle('zoomed');
+      const wrap = $('#modalImageWrap');
+      if(!isZoomed) { wrap.scrollTo({ top: 0, left: 0, behavior: 'smooth' }); }
+    });
+
+    modalVideo.addEventListener('click', (e) => {
+      if(!modalVideo.src) return;
+      if(modalVideo.paused) modalVideo.play().catch(()=>{});
+      else modalVideo.pause();
+    });
+
+    modal.addEventListener('click', (e) => {
+      if(e.target && e.target.id === 'productModal') closeModal();
+    });
+
+    document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeModal(); });
+    $('#modalClose').onclick = closeModal;
+
+    // --- Search & filters: search ONLY in title, results in RANDOM order ---
+    function applyFilters(){
+      const q = state.query.trim().toLowerCase();
+      let items = DATA.products.filter(p => {
+        if(state.cat && p.cat !== state.cat) return false;
+        if(state.sub && p.sub !== state.sub) return false;
+        return true;
+      });
+
+      if(q){
+        // filter only by title (case-insensitive)
+        items = items.filter(p => (p.title || '').toLowerCase().includes(q));
+      }
+
+      // Shuffle results to show in random order
+      items = shuffleArray(items);
+
+      state.filtered = items;
+      $('#currentFilter').textContent = state.cat ? (state.cat + (state.sub ? ' > ' + state.sub : '')) : 'Todos los productos';
+      renderProducts(items);
+    }
+
+    // Debounce helper
+    function debounce(fn, wait=250){
+      let t = null;
+      return function(...args){
+        if(t) clearTimeout(t);
+        t = setTimeout(()=> { fn.apply(this, args); t = null; }, wait);
+      };
+    }
+
+    function escapeHtml(str){ return String(str || '').replace(/[&<>\"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m])); }
+
+    // keep existing behavior for Enter and button (search only title)
+    document.getElementById('searchBtn').onclick = () => { state.query = $('#globalSearch').value; applyFilters(); };
+    document.getElementById('globalSearch').addEventListener('keydown', (e) => { if(e.key === 'Enter'){ state.query = $('#globalSearch').value; applyFilters(); } });
+
+    // live search while typing (debounced), searching only in title
+    $('#globalSearch').addEventListener('input', debounce((e) => {
+      state.query = e.target.value;
+      applyFilters();
+    }, 200));
+
+    // init
+    function init(){
+      $('#year').textContent = new Date().getFullYear();
+      renderCategories();
+      renderSubcats();
+      // show all products in random order at first load
+      state.filtered = shuffleArray(DATA.products.slice());
+      renderProducts(state.filtered);
+
+      // Delivery bottom-left is non-clickable as requested (pointer-events none in CSS)
+      const delivery = document.getElementById('deliveryBottom');
+      if(delivery){
+        // no click behavior intentionally
+      }
+    }
+    init();
+
+    // expose for debugging
+    window._archi = {
+      DATA,
+      state,
+      applyFilters,
+      openModal,
+      closeModal,
+      isYouTubeUrl,
+      shuffleArray,
+      pauseBackgroundMusicForVideo,
+      resumeBackgroundMusicAfterVideo
+    };
+  </script>
+</body>
+</html>
