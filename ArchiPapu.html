@@ -79,7 +79,7 @@
     .card{background:var(--panel); padding:14px; border-radius:12px; overflow:hidden; transition:transform .18s ease, box-shadow .18s; border:1px solid rgba(255,255,255,0.02); cursor:pointer; min-height:330px; display:flex; flex-direction:column; justify-content:space-between}
     .card:hover{transform:translateY(-6px); box-shadow:0 16px 40px rgba(2,6,23,0.65)}
     /* Card thumbnail: fixed height on desktop, more flexible on mobile */
-    .thumb{width:100%; height:220px; object-fit:cover; border-radius:10px; display:block; transition:opacity .45s ease, transform .22s ease; background:transparent !important; }
+    .thumb{width:100%; height:220px; object-fit:cover; border-radius:10px; display:block; transition:opacity .45s ease; background:transparent !important; }
     .thumb-video{width:100%; height:220px; object-fit:cover; border-radius:10px; display:block; background:transparent !important;}
     .p-title{font-weight:800; margin:12px 0 6px; font-size:18px}
     .p-subtitle{color:var(--accent-1); font-weight:700; margin-bottom:8px; font-size:14px}
@@ -150,7 +150,7 @@
       -webkit-overflow-scrolling:touch;
       position:relative;
     }
-    /* Smooth transitions for main media - fade only (REMOVED transform to avoid 'movement') */
+    /* Smooth transitions for main media - fade only (avoid movement) */
     .modal-card img,
     .modal-card video,
     .modal-card iframe{
@@ -160,17 +160,15 @@
       object-fit:contain;
       border-radius:10px;
       display:block;
-      /* Solo transición de opacidad para evitar movimientos/transform */
       transition: opacity .32s ease;
       opacity:1;
       cursor: zoom-in;
       user-select:none;
       -webkit-user-drag:none;
-      background:transparent !important; /* <-- clave: fondo transparente para PNGs */
+      background:transparent !important;
       border: 6px solid rgba(255,255,255,0.03);
       box-shadow: 0 8px 30px rgba(0,0,0,0.5);
     }
-    /* Eliminada la escala/transform en la clase hidden para que NO "se mueva" al cambiar imágenes */
     .modal-card img.hidden,
     .modal-card video.hidden,
     .modal-card iframe.hidden {
@@ -187,7 +185,7 @@
     }
 
     .modal-controls{display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-bottom:6px}
-    .control-btn{background:rgba(255,255,255,0.03); border:0; padding:8px 10px; border-radius:8px; color:var(--muted); cursor:pointer}
+    .control-btn{background:rgba(255,255,255,0.03); border:0; padding:8px 10px; border-radius:8px; color:var(--muted); cursor:pointer; text-decoration:none; font-weight:700}
 
     /* corner close button */
     .modal-top-close{
@@ -253,7 +251,7 @@
 
     /* Delivery informative text in bottom-left (single text, not clickable) */
     .delivery-bottom-left{
-      position:fixed;
+      position:Fixed;
       left:18px;
       bottom:18px;
       z-index:550;
@@ -356,6 +354,8 @@
       <div>
         <div class="modal-controls" style="margin-top:6px;">
           <div class="spacer"></div>
+          <!-- Botón "Me interesa" -->
+          <a id="modalInterestBtn" class="control-btn" href="#" target="_blank" rel="noopener noreferrer">Me interesa</a>
         </div>
 
         <div class="image-frame">
@@ -388,8 +388,8 @@
   <!-- WhatsApp floating area (derecha, permanece) -->
   <div class="whatsapp-area" aria-hidden="false">
     <div class="phone-large">922016636</div>
-    <a id="whatsappCta" class="whatsapp-cta" href="https://wa.me/message/Q6ABSBEH2JP4L1" target="_blank" rel="noopener noreferrer">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="width:20px;height:20px"><path fill="white" d="M12.04 2C6.55 2 2 6.53 2 12.01c0 2.12.56 4.09 1.54 5.84L2 22l4.31-1.45A9.96 9.96 0 0012.04 22c5.49 0 10.04-4.53 10.04-9.99C22.08 6.53 17.53 2 12.04 2zm5.2 14.37c-.2.56-1.17 1.08-1.6 1.15-.42.07-.93.1-1.95-.18-3.01-.86-5.02-3.56-5.18-3.74-.15-.18-1.3-1.49-1.3-2.84 0-1.34.7-1.99.95-2.27.25-.28.55-.34.74-.34.19 0 .38 0 .55.01.17.02.41-.07.64.48.23.56.78 1.92.85 2.06.07.14.12.33.03.54-.09.21-.14.34-.28.52-.14.18-.29.4-.42.55-.14.15-.29.28-.13.55.16.27.71 1.15 1.52 1.86 1.04.88 1.9 1.16 2.17 1.29.27.12.43.1.59-.06.16-.16.67-.77.86-1.04.19-.27.38-.22.66-.13.28.09 1.78.83 2.08.98.3.15.5.23.57.36.07.12.07.69-.13 1.25z"/></svg>
+    <a id="whatsappCta" class="whatsapp-cta" href="https://wa.me/message/Q6ABSBEH2JP4L1?autoload=1&app_absent=0" target="_blank" rel="noopener noreferrer">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="width:20px;height:20px"><path fill="white" d="M12.04 2C6.55 2 2 6.53 2 12.01c0 2.12.56 4.09 1.54 5.84L2 22l4.31-1.45A9.96 9.96 0 0012.04 22c5.49 0 10.04-4.53 10.04-9.99C22.08 6.53 17.53 2 12.04 2zm5.2 14.37c-.2.56-1.17 1.08-1.6 1.15-.42.07-.93.10-1.95-.18-3.01-.86-5.02-3.56-5.18-3.74-.15-.18-1.3-1.49-1.3-2.84 0-1.34.7-1.99.95-2.27.25-.28.55-.34.74-.34.19 0 .38 0 .55.01.17.02.41-.07.64.48.23.56.78 1.92.85 2.06.07.14.12.33.03.54-.09.21-.14.34-.28.52-.14.18-.29.4-.42.55-.14.15-.29.28-.13.55.16.27.71 1.15 1.52 1.86 1.04.88 1.9 1.16 2.17 1.29.27.12.43.1.59-.06.16-.16.67-.77.86-1.04.19-.27.38-.22.66-.13.28.09 1.78.83 2.08.98.3.15.5.23.57.36.07.12.07.69-.13 1.25z"/></svg>
       <span>Contactar</span>
     </a>
   </div>
@@ -401,16 +401,8 @@
 
   <script>
     /**************************************************************************
-     * Cambios aplicados:
-     * - Mejoras de adaptabilidad móvil y prevención de overflow horizontal.
-     * - Thumbs en modal son scrollables horizontalmente en móvil.
-     * - Al abrir el modal, ocultamos WhatsApp y la etiqueta "ENTREGA A DOMICILIO".
-     * - Transiciones suaves (fade) al cambiar imágenes/videos/iframe en el modal.
-     * - En móviles, las thumbnails/miniaturas usan object-fit:contain para mostrar toda la imagen.
-     * - Mantuvimos TODO lo demás del archivo original (datos, estructura, slideshow en tarjetas, música).
-     *
-     * CAMBIO ESPECÍFICO AHORA: He quitado la transición/transform que causaba el movimiento
-     * en las imágenes del modal al cambiar a otra imagen. Solo queda una transición por opacidad.
+     * Código JS completo y actualizado (incluye "Me interesa" que abre WhatsApp
+     * con mensaje prellenado que contiene nombre del producto + URL imagen)
      **************************************************************************/
 
     const PLACEHOLDER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
@@ -441,6 +433,17 @@
       return src || PLACEHOLDER_SVG;
     }
 
+    // --- evita que cambie el scroll del documento: centra solo la franja de thumbnails ---
+    function scrollThumbIntoCenter(container, el){
+      if(!container || !el) return;
+      try{
+        const offsetLeft = el.offsetLeft - (container.clientWidth / 2) + (el.clientWidth / 2);
+        const max = container.scrollWidth - container.clientWidth;
+        const left = Math.max(0, Math.min(offsetLeft, max));
+        container.scrollTo({ left, behavior: 'smooth' });
+      }catch(e){ /* fallback silencioso */ }
+    }
+
     // --- Shuffle helper (Fisher-Yates) ---
     function shuffleArray(arr){
       const a = arr.slice();
@@ -451,197 +454,41 @@
       return a;
     }
 
-    // --- Data: categories, subcats, products (images arrays) ---
+    // --- Generador de enlaces de WhatsApp para cada producto ---
+    function buildWhatsAppLinksForProduct(p){
+      // tu base
+      const baseMsgLink = 'https://api.whatsapp.com/message/Q6ABSBEH2JP4L1?autoload=1&app_absent=0';
+      const imageForMsg = (p.images && p.images.length) ? p.images[0] : '';
+      // Mensaje que se prellenará (usa texto simple; WhatsApp mostrará vista previa del link si es posible)
+      const message = `Hola, me interesa el producto *${p.title}*.\n\nImagen: ${imageForMsg}\n\n¿Me puedes dar más información, por favor?`;
+      const encodedText = encodeURIComponent(message);
+      const webLink = baseMsgLink + '&text=' + encodedText;
+      const mobileLink = 'whatsapp://send?text=' + encodedText;
+      const sendLink = 'https://api.whatsapp.com/send?text=' + encodedText;
+      return { webLink, mobileLink, sendLink };
+    }
+
+    // --- Data: categorías y productos (resumidos) ---
     const DATA = {
       categories: [
-        {id:'Cosméticos', name:'Cosméticos'},
         {id:'Nutrición', name:'Nutrición'},
+        {id:'Cosméticos', name:'Cosméticos'},
         {id:'Hogar', name:'Hogar & Bienestar'}
       ],
       subcats: {
-        Nutrición: ['Bajar de peso','Más energía','Vitamínas','Digestivo','Nutrición Ligera','Inmunológicos'],
-        Cosméticos: ['Cuidado facial','Maquillaje','Cabello'],
+        Nutrición: ['Nutrición Ligera','Digestivo','Inmunológicos'],
+        Cosméticos: ['Cuidado facial','Cabello','Maquillaje'],
         Hogar: ['Limpieza','Aromas','Accesorios']
       },
       products: [
-        {
-          id:1,
-          title:'Cafezzino',
-          subtitle: 'El equilibrio que estabas esperando. Nada como una taza de café con los mejores ingredientes, como el extracto de café verde, cromo y fibra prebiótica. Comienza tus días con Cafezzino.',
-          desc: 'Caja con 30 sobres. Contenido neto 150 g.',
-          beneficios: [
-            'Suplemento alimenticio con café colombiano.',
-            'Extracto de café verde.',
-            'Cromo',
-            'Fibra prebiótica.',
-            'Sin calorías.',
-            'Endulzantes de origen natural.'
-          ],
-          content: [
-            'Suplemento alimenticio con café colombiano.',
-            'Extracto de café verde.',
-            'Cromo',
-            'Fibra prebiótica.',
-            'Sin calorías.',
-            'Endulzantes de origen natural.',
-            'Sugerencia de consumo: Disfrútalo antes de tus alimentos, como más te guste, frío o caliente.',
-            'Caja con 30 sobres. Contenido neto 150 g.'
-          ],
-          cat:'Nutrición',
-          sub:'Nutrición Ligera',
-          images:[
-            'Cafezzino_OMNILIFE_5105932.png',
-            'Cafezzino_OMNILIFE_consumo.png',
-            'Cafezzino_OMNILIFE_mezclado_caja.png',
-            'Cafezzino_OMNILIFE_Tabla_nutrimental.jpg'
-          ]
-        },
-        {
-          id:2,
-          title:'Omnilife Probiotic',
-          subtitle: 'Añade probióticos y prebióticos a tu rutina y descubre la mejor nutrición con Omnilife Probiotic con un delicioso sabor limón-arándano.',
-          desc: 'Caja con 30 sobres. Contenido neto 150 g.',
-          beneficios: [
-            'Ayuda a eliminar la gastritis helycobacter.',
-            'Enfocado ayudar a mejorar la digestión y sistema inmunológico.',
-            'Promueve el equilibrio de la flora intestinal.',
-            'Disminuye la inflamación intestinal, el dolor.',
-            'Mejora el estreñimiento.',
-            'Eliminan bacterias.'
-          ],
-          content: [
-            'Suplemento alimenticio sabor limón-arándano.',
-            '1 billón de probióticos bacillus coagulans.',
-            'Fibra prebiótica.',
-            'Extracto de té blanco.',
-            'Vitamina B12.',
-            'Minerales.',
-            'Sin azúcar.',
-            'Sin calorías.',
-            'Endulzantes de origen natural.',
-          ],
-          cat:'Nutrición',
-          sub:'Digestivo',
-          images:[
-            'Probiotic_OMNILIFE_6724761.png',
-            'Probiotic_OMNILIFE_caja_sobre.png',
-            'Probiotic_OMNILIFE_Tabla_nutrimental.jpg',
-          ]
-        },
-        {
-          id:3,
-          title:'Omniplus',
-          subtitle: 'Las vitaminas y los minerales son nutrimentos importantes para el organismo, debido a que pueden promover su desarrollo, funcionamiento y mantenimiento.',
-          desc: 'Caja con 30 sobres 600 ml',
-          beneficios: [
-            'Aumenta las defensas/ hemoglobina.',
-            'Detiene la anemia.',
-            'Infecciones – Antibióticonatural',
-            'Desinflama el cuerpo.',
-            'Refuerza el Sistema Inmunológico',
-            'Refuerza el Sistema Respiratorio',
-            'Previene y mejora alergias, asma y bronquitis.'
-          ],
-          content: [
-            'Mezcla líquida, sabor frutas, que contiene vitaminas, minerales, concentrados, extracto de fruto del monje y glicósidos de esteviol, endulzantes de origen natural.',
-            'Vitamina A, B1,B2, B3, B5, B6, B12, C, D y E.',
-            'Biotina',
-            'Minerales calcio, zinc, magnesio, cobre, cromo, manganeso y selenio',
-            'Fruto del monje',
-          ],
-          cat:'Nutrición',
-          sub:'Inmunológicos',
-          images:[
-            '2350430.png',
-          ]
-        },
-        {
-          id:4,
-          title:'Acondicionador Revitalizante',
-          subtitle: 'Keratina para fuerza y brillo',
-          desc: 'Acondicionador enriquecido con keratina que repara la fibra capilar y deja el cabello sedoso.',
-          content: [
-            'Refuerza la estructura del cabello.',
-            'Reduce el quiebre y aporta brillo.',
-            'Apto para uso frecuente.'
-          ],
-          cat:'belleza',
-          sub:'Cabello',
-          images:[
-            'https://picsum.photos/seed/conditioner1/1000/800',
-            'https://picsum.photos/seed/conditioner2/1000/800'
-          ]
-        },
-        {
-          id:5,
-          title:'Difusor Aromas',
-          subtitle: 'Ambiente relajante instantáneo',
-          desc: 'Difusor ultrasónico con luz LED y temporizador para crear ambientes tranquilos en casa u oficina.',
-          content: [
-            'Tecnología ultrasónica silenciosa.',
-            'Capacidad 300ml, apagado automático cuando se agota el agua.',
-            'Incluye adaptador y manual.'
-          ],
-          cat:'hogar',
-          sub:'Aromas',
-          images:[
-            'https://picsum.photos/seed/diffuser1/1000/800',
-            'https://picsum.photos/seed/diffuser2/1000/800',
-            'https://picsum.photos/seed/diffuser3/1000/800'
-          ]
-        },
-        {
-          id:6,
-          title:'Multivitamínico Diario',
-          subtitle: 'Complejo esencial 1 al día',
-          desc: 'Multivitamínico diseñado para cubrir necesidades diarias clave: vitaminas, minerales y cofactores.',
-          content: [
-            'Vitaminas A, C, D, E, complejo B.',
-            'Minerales: hierro, zinc, magnesio.',
-            'Presentación: frasco 60 cápsulas.'
-          ],
-          cat:'salud',
-          sub:'Vitamínas',
-          images:[
-            'https://picsum.photos/seed/multi1/1000/800',
-            'https://picsum.photos/seed/multi2/1000/800'
-          ]
-        },
-        {
-          id:7,
-          title:'Mascarilla Arcilla',
-          subtitle: 'Purificación profunda',
-          desc: 'Mascarilla de arcilla para limpiar poros y equilibrar piel con tendencia a grasa.',
-          content: [
-            'Elimina impurezas sin resecar.',
-            'Extractos calmantes de aloe vera.',
-            'Usar 1-2 veces por semana.'
-          ],
-          cat:'belleza',
-          sub:'Cuidado facial',
-          images:[
-            'https://picsum.photos/seed/mask1/1000/800',
-            'https://picsum.photos/seed/mask2/1000/800'
-          ]
-        },
-        {
-          id:8,
-          title:'Set limpieza hogar',
-          subtitle: 'Kit esencial de limpieza',
-          desc: 'Juego con 3 productos para limpieza diaria del hogar: concentrado, limpiador multiusos y paño microfibra.',
-          content: [
-            'Concentrado económico y biodegradable.',
-            'Instrucciones de uso y dosificación incluidas.',
-            'Ideal para familias.'
-          ],
-          cat:'hogar',
-          sub:'Limpieza',
-          images:[
-            'https://picsum.photos/seed/clean1/1000/800',
-            'https://picsum.photos/seed/clean2/1000/800',
-            'https://picsum.photos/seed/clean3/1000/800'
-          ]
-        }
+        { id:1, title:'Cafezzino', subtitle:'Café funcional', desc:'Caja 30 sobres', beneficios:['Cafe','Cromo'], content:['30 sobres'], cat:'Nutrición', sub:'Nutrición Ligera', images:['Cafezzino_OMNILIFE_5105932.png','Cafezzino_OMNILIFE_consumo.png'] },
+        { id:2, title:'Omnilife Probiotic', subtitle:'Probióticos sabor limón', desc:'Caja con 30 sobres', beneficios:['Mejora digestión'], content:['1 billón probióticos'], cat:'Nutrición', sub:'Digestivo', images:['Probiotic_OMNILIFE_6724761.png','Probiotic_OMNILIFE_caja_sobre.png'] },
+        { id:3, title:'Omniplus', subtitle:'Vitaminas y minerales', desc:'Caja 30 sobres', beneficios:['Multivitamínico'], content:['Vitaminas A,D,B'], cat:'Nutrición', sub:'Inmunológicos', images:['2350430.png'] },
+        { id:4, title:'Acondicionador Revitalizante', subtitle:'Keratina', desc:'Acondicionador 300ml', content:['Keratina'], cat:'Cosméticos', sub:'Cabello', images:['https://picsum.photos/seed/conditioner1/1000/800','https://picsum.photos/seed/conditioner2/1000/800'] },
+        { id:5, title:'Difusor Aromas', subtitle:'Ultrasónico', desc:'Difusor 300ml', content:['LED, temporizador'], cat:'Hogar', sub:'Aromas', images:['https://picsum.photos/seed/diffuser1/1000/800','https://picsum.photos/seed/diffuser2/1000/800'] },
+        { id:6, title:'Multivitamínico Diario', subtitle:'1 al día', desc:'Frasco 60 cápsulas', content:['Vitaminas A,C,D...'], cat:'Nutrición', sub:'Vitamínas', images:['https://picsum.photos/seed/multi1/1000/800'] },
+        { id:7, title:'Mascarilla Arcilla', subtitle:'Purificación', desc:'Mascarilla 100g', content:['Arcilla, aloe'], cat:'Cosméticos', sub:'Cuidado facial', images:['https://picsum.photos/seed/mask1/1000/800'] },
+        { id:8, title:'Set limpieza hogar', subtitle:'Kit 3 piezas', desc:'Concentrado y paño', content:['3 productos'], cat:'Hogar', sub:'Limpieza', images:['https://picsum.photos/seed/clean1/1000/800','https://picsum.photos/seed/clean2/1000/800'] }
       ]
     };
 
@@ -655,12 +502,7 @@
     const musicTracks = [
       {title:'Calm Intro', url:'m1.mp3'},
       {title:'Soft Rhythm', url:'m2.mp3'},
-      {title:'Gentle Waves', url:'m3.mp3'},
-      {title:'Acoustic Flow', url:'m4.mp3'},
-      {title:'Ambient Night', url:'m5.mp3'},
-      {title:'Morning Breeze', url:'m6.mp3'},
-      {title:'LoFi Focus', url:'m7.mp3'},
-      {title:'Chill Outro', url:'m8.mp3'}
+      {title:'Gentle Waves', url:'m3.mp3'}
     ];
     let audio = new Audio();
     audio.preload = 'auto';
@@ -788,7 +630,6 @@
     // --- Render categories & subcats & products ---
     function renderCategories(){
       const wrap = $('#categoryList'); wrap.innerHTML = '';
-      // add explicit "Todos" opción al inicio
       const allDiv = document.createElement('div');
       allDiv.className = 'category-item' + (state.cat === null ? ' active' : '');
       allDiv.innerHTML = `<span>Todos</span><small class="small">›</small>`;
@@ -860,7 +701,7 @@
       const imgEl = cardEl.querySelector('.thumb');
       if(!imgEl) return;
       cardIndices.set(cardEl, 0);
-      imgEl.style.transition = 'opacity 0.45s ease, transform .22s ease';
+      imgEl.style.transition = 'opacity 0.45s ease';
 
       function startCycle(){
         if(cardIntervals.has(cardEl)) return;
@@ -912,34 +753,26 @@
       try{ modalVideo.pause(); modalVideo.removeAttribute('src'); modalVideo.load(); }catch(e){}
       modalImage.src = '';
       try{ modalYoutube.src = ''; }catch(e){}
-      // hide all visually with smooth classes
       [modalImage, modalVideo, modalYoutube].forEach(el => {
         if(el){ el.classList.add('hidden'); setTimeout(()=>{ try{ el.style.display='none'; }catch(_){} }, 340); }
       });
     }
 
-    // Utility: fade-then-set for main media (smooth transitions)
     function fadeToMedia(type, src){
-      // types: 'image', 'video', 'youtube', '' (empty)
-      // First hide currently visible media
       const visibles = [modalImage, modalVideo, modalYoutube];
       visibles.forEach(v => {
         if(!v) return;
         v.classList.add('hidden');
       });
 
-      // after brief delay set up new media then show
       setTimeout(() => {
-        // hide all (display none), then configure the chosen one
         try{ modalVideo.pause(); modalVideo.removeAttribute('src'); modalVideo.load(); }catch(e){}
         modalImage.style.display = 'none'; modalVideo.style.display = 'none'; modalYoutube.style.display = 'none';
         modalImage.classList.remove('zoomed'); modalVideo.classList.remove('zoomed'); modalYoutube.classList.remove('zoomed');
 
         if(!type){
-          // show placeholder image
           modalImage.src = PLACEHOLDER_SVG;
           modalImage.style.display = 'block';
-          // small timeout to allow CSS transition
           setTimeout(()=>{ modalImage.classList.remove('hidden'); }, 30);
           resumeBackgroundMusicAfterVideo();
           return;
@@ -958,12 +791,10 @@
           modalVideo.src = src;
           modalVideo.style.display = 'block';
           modalVideo.currentTime = 0;
-          // try to autoplay muted preview on hover/click? keep controls per original
           setTimeout(()=>{ modalVideo.classList.remove('hidden'); }, 30);
           return;
         }
 
-        // image
         resumeBackgroundMusicAfterVideo();
         const tmp = new Image();
         tmp.onload = () => {
@@ -1043,6 +874,7 @@
       }
       contenidoWrap.appendChild(contenidoList);
 
+      // --- thumbs ---
       modalThumbs.innerHTML = '';
       if(p.images && p.images.length){
         p.images.forEach((src, i) => {
@@ -1061,8 +893,7 @@
               setModalMedia(src);
               const mc = document.querySelector('.modal-card'); if(mc) mc.scrollTop = 0;
               const mw = document.getElementById('modalImageWrap'); if(mw) mw.scrollTop = 0;
-              // smooth scroll thumbnail into view
-              vid.scrollIntoView({behavior:'smooth', inline:'center'});
+              scrollThumbIntoCenter(modalThumbs, vid);
             };
             modalThumbs.appendChild(vid);
           } else {
@@ -1077,8 +908,7 @@
               setModalMedia(src);
               const mc = document.querySelector('.modal-card'); if(mc) mc.scrollTop = 0;
               const mw = document.getElementById('modalImageWrap'); if(mw) mw.scrollTop = 0;
-              // ensure clicked thumb becomes visible on small screens
-              im.scrollIntoView({behavior:'smooth', inline:'center'});
+              scrollThumbIntoCenter(modalThumbs, im);
             };
             modalThumbs.appendChild(im);
           }
@@ -1089,15 +919,41 @@
         setModalMedia('');
       }
 
+      // --- configurar botón "Me interesa" con mensaje + image URL ---
+      const links = buildWhatsAppLinksForProduct(p);
+      const btn = document.getElementById('modalInterestBtn');
+      if(btn){
+        btn.href = links.webLink;
+        btn.onclick = (ev) => {
+          const isMobile = /Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          if(isMobile){
+            // intentar deep link para abrir la app
+            window.location.href = links.mobileLink;
+            ev.preventDefault();
+            // si el deep link no funciona, el usuario puede tocar el href que abre la web versión
+          } else {
+            // en desktop dejamos que el <a target="_blank"> abra la webLink
+          }
+        };
+      }
+
       modal.classList.add('show');
       modal.setAttribute('aria-hidden','false');
-      document.body.classList.add('modal-open'); // <-- this hides whatsapp & delivery via CSS
+      document.body.classList.add('modal-open');
 
       const mc = document.querySelector('.modal-card'); if(mc){ mc.scrollTop = 0; mc.scrollLeft = 0; }
       const mw = document.getElementById('modalImageWrap'); if(mw){ mw.scrollTop = 0; mw.scrollLeft = 0; }
       modalImage.classList.remove('zoomed'); modalVideo.classList.remove('zoomed'); modalYoutube.classList.remove('zoomed');
 
-      setTimeout(()=>{ $('#modalClose').focus(); }, 150);
+      // focus the close button without causing the browser to scroll the page
+      try{
+        const closeBtn = $('#modalClose');
+        if(closeBtn && typeof closeBtn.focus === 'function'){
+          closeBtn.focus({preventScroll:true});
+        }
+      }catch(e){
+        setTimeout(()=>{ try{ $('#modalClose').focus(); }catch(_){} }, 150);
+      }
     }
 
     function closeModal(){
@@ -1141,11 +997,9 @@
       });
 
       if(q){
-        // filter only by title (case-insensitive)
         items = items.filter(p => (p.title || '').toLowerCase().includes(q));
       }
 
-      // Shuffle results to show in random order
       items = shuffleArray(items);
 
       state.filtered = items;
@@ -1162,7 +1016,7 @@
       };
     }
 
-    function escapeHtml(str){ return String(str || '').replace(/[&<>\"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m])); }
+    function escapeHtml(str){ return String(str || '').replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
     // keep existing behavior for Enter and button (search only title)
     document.getElementById('searchBtn').onclick = () => { state.query = $('#globalSearch').value; applyFilters(); };
@@ -1179,15 +1033,10 @@
       $('#year').textContent = new Date().getFullYear();
       renderCategories();
       renderSubcats();
-      // show all products in random order at first load
       state.filtered = shuffleArray(DATA.products.slice());
       renderProducts(state.filtered);
-
-      // Delivery bottom-left is non-clickable as requested (pointer-events none in CSS)
       const delivery = document.getElementById('deliveryBottom');
-      if(delivery){
-        // no click behavior intentionally
-      }
+      if(delivery){}
     }
     init();
 
