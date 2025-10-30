@@ -109,8 +109,8 @@
       background:linear-gradient(180deg,#071428,#061226);
       border-radius:12px;
       padding:18px;
-      /* espacio extra en la parte inferior para que el botón "Comprar" no tape contenido */
-      padding-bottom:72px;
+      /* disminuí espacio reservado en la parte inferior: ya no necesitamos tanto espacio para botón flotante */
+      padding-bottom:18px;
       display:grid;
       grid-template-columns:1fr 1fr;
       gap:16px;
@@ -291,11 +291,10 @@
       pointer-events: none !important;
     }
 
-    /* Buy button (flotante dentro del modal, con espacio reservado para que no tape nada) */
+    /* Buy button: ahora en línea (por encima del título). Ajustes de estilo para posición no flotante */
     .buy-btn{
-      position:absolute;
-      right:18px;
-      bottom:18px;
+      /* ya no es absoluto: posición alineada dentro del contenido del modal */
+      position:static;
       z-index:480;
       display:inline-flex;
       align-items:center;
@@ -311,13 +310,15 @@
       border:0;
       min-width:120px;
       text-align:center;
+      margin-bottom:10px; /* separación respecto al título */
+      align-self:flex-start; /* quedar al inicio de la columna derecha */
     }
     .buy-btn:focus{outline:2px solid rgba(6,182,212,0.18); outline-offset:2px;}
 
-    /* Mobile tweaks for buy button */
+    /* Mobile tweaks for buy button: mantener compacto */
     @media (max-width:640px){
-      .buy-btn{ right:12px; bottom:12px; padding:8px 12px; min-width:100px; font-size:14px; border-radius:10px; }
-      .modal-card{ padding-bottom:92px; } /* extra space on small screens */
+      .buy-btn{ padding:8px 12px; min-width:100px; font-size:14px; border-radius:10px; }
+      .modal-card{ padding-bottom:18px; } /* sin espacio extra porque el botón ya está inline */
     }
 
     /* Mobile-specific tweaks: show full thumb images instead of cropped */
@@ -398,6 +399,11 @@
       </div>
 
       <div style="display:flex; flex-direction:column;">
+        <!-- BOTÓN COMPRAR REUBICADO: encima del título del producto (se mantiene el mismo id y clase) -->
+        <a id="modalBuyBtn" class="buy-btn" href="#" target="_blank" rel="noopener noreferrer" style="display:none;" aria-hidden="true">
+          Comprar
+        </a>
+
         <div style="display:flex; align-items:start; gap:12px;">
           <div>
             <h2 id="modalTitle">Título</h2>
@@ -412,10 +418,7 @@
         <div class="modal-details" id="modalDesc" style="display:none">Descripción</div>
       </div>
 
-      <!-- Botón Comprar (flotante dentro del modal-card). Se actualizará dinámicamente por producto -->
-      <a id="modalBuyBtn" class="buy-btn" href="#" target="_blank" rel="noopener noreferrer" style="display:none;">
-        Comprar
-      </a>
+      <!-- Nota: el botón original estaba al final como flotante; ahora está reubicado arriba (ya incluido más arriba). -->
     </div>
   </div>
 
@@ -436,6 +439,8 @@
   <script>
     /**************************************************************************
      * Código JS completo y actualizado (coloca esto después de la lista de productos)
+     * Nota: Lógica principal sin cambios. El botón sigue usando id="modalBuyBtn"
+     * por lo que todas las referencias JS funcionan igual que antes.
      **************************************************************************/
 
     const PLACEHOLDER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
@@ -500,14 +505,128 @@
         Hogar: ['Limpieza','Aromas','Accesorios']
       },
       products: [
-        { id:1, title:'Cafezzino', subtitle:'Café funcional', desc:'Caja 30 sobres', beneficios:['Cafe','Cromo'], content:['30 sobres'], cat:'Nutrición', sub:'Nutrición Ligera', images:['Cafezzino_OMNILIFE_5105932.png','Cafezzino_OMNILIFE_consumo.png'], buyLink: 'https://example.com/product/1' },
-        { id:2, title:'Omnilife Probiotic', subtitle:'Probióticos sabor limón', desc:'Caja con 30 sobres', beneficios:['Mejora digestión'], content:['1 billón probióticos'], cat:'Nutrición', sub:'Digestivo', images:['Probiotic_OMNILIFE_6724761.png','Probiotic_OMNILIFE_caja_sobre.png'], buyLink: 'https://wa.link/ufy5b0' },
-        { id:3, title:'Omniplus', subtitle:'Vitaminas y minerales', desc:'Caja 30 sobres', beneficios:['Multivitamínico'], content:['Vitaminas A,D,B'], cat:'Nutrición', sub:'Inmunológicos', images:['2350430.png'], buyLink: 'https://example.com/product/3' },
-        { id:4, title:'Acondicionador Revitalizante', subtitle:'Keratina', desc:'Acondicionador 300ml', content:['Keratina'], cat:'Cosméticos', sub:'Cabello', images:['https://picsum.photos/seed/conditioner1/1000/800','https://picsum.photos/seed/conditioner2/1000/800'], buyLink: 'https://example.com/product/4' },
-        { id:5, title:'Difusor Aromas', subtitle:'Ultrasónico', desc:'Difusor 300ml', content:['LED, temporizador'], cat:'Hogar', sub:'Aromas', images:['https://picsum.photos/seed/diffuser1/1000/800','https://picsum.photos/seed/diffuser2/1000/800'], buyLink: 'https://example.com/product/5' },
-        { id:6, title:'Multivitamínico Diario', subtitle:'1 al día', desc:'Frasco 60 cápsulas', content:['Vitaminas A,C,D...'], cat:'Nutrición', sub:'Vitamínas', images:['https://picsum.photos/seed/multi1/1000/800'], buyLink: 'https://example.com/product/6' },
-        { id:7, title:'Mascarilla Arcilla', subtitle:'Purificación', desc:'Mascarilla 100g', content:['Arcilla, aloe'], cat:'Cosméticos', sub:'Cuidado facial', images:['https://picsum.photos/seed/mask1/1000/800'], buyLink: 'https://example.com/product/7' },
-        { id:8, title:'Set limpieza hogar', subtitle:'Kit 3 piezas', desc:'Concentrado y paño', content:['3 productos'], cat:'Hogar', sub:'Limpieza', images:['https://picsum.photos/seed/clean1/1000/800','https://picsum.photos/seed/clean2/1000/800'], buyLink: 'https://example.com/product/8' }
+        { id:1,
+          title:'Cafezzino',
+          subtitle: 'El equilibrio que estabas esperando. Nada como una taza de café con los mejores ingredientes, como el extracto de café verde, cromo y fibra prebiótica. Comienza tus días con Cafezzino.',
+          desc: 'Caja con 30 sobres. Contenido neto 150 g.',
+          beneficios: [
+            'Favorece a la metabolización de carbohidratos (azúcares).',
+            'Baja de 3 a 6 kg en el primer mes de uso.',
+            'Reduce tallas desde las primeras semanas.',
+            'Reduce la ansiedad de comer.',
+            'Reduce y quema la grasa localizada, disminuye los niveles de azúcar.',
+            'Previene y controla el colesterol y diabetes.', 
+          ],
+          content: [
+            'Suplemento alimenticio con café colombiano.',
+            'Extracto de café verde.',
+            'Cromo.',
+            'Fibra prebiótica.',
+            'Sin calorías.',
+            'Endulzantes de origen natural.',
+          ],
+          cat:'Nutrición',
+          sub:'Nutrición Ligera',
+          images:[
+            'Cafezzino_OMNILIFE_5105932.png',
+            'grasa-corporal.jpg',
+            '1920_shutterstock-2079146449.jpg',
+            'istockphoto-1152968881-612x612.jpg',
+            'Cafezzino_OMNILIFE_consumo.png',
+            'Cafezzino_OMNILIFE_mezclado_caja.png',
+            'Cafezzino_OMNILIFE_Tabla_nutrimental.jpg'
+          ], buyLink: 'https://wa.link/nrp77e' },
+
+        { id:2,           
+	  title:'Omnilife Probiotic',
+          subtitle: 'Añade probióticos y prebióticos a tu rutina y descubre la mejor nutrición con Omnilife Probiotic con un delicioso sabor limón-arándano.',
+          desc: 'Caja con 30 sobres. Contenido neto 150 g.',
+          beneficios: [
+            'Ayuda a eliminar la gastritis helycobacter.',
+            'Enfocado ayudar a mejorar la digestión y sistema inmunológico.',
+            'Promueve el equilibrio de la flora intestinal.',
+            'Disminuye la inflamación intestinal, el dolor.',
+            'Mejora el estreñimiento.',
+            'Eliminan bacterias.'
+          ],
+          content: [
+            'Suplemento alimenticio sabor limón-arándano.',
+            '1 billón de probióticos bacillus coagulans.',
+            'Fibra prebiótica.',
+            'Extracto de té blanco.',
+            'Vitamina B12.',
+            'Minerales.',
+            'Sin azúcar.',
+            'Sin calorías.',
+            'Endulzantes de origen natural.',
+          ],
+          cat:'Nutrición',
+          sub:'Digestivo',
+          images:[
+            'Probiotic_OMNILIFE_6724761.png',
+            'Fotolia_67856364_L.jpg',
+            'dfgdfgfdg.jpg',
+            'Probiotic_OMNILIFE_Tabla_nutrimental.jpg',
+          ], buyLink: 'https://wa.link/f23pro' },
+
+        { id:3,           
+	  title:'Omniplus',
+          subtitle: 'Las vitaminas y los minerales son nutrimentos importantes para el organismo, debido a que pueden promover su desarrollo, funcionamiento y mantenimiento.',
+          desc: 'Caja con 30 sobres 600 ml',
+          beneficios: [
+            'Aumenta las defensas/ hemoglobina.',
+            'Detiene la anemia.',
+            'Infecciones – Antibióticonatural',
+            'Desinflama el cuerpo.',
+            'Refuerza el Sistema Inmunológico',
+            'Refuerza el Sistema Respiratorio',
+            'Previene y mejora alergias, asma y bronquitis.'
+          ],
+          content: [
+            'Mezcla líquida, sabor frutas y endulzantes de origen natural.',
+            'Vitamina A, B1,B2, B3, B5, B6, B12, C, D y E.',
+            'Biotina',
+            'Minerales calcio, zinc, magnesio, cobre, cromo, manganeso y selenio',
+            'Fruto del monje',
+          ],
+          cat:'Nutrición',
+          sub:'Inmunológicos',
+          images:[
+            '2350430.png',
+	    'gfhfg.jpg',
+	    'dfgg.png',
+	    '1724199334_cd7cd60059c42987aca6.jpg',
+	    '2350430_tabla__nutrimental.png',
+          ], buyLink: 'https://wa.link/tn1iyl' },
+
+        { id:4,
+          title:'Magnus',
+          subtitle: 'Producto nutricional sabor a cítrico, con vitaminas del complejo B, glicina y taurina.',
+          desc: 'Caja c/30 sobres 405g',
+          beneficios: [
+            'Da de 6 a 8 horas de energía.',
+            'Mejora el ánimo.',
+            'Aumenta el rendimiento físico.',
+            'Combate la depresión.',
+            'Reduce la ansiedad.',
+            'Combate las adicciones.',
+            'Limpia el cólon (cólon sucio)'
+          ],
+          content: [
+            'Producto nutricional sabor a cítrico.',
+            'Complejo B.',
+            'Glicina.',
+            'Taurina.'
+          ],
+          cat:'Nutrición',
+          sub:'Nutrición Ligera',
+          images:[
+            '2023500_1.png',
+            'drdg.jpg',
+            'fgdfg.jpg',
+            'CUM3243.jpg',
+            '2023500_tabla_nutrimental.jpg',
+          ], buyLink: 'https://wa.link/nrp77e' },
       ]
     };
 
@@ -521,7 +640,12 @@
     const musicTracks = [
       {title:'Calm Intro', url:'m1.mp3'},
       {title:'Soft Rhythm', url:'m2.mp3'},
-      {title:'Gentle Waves', url:'m3.mp3'}
+      {title:'Gentle Waves', url:'m3.mp3'},
+      {title:'Acoustic Flow', url:'m4.mp3'},
+      {title:'Ambient Night', url:'m5.mp3'},
+      {title:'Morning Breeze', url:'m6.mp3'},
+      {title:'LoFi Focus', url:'m7.mp3'},
+      {title:'Chill Outro', url:'m8.mp3'}
     ];
     let audio = new Audio();
     audio.preload = 'auto';
@@ -944,9 +1068,11 @@
           modalBuyBtn.style.display = 'inline-flex';
           modalBuyBtn.href = p.buyLink;
           modalBuyBtn.setAttribute('aria-label', `Comprar ${p.title}`);
+          modalBuyBtn.removeAttribute('aria-hidden');
         } else {
           modalBuyBtn.style.display = 'none';
           modalBuyBtn.removeAttribute('href');
+          modalBuyBtn.setAttribute('aria-hidden', 'true');
         }
       }
 
