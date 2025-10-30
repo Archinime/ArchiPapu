@@ -109,6 +109,8 @@
       background:linear-gradient(180deg,#071428,#061226);
       border-radius:12px;
       padding:18px;
+      /* espacio extra en la parte inferior para que el botón "Comprar" no tape contenido */
+      padding-bottom:72px;
       display:grid;
       grid-template-columns:1fr 1fr;
       gap:16px;
@@ -185,7 +187,7 @@
     }
 
     .modal-controls{display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-bottom:6px}
-    .control-btn{background:rgba(255,255,255,0.03); border:0; padding:8px 10px; border-radius:8px; color:var(--muted); cursor:pointer; text-decoration:none; font-weight:700}
+    .control-btn{background:rgba(255,255,255,0.03); border:0; padding:8px 10px; border-radius:8px; color:var(--muted); cursor:pointer}
 
     /* corner close button */
     .modal-top-close{
@@ -251,7 +253,7 @@
 
     /* Delivery informative text in bottom-left (single text, not clickable) */
     .delivery-bottom-left{
-      position:Fixed;
+      position:fixed;
       left:18px;
       bottom:18px;
       z-index:550;
@@ -287,6 +289,35 @@
       visibility: hidden !important;
       transform: translateY(8px);
       pointer-events: none !important;
+    }
+
+    /* Buy button (flotante dentro del modal, con espacio reservado para que no tape nada) */
+    .buy-btn{
+      position:absolute;
+      right:18px;
+      bottom:18px;
+      z-index:480;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:10px 14px;
+      background:linear-gradient(90deg,var(--accent-2),var(--accent-1));
+      color:#02181a;
+      font-weight:900;
+      border-radius:12px;
+      text-decoration:none;
+      box-shadow: 0 12px 30px rgba(6,30,60,0.45);
+      border:0;
+      min-width:120px;
+      text-align:center;
+    }
+    .buy-btn:focus{outline:2px solid rgba(6,182,212,0.18); outline-offset:2px;}
+
+    /* Mobile tweaks for buy button */
+    @media (max-width:640px){
+      .buy-btn{ right:12px; bottom:12px; padding:8px 12px; min-width:100px; font-size:14px; border-radius:10px; }
+      .modal-card{ padding-bottom:92px; } /* extra space on small screens */
     }
 
     /* Mobile-specific tweaks: show full thumb images instead of cropped */
@@ -354,8 +385,6 @@
       <div>
         <div class="modal-controls" style="margin-top:6px;">
           <div class="spacer"></div>
-          <!-- Botón "Me interesa" -->
-          <a id="modalInterestBtn" class="control-btn" href="#" target="_blank" rel="noopener noreferrer">Me interesa</a>
         </div>
 
         <div class="image-frame">
@@ -382,13 +411,18 @@
         <div id="modalContenidoWrap" style="margin-top:12px;"></div>
         <div class="modal-details" id="modalDesc" style="display:none">Descripción</div>
       </div>
+
+      <!-- Botón Comprar (flotante dentro del modal-card). Se actualizará dinámicamente por producto -->
+      <a id="modalBuyBtn" class="buy-btn" href="#" target="_blank" rel="noopener noreferrer" style="display:none;">
+        Comprar
+      </a>
     </div>
   </div>
 
   <!-- WhatsApp floating area (derecha, permanece) -->
   <div class="whatsapp-area" aria-hidden="false">
     <div class="phone-large">922016636</div>
-    <a id="whatsappCta" class="whatsapp-cta" href="https://wa.me/message/Q6ABSBEH2JP4L1?autoload=1&app_absent=0" target="_blank" rel="noopener noreferrer">
+    <a id="whatsappCta" class="whatsapp-cta" href="https://wa.me/message/Q6ABSBEH2JP4L1" target="_blank" rel="noopener noreferrer">
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="width:20px;height:20px"><path fill="white" d="M12.04 2C6.55 2 2 6.53 2 12.01c0 2.12.56 4.09 1.54 5.84L2 22l4.31-1.45A9.96 9.96 0 0012.04 22c5.49 0 10.04-4.53 10.04-9.99C22.08 6.53 17.53 2 12.04 2zm5.2 14.37c-.2.56-1.17 1.08-1.6 1.15-.42.07-.93.10-1.95-.18-3.01-.86-5.02-3.56-5.18-3.74-.15-.18-1.3-1.49-1.3-2.84 0-1.34.7-1.99.95-2.27.25-.28.55-.34.74-.34.19 0 .38 0 .55.01.17.02.41-.07.64.48.23.56.78 1.92.85 2.06.07.14.12.33.03.54-.09.21-.14.34-.28.52-.14.18-.29.4-.42.55-.14.15-.29.28-.13.55.16.27.71 1.15 1.52 1.86 1.04.88 1.9 1.16 2.17 1.29.27.12.43.1.59-.06.16-.16.67-.77.86-1.04.19-.27.38-.22.66-.13.28.09 1.78.83 2.08.98.3.15.5.23.57.36.07.12.07.69-.13 1.25z"/></svg>
       <span>Contactar</span>
     </a>
@@ -401,8 +435,7 @@
 
   <script>
     /**************************************************************************
-     * Código JS completo y actualizado (incluye "Me interesa" que abre WhatsApp
-     * con mensaje prellenado que contiene nombre del producto + URL imagen)
+     * Código JS completo y actualizado (coloca esto después de la lista de productos)
      **************************************************************************/
 
     const PLACEHOLDER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
@@ -454,21 +487,7 @@
       return a;
     }
 
-    // --- Generador de enlaces de WhatsApp para cada producto ---
-    function buildWhatsAppLinksForProduct(p){
-      // tu base
-      const baseMsgLink = 'https://api.whatsapp.com/message/Q6ABSBEH2JP4L1?autoload=1&app_absent=0';
-      const imageForMsg = (p.images && p.images.length) ? p.images[0] : '';
-      // Mensaje que se prellenará (usa texto simple; WhatsApp mostrará vista previa del link si es posible)
-      const message = `Hola, me interesa el producto *${p.title}*.\n\nImagen: ${imageForMsg}\n\n¿Me puedes dar más información, por favor?`;
-      const encodedText = encodeURIComponent(message);
-      const webLink = baseMsgLink + '&text=' + encodedText;
-      const mobileLink = 'whatsapp://send?text=' + encodedText;
-      const sendLink = 'https://api.whatsapp.com/send?text=' + encodedText;
-      return { webLink, mobileLink, sendLink };
-    }
-
-    // --- Data: categorías y productos (resumidos) ---
+    // --- Data: categorías y productos (resumidos para no repetir detalles largos) ---
     const DATA = {
       categories: [
         {id:'Nutrición', name:'Nutrición'},
@@ -481,14 +500,14 @@
         Hogar: ['Limpieza','Aromas','Accesorios']
       },
       products: [
-        { id:1, title:'Cafezzino', subtitle:'Café funcional', desc:'Caja 30 sobres', beneficios:['Cafe','Cromo'], content:['30 sobres'], cat:'Nutrición', sub:'Nutrición Ligera', images:['Cafezzino_OMNILIFE_5105932.png','Cafezzino_OMNILIFE_consumo.png'] },
-        { id:2, title:'Omnilife Probiotic', subtitle:'Probióticos sabor limón', desc:'Caja con 30 sobres', beneficios:['Mejora digestión'], content:['1 billón probióticos'], cat:'Nutrición', sub:'Digestivo', images:['Probiotic_OMNILIFE_6724761.png','Probiotic_OMNILIFE_caja_sobre.png'] },
-        { id:3, title:'Omniplus', subtitle:'Vitaminas y minerales', desc:'Caja 30 sobres', beneficios:['Multivitamínico'], content:['Vitaminas A,D,B'], cat:'Nutrición', sub:'Inmunológicos', images:['2350430.png'] },
-        { id:4, title:'Acondicionador Revitalizante', subtitle:'Keratina', desc:'Acondicionador 300ml', content:['Keratina'], cat:'Cosméticos', sub:'Cabello', images:['https://picsum.photos/seed/conditioner1/1000/800','https://picsum.photos/seed/conditioner2/1000/800'] },
-        { id:5, title:'Difusor Aromas', subtitle:'Ultrasónico', desc:'Difusor 300ml', content:['LED, temporizador'], cat:'Hogar', sub:'Aromas', images:['https://picsum.photos/seed/diffuser1/1000/800','https://picsum.photos/seed/diffuser2/1000/800'] },
-        { id:6, title:'Multivitamínico Diario', subtitle:'1 al día', desc:'Frasco 60 cápsulas', content:['Vitaminas A,C,D...'], cat:'Nutrición', sub:'Vitamínas', images:['https://picsum.photos/seed/multi1/1000/800'] },
-        { id:7, title:'Mascarilla Arcilla', subtitle:'Purificación', desc:'Mascarilla 100g', content:['Arcilla, aloe'], cat:'Cosméticos', sub:'Cuidado facial', images:['https://picsum.photos/seed/mask1/1000/800'] },
-        { id:8, title:'Set limpieza hogar', subtitle:'Kit 3 piezas', desc:'Concentrado y paño', content:['3 productos'], cat:'Hogar', sub:'Limpieza', images:['https://picsum.photos/seed/clean1/1000/800','https://picsum.photos/seed/clean2/1000/800'] }
+        { id:1, title:'Cafezzino', subtitle:'Café funcional', desc:'Caja 30 sobres', beneficios:['Cafe','Cromo'], content:['30 sobres'], cat:'Nutrición', sub:'Nutrición Ligera', images:['Cafezzino_OMNILIFE_5105932.png','Cafezzino_OMNILIFE_consumo.png'], buyLink: 'https://example.com/product/1' },
+        { id:2, title:'Omnilife Probiotic', subtitle:'Probióticos sabor limón', desc:'Caja con 30 sobres', beneficios:['Mejora digestión'], content:['1 billón probióticos'], cat:'Nutrición', sub:'Digestivo', images:['Probiotic_OMNILIFE_6724761.png','Probiotic_OMNILIFE_caja_sobre.png'], buyLink: 'https://wa.link/ufy5b0' },
+        { id:3, title:'Omniplus', subtitle:'Vitaminas y minerales', desc:'Caja 30 sobres', beneficios:['Multivitamínico'], content:['Vitaminas A,D,B'], cat:'Nutrición', sub:'Inmunológicos', images:['2350430.png'], buyLink: 'https://example.com/product/3' },
+        { id:4, title:'Acondicionador Revitalizante', subtitle:'Keratina', desc:'Acondicionador 300ml', content:['Keratina'], cat:'Cosméticos', sub:'Cabello', images:['https://picsum.photos/seed/conditioner1/1000/800','https://picsum.photos/seed/conditioner2/1000/800'], buyLink: 'https://example.com/product/4' },
+        { id:5, title:'Difusor Aromas', subtitle:'Ultrasónico', desc:'Difusor 300ml', content:['LED, temporizador'], cat:'Hogar', sub:'Aromas', images:['https://picsum.photos/seed/diffuser1/1000/800','https://picsum.photos/seed/diffuser2/1000/800'], buyLink: 'https://example.com/product/5' },
+        { id:6, title:'Multivitamínico Diario', subtitle:'1 al día', desc:'Frasco 60 cápsulas', content:['Vitaminas A,C,D...'], cat:'Nutrición', sub:'Vitamínas', images:['https://picsum.photos/seed/multi1/1000/800'], buyLink: 'https://example.com/product/6' },
+        { id:7, title:'Mascarilla Arcilla', subtitle:'Purificación', desc:'Mascarilla 100g', content:['Arcilla, aloe'], cat:'Cosméticos', sub:'Cuidado facial', images:['https://picsum.photos/seed/mask1/1000/800'], buyLink: 'https://example.com/product/7' },
+        { id:8, title:'Set limpieza hogar', subtitle:'Kit 3 piezas', desc:'Concentrado y paño', content:['3 productos'], cat:'Hogar', sub:'Limpieza', images:['https://picsum.photos/seed/clean1/1000/800','https://picsum.photos/seed/clean2/1000/800'], buyLink: 'https://example.com/product/8' }
       ]
     };
 
@@ -748,6 +767,7 @@
     const modalVideo = $('#modalVideo');
     const modalYoutube = $('#modalYoutube');
     const modalThumbs = $('#modalThumbs');
+    const modalBuyBtn = $('#modalBuyBtn');
 
     function clearAllMedia(){
       try{ modalVideo.pause(); modalVideo.removeAttribute('src'); modalVideo.load(); }catch(e){}
@@ -874,7 +894,6 @@
       }
       contenidoWrap.appendChild(contenidoList);
 
-      // --- thumbs ---
       modalThumbs.innerHTML = '';
       if(p.images && p.images.length){
         p.images.forEach((src, i) => {
@@ -919,22 +938,16 @@
         setModalMedia('');
       }
 
-      // --- configurar botón "Me interesa" con mensaje + image URL ---
-      const links = buildWhatsAppLinksForProduct(p);
-      const btn = document.getElementById('modalInterestBtn');
-      if(btn){
-        btn.href = links.webLink;
-        btn.onclick = (ev) => {
-          const isMobile = /Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(navigator.userAgent);
-          if(isMobile){
-            // intentar deep link para abrir la app
-            window.location.href = links.mobileLink;
-            ev.preventDefault();
-            // si el deep link no funciona, el usuario puede tocar el href que abre la web versión
-          } else {
-            // en desktop dejamos que el <a target="_blank"> abra la webLink
-          }
-        };
+      // Setup buy button: si producto tiene buyLink, mostrar y actualizar href; si no, ocultar
+      if(modalBuyBtn){
+        if(p.buyLink){
+          modalBuyBtn.style.display = 'inline-flex';
+          modalBuyBtn.href = p.buyLink;
+          modalBuyBtn.setAttribute('aria-label', `Comprar ${p.title}`);
+        } else {
+          modalBuyBtn.style.display = 'none';
+          modalBuyBtn.removeAttribute('href');
+        }
       }
 
       modal.classList.add('show');
@@ -964,6 +977,8 @@
       document.body.classList.remove('modal-open');
       modalImage.src = '';
       modalThumbs.innerHTML = '';
+      // ocultar boton cuando se cierra modal
+      if(modalBuyBtn) modalBuyBtn.style.display = 'none';
       resumeBackgroundMusicAfterVideo();
     }
 
