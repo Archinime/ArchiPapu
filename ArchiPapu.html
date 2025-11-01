@@ -188,14 +188,16 @@
       padding:8px;
       -webkit-overflow-scrolling:touch;
       position:relative;
-      min-height:160px;
+      min-height:0; /* <- cambiado: quitar el alto mínimo que causaba el rectángulo */
     }
+
     /* Smooth transitions for main media - show complete (contain) */
     .modal-card img,
     .modal-card video,
     .modal-card iframe{
       width:100%;
-      height:420px; /* fixed height to keep consistent modal layout */
+      max-height:60vh; /* <- cambiado: no forzar un alto fijo, permitir que el contenido defina altura */
+      height:auto;
       object-fit:contain !important;
       object-position:center center;
       border-radius:10px;
@@ -210,11 +212,11 @@
       box-shadow: 0 8px 30px rgba(0,0,0,0.5);
     }
 
-    /* For smaller screens use viewport-based height */
+    /* For smaller screens use viewport-based max-height (no fixed tall rectangle) */
     @media (max-width:640px){
       .modal-card img,
       .modal-card video,
-      .modal-card iframe { height: calc(45vh); }
+      .modal-card iframe { max-height:40vh; height:auto; } /* <- cambiado */
     }
 
     .modal-card img.hidden,
@@ -256,10 +258,10 @@
     }
     .modal-top-close:focus{outline:2px solid rgba(124,58,237,0.25)}
 
-    /* Thumbs: GRID layout - miniaturas dentro del modal (AJUSTADAS: más pequeñas) */
+    /* Thumbs: GRID layout - miniaturas dentro del modal (AJUSTADAS: más pequeñas y cuadradas) */
     .thumb-grid{
       display:grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(4, auto);
       gap:8px;
       margin-top:0; /* quitar espacio por defecto entre imagen principal y miniaturas */
       align-items:center;
@@ -269,9 +271,9 @@
       background:transparent;
     }
     .thumb-grid img, .thumb-grid video{
-      width:100%;
-      height:48px; /* tamaño reducido para desktop */
-      object-fit:contain !important;
+      width:48px;       /* <- cambiado: miniaturas cuadradas pequeñas */
+      height:48px;      /* <- cambiado: miniaturas cuadradas pequeñas */
+      object-fit:cover !important; /* cover para que queden cuadradas y sin espacio blanco */
       object-position:center center;
       border-radius:6px;
       display:block; /* evita espacios en línea */
@@ -284,16 +286,17 @@
     .thumb-grid img.active, .thumb-grid video.active{ border-color:rgba(255,255,255,0.12); opacity:1; transform:scale(1.02); }
 
     /* Responsive tweaks for thumb grid: aún más pequeño en móvil y sin espacio vertical */
-    @media (max-width:1100px){ .thumb-grid{ grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width:1100px){ .thumb-grid{ grid-template-columns: repeat(3, auto); } }
     @media (max-width:640px){
       .thumb-grid{
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(4, auto);
         gap:6px;
         padding:4px 4px 0 4px; /* minimizar padding superior y eliminar inferior */
         margin-top:0;
       }
       .thumb-grid img, .thumb-grid video{
-        height:36px; /* aún más pequeño en móvil */
+        width:40px;    /* <- cambiado: tamaño aún más pequeño en móvil */
+        height:40px;   /* <- cambiado: tamaño aún más pequeño en móvil */
         border-radius:6px;
       }
       .modal-image-wrap{
@@ -403,7 +406,7 @@
     }
     .buy-btn:focus{outline:2px solid rgba(6,182,212,0.18); outline-offset:2px;}
 
-    /* Mobile tweaks for buy button: mantener compacto */
+    /* Mobile tweaks for buy button: maintain compact */
     @media (max-width:640px){
       .buy-btn{ padding:8px 12px; min-width:100px; font-size:14px; border-radius:10px; }
       .modal-card{ padding-bottom:18px; }
@@ -418,8 +421,8 @@
     /* Mobile-specific tweaks: show full thumb images instead of cropped */
     @media (max-width:640px){
       .thumb{height:160px; object-fit:contain;}
-      .modal-card img{height:calc(45vh);}
-      .modal-card{max-height: calc(100vh - 48px);}
+      .modal-card img{max-height:40vh;}
+      .modal-card{max-height: calc(100vh - 48px); }
       .modal-image-wrap{padding:8px 8px 2px 8px;}
     }
   </style>
@@ -535,7 +538,8 @@
     /**************************************************************************
      * Código JS completo y actualizado
      * - Cambio principal: las miniaturas dentro del modal se pegaron a la imagen
-     *   principal en móvil (se eliminó el espacio vertical extra).
+     *   principal en móvil (se eliminó el espacio vertical extra) y las miniaturas
+     *   ahora son cuadradas y pequeñas (48px / 40px en móvil). No se borró nada.
      **************************************************************************/
 
     const PLACEHOLDER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
@@ -1345,7 +1349,7 @@ const DATA = {
             const im = document.createElement('img');
             im.src = getMediaPreviewSrc(src);
             im.alt = `${p.title} ${i+1}`;
-            im.style.objectFit = 'contain';
+            im.style.objectFit = 'cover';
             im.addEventListener('error', ()=> { im.src = PLACEHOLDER_SVG; im.style.objectFit='contain'; });
             if(i === 0) im.classList.add('active');
             im.onclick = (ev) => {
