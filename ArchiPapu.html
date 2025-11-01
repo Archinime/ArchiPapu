@@ -3,8 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ArchiPapu — Catálogo</title>
-  <meta name="description" content="ArchiPapu - Productos de salud y bienestar" />
+  <title>OmniArchi — Catálogo</title>
+  <meta name="description" content="OmniArchi - Productos de salud y bienestar" />
+  <!-- favicon solicitado -->
+  <link rel="icon" href="Logo_Archinime.png" type="image/png">
   <style>
     :root{
       --bg:#031425;
@@ -26,48 +28,51 @@
 
     /* Header: logo + central search */
     header.hero{
-      display:flex; align-items:center; gap:18px; padding:16px 20px; position:sticky; top:0; z-index:200;
+      display:flex; align-items:center; gap:14px; padding:12px 16px; position:sticky; top:0; z-index:200;
       background: rgba(2,6,23,0.6); backdrop-filter: blur(6px); border-bottom:1px solid rgba(255,255,255,0.03);
     }
-    .brand{display:flex; align-items:center; gap:14px; min-width:220px}
+    .brand{display:flex; align-items:center; gap:12px; min-width:200px}
     .brand img.logo{
-      width:64px; height:64px; border-radius:14px; object-fit:cover; background:linear-gradient(135deg,var(--accent-2),var(--accent-1));
+      width:56px; height:56px; border-radius:12px; object-fit:cover; background:linear-gradient(135deg,var(--accent-2),var(--accent-1));
       box-shadow: var(--soft-shadow);
     }
-    .site-title{font-size:20px; font-weight:800; margin:0}
-    .site-sub{font-size:13px; color:var(--muted); margin:0;}
+    .site-title{font-size:18px; font-weight:800; margin:0}
+    .site-sub{font-size:12px; color:var(--muted); margin:0;}
 
     /* Big, clear search bar */
     .searchbar{flex:1; display:flex; align-items:center; justify-content:center; padding:6px}
     .search-input{
       width:100%; max-width:980px; display:flex; gap:8px; align-items:center;
-      background:var(--panel); padding:12px; border-radius:14px; border:1px solid rgba(255,255,255,0.03);
+      background:var(--panel); padding:10px; border-radius:12px; border:1px solid rgba(255,255,255,0.03);
       box-shadow: 0 6px 18px rgba(2,6,23,0.45);
     }
     .search-input input{
-      flex:1; background:transparent; border:0; outline:none; color:var(--text); font-size:18px; padding:8px 12px;
+      flex:1; background:transparent; border:0; outline:none; color:var(--text); font-size:16px; padding:8px 10px;
     }
     .search-input button{
-      background:linear-gradient(90deg,var(--accent-2),var(--accent-1)); border:0; color:#02181a; padding:10px 14px; border-radius:10px;
-      font-weight:800; cursor:pointer; font-size:15px;
+      background:linear-gradient(90deg,var(--accent-2),var(--accent-1)); border:0; color:#02181a; padding:9px 12px; border-radius:10px;
+      font-weight:800; cursor:pointer; font-size:14px;
     }
 
     /* Mobile search smaller */
     @media (max-width:640px){
-      .search-input{max-width:420px; padding:8px;}
+      .search-input{max-width:320px; padding:8px;}
       .search-input input{font-size:14px; padding:6px 8px;}
-      .search-input button{padding:8px 10px; font-size:13px;}
+      .search-input button{padding:7px 10px; font-size:13px;}
+      .brand img.logo{width:48px;height:48px}
+      .site-title{font-size:16px}
+      .site-sub{display:none}
     }
 
     /* Layout */
-    .container{display:grid; grid-template-columns:300px 1fr; gap:22px; padding:22px; max-width:1200px; margin:0 auto; width:100%;}
-    @media (max-width:1000px){ .container{grid-template-columns:1fr; padding:14px;} .sidebar{order:2} .main{order:1} }
+    .container{display:grid; grid-template-columns:300px 1fr; gap:18px; padding:18px; max-width:1200px; margin:0 auto; width:100%;}
+    @media (max-width:1000px){ .container{grid-template-columns:1fr; padding:12px;} .sidebar{order:2} .main{order:1} }
 
     /* Sidebar - simple and large */
-    .sidebar{background:var(--panel); padding:18px; border-radius:12px; box-shadow: var(--soft-shadow)}
-    h4{margin:6px 0 12px; font-size:17px}
+    .sidebar{background:var(--panel); padding:16px; border-radius:12px; box-shadow: var(--soft-shadow)}
+    h4{margin:6px 0 12px; font-size:16px}
     .category-list{display:flex; flex-direction:column; gap:10px}
-    .category-item{padding:12px 14px; border-radius:12px; cursor:pointer; color:var(--text); display:flex; justify-content:space-between; align-items:center; font-size:16px}
+    .category-item{padding:10px 12px; border-radius:12px; cursor:pointer; color:var(--text); display:flex; justify-content:space-between; align-items:center; font-size:15px}
     .category-item:hover{background:rgba(255,255,255,0.02)}
     .category-item.active{background:linear-gradient(90deg, rgba(124,58,237,0.08), rgba(6,182,212,0.06)); border:1px solid rgba(124,58,237,0.08)}
     .subcats{margin-top:12px; display:flex; gap:8px; flex-wrap:wrap}
@@ -75,23 +80,42 @@
     .chip.active{background:linear-gradient(90deg,var(--accent-1),var(--accent-2)); color:#02181a; font-weight:700}
 
     /* Main product area */
-    .main{min-height:360px}
-    .filters-row{display:flex; align-items:center; gap:12px; margin-bottom:14px}
+    .main{min-height:320px}
+    .filters-row{display:flex; align-items:center; gap:12px; margin-bottom:12px}
     .badge{background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:999px; color:var(--muted); font-size:14px}
-    .products{display:grid; grid-template-columns:repeat(3,1fr); gap:20px}
+    .products{display:grid; grid-template-columns:repeat(3,1fr); gap:16px}
     @media (max-width:1100px){ .products{grid-template-columns:repeat(2,1fr)} }
-    @media (max-width:640px){ .products{grid-template-columns:1fr} }
+    /* MOBILE: 2 products per row as requested */
+    @media (max-width:640px){ .products{grid-template-columns:repeat(2,1fr); gap:12px} }
 
-    /* Product card with larger text for elders */
-    .card{background:var(--panel); padding:14px; border-radius:12px; overflow:hidden; transition:transform .18s ease, box-shadow .18s; border:1px solid rgba(255,255,255,0.02); cursor:pointer; min-height:330px; display:flex; flex-direction:column; justify-content:space-between}
+    /* Product card with larger text for elders (kept slightly compact) */
+    .card{background:var(--panel); padding:12px; border-radius:12px; overflow:hidden; transition:transform .18s ease, box-shadow .18s; border:1px solid rgba(255,255,255,0.02); cursor:pointer; min-height:300px; display:flex; flex-direction:column; justify-content:space-between}
     .card:hover{transform:translateY(-6px); box-shadow:0 16px 40px rgba(2,6,23,0.65)}
-    /* Card thumbnail: fixed height on desktop, more flexible on mobile */
-    .thumb{width:100%; height:220px; object-fit:cover; border-radius:10px; display:block; transition:opacity .45s ease; background:transparent !important; }
-    .thumb-video{width:100%; height:220px; object-fit:cover; border-radius:10px; display:block; background:transparent !important;}
-    .p-title{font-weight:800; margin:12px 0 6px; font-size:18px}
-    .p-subtitle{color:var(--accent-1); font-weight:700; margin-bottom:8px; font-size:14px}
-    .p-desc{color:var(--muted); font-size:15px; min-height:54px}
-    .p-meta{color:var(--muted); font-size:14px; margin-top:10px}
+    /* Card thumbnail: show full image while preserving aspect (contain) */
+    .thumb{
+      width:100%;
+      height:220px;
+      object-fit:contain !important;
+      object-position:center center;
+      border-radius:10px;
+      display:block;
+      transition:opacity .45s ease, background .18s;
+      background: linear-gradient(180deg, rgba(2,6,23,0.08), rgba(2,6,23,0.02));
+    }
+    .thumb-video{
+      width:100%;
+      height:220px;
+      object-fit:contain !important;
+      object-position:center center;
+      border-radius:10px;
+      display:block;
+      background:linear-gradient(180deg, rgba(0,0,0,0.2), rgba(0,0,0,0.05));
+    }
+    .p-title{font-weight:800; margin:10px 0 6px; font-size:17px}
+    .p-subtitle{color:var(--accent-1); font-weight:700; margin-bottom:8px; font-size:13px}
+    .p-desc{color:var(--muted); font-size:14px; min-height:48px}
+    .p-beneficios{color:var(--muted); font-size:14px; min-height:48px; margin-top:6px; line-height:1.35}
+    .p-meta{color:var(--muted); font-size:13px; margin-top:10px}
 
     /* Modal: responsive & scrollable - improved for full images */
     .modal{
@@ -133,7 +157,7 @@
       .modal-card{padding:12px; gap:10px; max-height: calc(100vh - 36px); }
       .modal-card img{max-height: calc(45vh - 60px)}
       header.hero{padding:10px}
-      .brand img.logo{width:52px;height:52px}
+      .brand img.logo{width:48px;height:48px}
       .modal-top-close{width:40px;height:40px; top:8px; right:8px}
       .delivery-bottom-left{left:12px; bottom:12px; font-size:12px}
     }
@@ -166,14 +190,14 @@
       position:relative;
       min-height:160px;
     }
-    /* Smooth transitions for main media - fade only (avoid movement) */
+    /* Smooth transitions for main media - show complete (contain) */
     .modal-card img,
     .modal-card video,
     .modal-card iframe{
-      max-width:100%;
-      height:auto;
-      max-height: calc(60vh - 80px);
-      object-fit:contain;
+      width:100%;
+      height:420px; /* fixed height to keep consistent modal layout */
+      object-fit:contain !important;
+      object-position:center center;
       border-radius:10px;
       display:block;
       transition: opacity .22s ease, transform .18s ease;
@@ -185,6 +209,14 @@
       border: 6px solid rgba(255,255,255,0.03);
       box-shadow: 0 8px 30px rgba(0,0,0,0.5);
     }
+
+    /* For smaller screens use viewport-based height */
+    @media (max-width:640px){
+      .modal-card img,
+      .modal-card video,
+      .modal-card iframe { height: calc(45vh); }
+    }
+
     .modal-card img.hidden,
     .modal-card video.hidden,
     .modal-card iframe.hidden {
@@ -198,6 +230,7 @@
       transform-origin: center center;
       max-height: none;
       max-width: none;
+      height: auto; /* when zoomed, allow natural height */
     }
 
     .modal-controls{display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-bottom:6px}
@@ -223,7 +256,7 @@
     }
     .modal-top-close:focus{outline:2px solid rgba(124,58,237,0.25)}
 
-    /* Thumbs: GRID layout (4 por fila desktop), vertical scroll if muchas */
+    /* Thumbs: GRID layout (4 per row desktop) - thumbs also show complete (contain) */
     .thumb-grid{
       display:grid;
       grid-template-columns: repeat(4, 1fr);
@@ -238,7 +271,8 @@
     .thumb-grid img, .thumb-grid video{
       width:100%;
       height:120px;
-      object-fit:cover;
+      object-fit:contain !important;
+      object-position:center center;
       border-radius:8px;
       cursor:pointer;
       opacity:.95;
@@ -284,15 +318,15 @@
     body.modal-open{overflow:hidden; -webkit-overflow-scrolling: touch;}
 
     /* WhatsApp floating */
-    .whatsapp-area{position:fixed; right:18px; bottom:18px; z-index:300; display:flex; gap:8px; flex-direction:column; align-items:flex-end; transition:opacity .22s ease, transform .22s ease;}
-    .phone-large{background:rgba(2,6,23,0.95); color:var(--text); padding:10px 14px; border-radius:12px; font-weight:900; font-size:18px; box-shadow:var(--soft-shadow)}
-    .whatsapp-cta{display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:999px; background:linear-gradient(90deg,#25D366,#128C7E); color:white; text-decoration:none; font-weight:900}
+    .whatsapp-area{position:fixed; right:14px; bottom:14px; z-index:300; display:flex; gap:8px; flex-direction:column; align-items:flex-end; transition:opacity .22s ease, transform .22s ease;}
+    .phone-large{background:rgba(2,6,23,0.95); color:var(--text); padding:10px 12px; border-radius:12px; font-weight:900; font-size:16px; box-shadow:var(--soft-shadow)}
+    .whatsapp-cta{display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:999px; background:linear-gradient(90deg,#25D366,#128C7E); color:white; text-decoration:none; font-weight:900}
 
     /* Delivery informative text in bottom-left (single text, not clickable) */
     .delivery-bottom-left{
       position:fixed;
-      left:18px;
-      bottom:18px;
+      left:14px;
+      bottom:14px;
       z-index:550;
       background:transparent;
       color:#e6f9f8;
@@ -355,12 +389,18 @@
     @media (max-width:640px){
       .buy-btn{ padding:8px 12px; min-width:100px; font-size:14px; border-radius:10px; }
       .modal-card{ padding-bottom:18px; }
+      .card{min-height: auto; padding:10px;}
+      .thumb{height:160px; object-fit:contain;}
+      .p-title{font-size:15px}
+      .p-beneficios{font-size:13px}
+      .p-meta{font-size:12px}
+      .search-input{max-width:300px}
     }
 
     /* Mobile-specific tweaks: show full thumb images instead of cropped */
     @media (max-width:640px){
-      .thumb{height:180px; object-fit:contain;}
-      .modal-card img{max-height: calc(45vh);}
+      .thumb{height:160px; object-fit:contain;}
+      .modal-card img{height:calc(45vh);}
       .modal-card{max-height: calc(100vh - 48px);}
       .modal-image-wrap{padding:6px;}
     }
@@ -369,9 +409,10 @@
 <body>
   <header class="hero" role="banner">
     <div class="brand">
-      <img class="logo" id="siteLogo" src="logo-placeholder.png" alt="ArchiPapu logo">
+      <!-- logo: puedes reemplazar Logo_Archinime.png por tu archivo -->
+      <img class="logo" id="siteLogo" src="Logo_Archinime.png" alt="OmniArchi logo">
       <div>
-        <p class="site-title" id="siteTitle">ArchiPapu</p>
+        <p class="site-title" id="siteTitle">OmniArchi</p>
         <p class="site-sub" id="siteLead">Tu espacio de salud y bienestar</p>
       </div>
     </div>
@@ -411,7 +452,7 @@
   </main>
 
   <footer>
-    <small>© <span id="year"></span> ArchiPapu — Demo</small>
+    <small>© <span id="year"></span> OmniArchi — Demo</small>
   </footer>
 
   <!-- Modal de detalle -->
@@ -474,8 +515,8 @@
 
   <script>
     /**************************************************************************
-     * Código JS completo y actualizado (coloca esto después de la lista de productos)
-     * - Cambios: thumb-grid, modal close rápido (pointerdown), area de imagen con max-height.
+     * Código JS completo y actualizado
+     * - Cambio principal: las imágenes se muestran completas usando object-fit: contain.
      **************************************************************************/
 
     const PLACEHOLDER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
@@ -562,6 +603,7 @@ const DATA = {
       ],
       cat: 'Nutrición',
       sub: 'Nutrición Ligera',
+      // imagen de ejemplo pública para que se vea bien en tu entorno
       images: [
         'Cafezzino_OMNILIFE_5105932.png',
         'grasa-corporal.jpg',
@@ -574,6 +616,7 @@ const DATA = {
       buyLink: 'https://wa.link/nrp77e'
     },
 
+    // resto de productos sin cambios (se mantienen como antes)
     {
       id: 2,
       title: 'Omnilife Probiotic',
@@ -863,18 +906,6 @@ const DATA = {
       buyLink: 'https://wa.link/36pxs5'
     },
 
-
-
-
-
-
-
-
-
-
-
-
-
   ]
 };
 
@@ -1067,7 +1098,10 @@ const DATA = {
       items.forEach(p => {
         const card = document.createElement('article'); card.className = 'card'; card.dataset.productId = p.id;
         const firstMedia = p.images && p.images.length ? p.images[0] : '';
-        const snippet = (p.content && p.content.length) ? p.content[0] : (p.desc || '');
+        // Build a beneficios snippet (hasta 3), si no hay beneficios cae al primer content o desc
+        const benefitsSnippet = (p.beneficios && p.beneficios.length)
+          ? p.beneficios.slice(0,3).map(b => escapeHtml(b)).join(' • ')
+          : ((p.content && p.content.length) ? escapeHtml(p.content[0]) : escapeHtml(p.desc || ''));
 
         let thumbHtml = '';
         if(isYouTubeUrl(firstMedia)){
@@ -1083,8 +1117,7 @@ const DATA = {
           ${thumbHtml}
           <div>
             <div class="p-title">${escapeHtml(p.title)}</div>
-            ${p.subtitle ? `<div class="p-subtitle">${escapeHtml(p.subtitle)}</div>` : ''}
-            <div class="p-desc">${escapeHtml(snippet)}</div>
+            <div class="p-beneficios">${benefitsSnippet}</div>
           </div>
           <div class="p-meta">${escapeHtml(p.cat)} • ${escapeHtml(p.sub)}</div>
         `;
@@ -1285,6 +1318,7 @@ const DATA = {
             vid.muted = true;
             vid.loop = true;
             vid.playsInline = true;
+            vid.style.objectFit = 'contain';
             vid.addEventListener('mouseenter', () => vid.play().catch(()=>{}));
             vid.addEventListener('mouseleave', () => { vid.pause(); vid.currentTime = 0; });
             if(i === 0) vid.classList.add('active');
@@ -1301,6 +1335,7 @@ const DATA = {
             const im = document.createElement('img');
             im.src = getMediaPreviewSrc(src);
             im.alt = `${p.title} ${i+1}`;
+            im.style.objectFit = 'contain';
             im.addEventListener('error', ()=> { im.src = PLACEHOLDER_SVG; im.style.objectFit='contain'; });
             if(i === 0) im.classList.add('active');
             im.onclick = (ev) => {
@@ -1391,7 +1426,7 @@ const DATA = {
     // close via Escape
     document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeModal(); });
 
-    // Close button: pointerdown para respuesta instantánea en touch y click
+    // Close button: pointerdown for instant on touch and click
     const closeBtn = $('#modalClose');
     if(closeBtn){
       closeBtn.addEventListener('pointerdown', (ev) => { ev.preventDefault(); ev.stopPropagation(); closeModal(); }, {passive:false});
