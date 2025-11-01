@@ -256,7 +256,7 @@
     }
     .modal-top-close:focus{outline:2px solid rgba(124,58,237,0.25)}
 
-    /* Thumbs: GRID layout (4 per row desktop) - thumbs also show complete (contain) */
+    /* Thumbs: GRID layout - miniaturas dentro del modal (AJUSTADAS: más pequeñas) */
     .thumb-grid{
       display:grid;
       grid-template-columns: repeat(4, 1fr);
@@ -270,10 +270,10 @@
     }
     .thumb-grid img, .thumb-grid video{
       width:100%;
-      height:120px;
+      height:48px; /* <-- tamaño reducido para desktop */
       object-fit:contain !important;
       object-position:center center;
-      border-radius:8px;
+      border-radius:6px;
       cursor:pointer;
       opacity:.95;
       border:2px solid transparent;
@@ -281,9 +281,9 @@
     }
     .thumb-grid img.active, .thumb-grid video.active{ border-color:rgba(255,255,255,0.12); opacity:1; transform:scale(1.02); }
 
-    /* Responsive tweaks for thumb grid */
+    /* Responsive tweaks for thumb grid: aún más pequeño en móvil */
     @media (max-width:1100px){ .thumb-grid{ grid-template-columns: repeat(3, 1fr); } }
-    @media (max-width:640px){ .thumb-grid{ grid-template-columns: repeat(2, 1fr); } .thumb-grid img, .thumb-grid video{ height:100px; } }
+    @media (max-width:640px){ .thumb-grid{ grid-template-columns: repeat(4, 1fr); } .thumb-grid img, .thumb-grid video{ height:40px; } }
 
     .modal-subtitle{color:var(--accent-1); font-weight:700; margin-top:6px; font-size:15px}
     .modal-details{color:var(--muted); margin-top:12px; font-size:15px; white-space:pre-wrap}
@@ -517,6 +517,7 @@
     /**************************************************************************
      * Código JS completo y actualizado
      * - Cambio principal: las imágenes se muestran completas usando object-fit: contain.
+     * - Se redujeron las miniaturas dentro del modal (thumb-grid) para desktop y móvil.
      **************************************************************************/
 
     const PLACEHOLDER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
