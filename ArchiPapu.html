@@ -1,4 +1,4 @@
-	 <!doctype html>
+<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
@@ -52,6 +52,13 @@
       font-weight:800; cursor:pointer; font-size:15px;
     }
 
+    /* Mobile search smaller */
+    @media (max-width:640px){
+      .search-input{max-width:420px; padding:8px;}
+      .search-input input{font-size:14px; padding:6px 8px;}
+      .search-input button{padding:8px 10px; font-size:13px;}
+    }
+
     /* Layout */
     .container{display:grid; grid-template-columns:300px 1fr; gap:22px; padding:22px; max-width:1200px; margin:0 auto; width:100%;}
     @media (max-width:1000px){ .container{grid-template-columns:1fr; padding:14px;} .sidebar{order:2} .main{order:1} }
@@ -98,7 +105,7 @@
       background:rgba(2,6,23,0.72);
       opacity:0;
       pointer-events:none;
-      transition:opacity .18s;
+      transition:opacity .12s ease;
       overflow-y:auto;
       -webkit-overflow-scrolling:touch;
       z-index:400;
@@ -109,7 +116,6 @@
       background:linear-gradient(180deg,#071428,#061226);
       border-radius:12px;
       padding:18px;
-      /* disminuí espacio reservado en la parte inferior: ya no necesitamos tanto espacio para botón flotante */
       padding-bottom:18px;
       display:grid;
       grid-template-columns:1fr 1fr;
@@ -139,6 +145,13 @@
       background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
       border: 1px solid rgba(255,255,255,0.05);
       box-shadow: 0 10px 30px rgba(6,30,45,0.45), inset 0 1px 0 rgba(255,255,255,0.015);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      /* Constrain the visual area so images many no expand modal */
+      max-height: calc(100vh - 220px);
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
     }
     .modal-image-wrap{
       width:100%;
@@ -151,6 +164,7 @@
       padding:8px;
       -webkit-overflow-scrolling:touch;
       position:relative;
+      min-height:160px;
     }
     /* Smooth transitions for main media - fade only (avoid movement) */
     .modal-card img,
@@ -162,7 +176,7 @@
       object-fit:contain;
       border-radius:10px;
       display:block;
-      transition: opacity .32s ease;
+      transition: opacity .22s ease, transform .18s ease;
       opacity:1;
       cursor: zoom-in;
       user-select:none;
@@ -209,10 +223,33 @@
     }
     .modal-top-close:focus{outline:2px solid rgba(124,58,237,0.25)}
 
-    /* Thumbs: make horizontally scrollable on small screens and keep neat on desktop */
-    .thumb-strip{display:flex; gap:10px; margin-top:10px; align-items:center; overflow-x:auto; white-space:nowrap; flex-wrap:nowrap; padding-bottom:6px;}
-    .thumb-strip img, .thumb-strip video{width:72px; height:72px; object-fit:cover; border-radius:8px; cursor:pointer; opacity:.9; border:2px solid transparent; background:transparent !important; display:inline-block; flex:0 0 auto;}
-    .thumb-strip img.active, .thumb-strip video.active{border-color:rgba(255,255,255,0.12); opacity:1}
+    /* Thumbs: GRID layout (4 por fila desktop), vertical scroll if muchas */
+    .thumb-grid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:8px;
+      margin-top:6px;
+      align-items:center;
+      overflow:auto;
+      padding:6px;
+      border-radius:8px;
+      background:transparent;
+    }
+    .thumb-grid img, .thumb-grid video{
+      width:100%;
+      height:120px;
+      object-fit:cover;
+      border-radius:8px;
+      cursor:pointer;
+      opacity:.95;
+      border:2px solid transparent;
+      background:transparent !important;
+    }
+    .thumb-grid img.active, .thumb-grid video.active{ border-color:rgba(255,255,255,0.12); opacity:1; transform:scale(1.02); }
+
+    /* Responsive tweaks for thumb grid */
+    @media (max-width:1100px){ .thumb-grid{ grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width:640px){ .thumb-grid{ grid-template-columns: repeat(2, 1fr); } .thumb-grid img, .thumb-grid video{ height:100px; } }
 
     .modal-subtitle{color:var(--accent-1); font-weight:700; margin-top:6px; font-size:15px}
     .modal-details{color:var(--muted); margin-top:12px; font-size:15px; white-space:pre-wrap}
@@ -244,7 +281,7 @@
 
     .beneficios-list{margin-top:10px; padding-left:18px; color:#e6ffef; font-size:15px; line-height:1.5}
     .contenido-list{margin-top:8px; padding-left:18px; color:var(--muted); font-size:15px; line-height:1.5}
-    body.modal-open{overflow:hidden;}
+    body.modal-open{overflow:hidden; -webkit-overflow-scrolling: touch;}
 
     /* WhatsApp floating */
     .whatsapp-area{position:fixed; right:18px; bottom:18px; z-index:300; display:flex; gap:8px; flex-direction:column; align-items:flex-end; transition:opacity .22s ease, transform .22s ease;}
@@ -293,7 +330,6 @@
 
     /* Buy button: ahora en línea (por encima del título). Ajustes de estilo para posición no flotante */
     .buy-btn{
-      /* ya no es absoluto: posición alineada dentro del contenido del modal */
       position:static;
       z-index:480;
       display:inline-flex;
@@ -310,15 +346,15 @@
       border:0;
       min-width:120px;
       text-align:center;
-      margin-bottom:10px; /* separación respecto al título */
-      align-self:flex-start; /* quedar al inicio de la columna derecha */
+      margin-bottom:10px;
+      align-self:flex-start;
     }
     .buy-btn:focus{outline:2px solid rgba(6,182,212,0.18); outline-offset:2px;}
 
     /* Mobile tweaks for buy button: mantener compacto */
     @media (max-width:640px){
       .buy-btn{ padding:8px 12px; min-width:100px; font-size:14px; border-radius:10px; }
-      .modal-card{ padding-bottom:18px; } /* sin espacio extra porque el botón ya está inline */
+      .modal-card{ padding-bottom:18px; }
     }
 
     /* Mobile-specific tweaks: show full thumb images instead of cropped */
@@ -394,7 +430,8 @@
             <video id="modalVideo" controls playsinline style="display:none;"></video>
             <iframe id="modalYoutube" style="display:none;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
           </div>
-          <div class="thumb-strip" id="modalThumbs" aria-hidden="false"></div>
+          <!-- Rejilla de miniaturas: comportamiento vertical si son muchas -->
+          <div class="thumb-grid" id="modalThumbs" aria-hidden="false"></div>
         </div>
       </div>
 
@@ -418,7 +455,6 @@
         <div class="modal-details" id="modalDesc" style="display:none">Descripción</div>
       </div>
 
-      <!-- Nota: el botón original estaba al final como flotante; ahora está reubicado arriba (ya incluido más arriba). -->
     </div>
   </div>
 
@@ -439,8 +475,7 @@
   <script>
     /**************************************************************************
      * Código JS completo y actualizado (coloca esto después de la lista de productos)
-     * Nota: Lógica principal sin cambios. El botón sigue usando id="modalBuyBtn"
-     * por lo que todas las referencias JS funcionan igual que antes.
+     * - Cambios: thumb-grid, modal close rápido (pointerdown), area de imagen con max-height.
      **************************************************************************/
 
     const PLACEHOLDER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
@@ -1014,6 +1049,19 @@ const DATA = {
       });
     }
 
+    function renderSubcats(){
+      const wrap = $('#subcatList'); wrap.innerHTML = '';
+      if(!state.cat){ wrap.innerHTML = '<div class="small" style="color:var(--muted)">Selecciona una categoría</div>'; return; }
+      const subs = DATA.subcats[state.cat] || [];
+      subs.forEach(s => {
+        const chip = document.createElement('div');
+        chip.className = 'chip' + (state.sub === s ? ' active' : '');
+        chip.textContent = s;
+        chip.onclick = () => { state.sub = (state.sub === s ? null : s); applyFilters(); renderSubcats(); };
+        wrap.appendChild(chip);
+      });
+    }
+
     function renderProducts(items){
       const grid = $('#productsGrid'); grid.innerHTML = '';
       items.forEach(p => {
@@ -1111,7 +1159,7 @@ const DATA = {
       modalImage.src = '';
       try{ modalYoutube.src = ''; }catch(e){}
       [modalImage, modalVideo, modalYoutube].forEach(el => {
-        if(el){ el.classList.add('hidden'); setTimeout(()=>{ try{ el.style.display='none'; }catch(_){} }, 340); }
+        if(el){ el.classList.add('hidden'); setTimeout(()=>{ try{ el.style.display='none'; }catch(_){} }, 240); }
       });
     }
 
@@ -1131,12 +1179,10 @@ const DATA = {
           modalImage.src = PLACEHOLDER_SVG;
           modalImage.style.display = 'block';
           setTimeout(()=>{ modalImage.classList.remove('hidden'); }, 30);
-          resumeBackgroundMusicAfterVideo();
           return;
         }
 
         if(type === 'youtube'){
-          pauseBackgroundMusicForVideo();
           modalYoutube.src = src;
           modalYoutube.style.display = 'block';
           setTimeout(()=>{ modalYoutube.classList.remove('hidden'); }, 30);
@@ -1144,7 +1190,6 @@ const DATA = {
         }
 
         if(type === 'video'){
-          pauseBackgroundMusicForVideo();
           modalVideo.src = src;
           modalVideo.style.display = 'block';
           modalVideo.currentTime = 0;
@@ -1152,7 +1197,6 @@ const DATA = {
           return;
         }
 
-        resumeBackgroundMusicAfterVideo();
         const tmp = new Image();
         tmp.onload = () => {
           modalImage.src = src;
@@ -1165,7 +1209,7 @@ const DATA = {
           setTimeout(()=>{ modalImage.classList.remove('hidden'); }, 30);
         };
         tmp.src = src;
-      }, 260);
+      }, 200);
     }
 
     function setModalMedia(src){
@@ -1231,6 +1275,7 @@ const DATA = {
       }
       contenidoWrap.appendChild(contenidoList);
 
+      // thumbs: limpiar y crear rejilla (grid)
       modalThumbs.innerHTML = '';
       if(p.images && p.images.length){
         p.images.forEach((src, i) => {
@@ -1243,13 +1288,13 @@ const DATA = {
             vid.addEventListener('mouseenter', () => vid.play().catch(()=>{}));
             vid.addEventListener('mouseleave', () => { vid.pause(); vid.currentTime = 0; });
             if(i === 0) vid.classList.add('active');
-            vid.onclick = () => {
+            vid.onclick = (ev) => {
+              ev.stopPropagation();
               $$('#modalThumbs img, #modalThumbs video').forEach(x => x.classList.remove('active'));
               vid.classList.add('active');
               setModalMedia(src);
               const mc = document.querySelector('.modal-card'); if(mc) mc.scrollTop = 0;
               const mw = document.getElementById('modalImageWrap'); if(mw) mw.scrollTop = 0;
-              scrollThumbIntoCenter(modalThumbs, vid);
             };
             modalThumbs.appendChild(vid);
           } else {
@@ -1258,13 +1303,13 @@ const DATA = {
             im.alt = `${p.title} ${i+1}`;
             im.addEventListener('error', ()=> { im.src = PLACEHOLDER_SVG; im.style.objectFit='contain'; });
             if(i === 0) im.classList.add('active');
-            im.onclick = () => {
+            im.onclick = (ev) => {
+              ev.stopPropagation();
               $$('#modalThumbs img, #modalThumbs video').forEach(x => x.classList.remove('active'));
               im.classList.add('active');
               setModalMedia(src);
               const mc = document.querySelector('.modal-card'); if(mc) mc.scrollTop = 0;
               const mw = document.getElementById('modalImageWrap'); if(mw) mw.scrollTop = 0;
-              scrollThumbIntoCenter(modalThumbs, im);
             };
             modalThumbs.appendChild(im);
           }
@@ -1311,16 +1356,20 @@ const DATA = {
     function closeModal(){
       try{ modalVideo.pause(); modalVideo.removeAttribute('src'); modalVideo.load(); }catch(e){}
       try{ modalYoutube.src = ''; }catch(e){}
+      // remove show immediately and temporarily disable transition to avoid visible slowdown
+      modal.style.transition = 'none';
       modal.classList.remove('show');
       modal.setAttribute('aria-hidden','true');
       document.body.classList.remove('modal-open');
       modalImage.src = '';
       modalThumbs.innerHTML = '';
-      // ocultar boton cuando se cierra modal
       if(modalBuyBtn) modalBuyBtn.style.display = 'none';
-      resumeBackgroundMusicAfterVideo();
+      // force reflow then restore transition for next open
+      void modal.offsetWidth;
+      setTimeout(()=>{ modal.style.transition = ''; }, 40);
     }
 
+    // Zoom main image (same behavior)
     modalImage.addEventListener('click', (e) => {
       if(!modalImage.src) return;
       const isZoomed = modalImage.classList.toggle('zoomed');
@@ -1334,12 +1383,21 @@ const DATA = {
       else modalVideo.pause();
     });
 
+    // close when click outside modal-card
     modal.addEventListener('click', (e) => {
       if(e.target && e.target.id === 'productModal') closeModal();
     });
 
+    // close via Escape
     document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeModal(); });
-    $('#modalClose').onclick = closeModal;
+
+    // Close button: pointerdown para respuesta instantánea en touch y click
+    const closeBtn = $('#modalClose');
+    if(closeBtn){
+      closeBtn.addEventListener('pointerdown', (ev) => { ev.preventDefault(); ev.stopPropagation(); closeModal(); }, {passive:false});
+      // also keep click as fallback
+      closeBtn.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); closeModal(); }, {passive:false});
+    }
 
     // --- Search & filters: search ONLY in title, results in RANDOM order ---
     function applyFilters(){
@@ -1389,8 +1447,6 @@ const DATA = {
       renderSubcats();
       state.filtered = shuffleArray(DATA.products.slice());
       renderProducts(state.filtered);
-      const delivery = document.getElementById('deliveryBottom');
-      if(delivery){}
     }
     init();
 
@@ -1402,9 +1458,7 @@ const DATA = {
       openModal,
       closeModal,
       isYouTubeUrl,
-      shuffleArray,
-      pauseBackgroundMusicForVideo,
-      resumeBackgroundMusicAfterVideo
+      shuffleArray
     };
   </script>
 </body>
