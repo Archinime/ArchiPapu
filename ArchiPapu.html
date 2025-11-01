@@ -1,4 +1,4 @@
-<!doctype html>
+ <!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
@@ -492,143 +492,356 @@
       return a;
     }
 
-    // --- Data: categorías y productos (resumidos para no repetir detalles largos) ---
-    const DATA = {
-      categories: [
-        {id:'Nutrición', name:'Nutrición'},
-        {id:'Cosméticos', name:'Cosméticos'},
-        {id:'Hogar', name:'Hogar & Bienestar'}
+const DATA = {
+  categories: [
+    { id: 'Nutrición', name: 'Nutrición' },
+    { id: 'Cosméticos', name: 'Cosméticos' },
+    { id: 'Hogar', name: 'Hogar & Bienestar' }
+  ],
+  subcats: {
+    Nutrición: ['Nutrición Ligera', 'Nutrición Especializada', 'Deportivos', 'Digestivo', 'Inmunológicos', 'Bebidas Refrescantes'],
+    Cosméticos: ['Cuidado facial', 'Cabello', 'Maquillaje'],
+    Hogar: ['Limpieza', 'Aromas', 'Accesorios']
+  },
+  products: [
+    {
+      id: 1,
+      title: 'Cafezzino',
+      subtitle: 'El equilibrio que estabas esperando. Nada como una taza de café con los mejores ingredientes, como el extracto de café verde, cromo y fibra prebiótica. Comienza tus días con Cafezzino.',
+      desc: 'Caja con 30 sobres. Contenido neto 150 g.',
+      beneficios: [
+        'Favorece a la metabolización de carbohidratos (azúcares).',
+        'Baja de 3 a 6 kg en el primer mes de uso.',
+        'Reduce tallas desde las primeras semanas.',
+        'Reduce la ansiedad de comer.',
+        'Reduce y quema la grasa localizada, disminuye los niveles de azúcar.',
+        'Previene y controla el colesterol y diabetes.'
       ],
-      subcats: {
-        Nutrición: ['Nutrición Ligera','Digestivo','Inmunológicos'],
-        Cosméticos: ['Cuidado facial','Cabello','Maquillaje'],
-        Hogar: ['Limpieza','Aromas','Accesorios']
-      },
-      products: [
-        { id:1,
-          title:'Cafezzino',
-          subtitle: 'El equilibrio que estabas esperando. Nada como una taza de café con los mejores ingredientes, como el extracto de café verde, cromo y fibra prebiótica. Comienza tus días con Cafezzino.',
-          desc: 'Caja con 30 sobres. Contenido neto 150 g.',
-          beneficios: [
-            'Favorece a la metabolización de carbohidratos (azúcares).',
-            'Baja de 3 a 6 kg en el primer mes de uso.',
-            'Reduce tallas desde las primeras semanas.',
-            'Reduce la ansiedad de comer.',
-            'Reduce y quema la grasa localizada, disminuye los niveles de azúcar.',
-            'Previene y controla el colesterol y diabetes.', 
-          ],
-          content: [
-            'Suplemento alimenticio con café colombiano.',
-            'Extracto de café verde.',
-            'Cromo.',
-            'Fibra prebiótica.',
-            'Sin calorías.',
-            'Endulzantes de origen natural.',
-          ],
-          cat:'Nutrición',
-          sub:'Nutrición Ligera',
-          images:[
-            'Cafezzino_OMNILIFE_5105932.png',
-            'grasa-corporal.jpg',
-            '1920_shutterstock-2079146449.jpg',
-            'istockphoto-1152968881-612x612.jpg',
-            'Cafezzino_OMNILIFE_consumo.png',
-            'Cafezzino_OMNILIFE_mezclado_caja.png',
-            'Cafezzino_OMNILIFE_Tabla_nutrimental.jpg'
-          ], buyLink: 'https://wa.link/nrp77e' },
+      content: [
+        'Suplemento alimenticio con café colombiano.',
+        'Extracto de café verde.',
+        'Cromo.',
+        'Fibra prebiótica.',
+        'Sin calorías.',
+        'Endulzantes de origen natural.'
+      ],
+      cat: 'Nutrición',
+      sub: 'Nutrición Ligera',
+      images: [
+        'Cafezzino_OMNILIFE_5105932.png',
+        'grasa-corporal.jpg',
+        '1920_shutterstock-2079146449.jpg',
+        'istockphoto-1152968881-612x612.jpg',
+        'Cafezzino_OMNILIFE_consumo.png',
+        'Cafezzino_OMNILIFE_mezclado_caja.png',
+        'Cafezzino_OMNILIFE_Tabla_nutrimental.jpg'
+      ],
+      buyLink: 'https://wa.link/nrp77e'
+    },
 
-        { id:2,           
-	  title:'Omnilife Probiotic',
-          subtitle: 'Añade probióticos y prebióticos a tu rutina y descubre la mejor nutrición con Omnilife Probiotic con un delicioso sabor limón-arándano.',
-          desc: 'Caja con 30 sobres. Contenido neto 150 g.',
-          beneficios: [
-            'Ayuda a eliminar la gastritis helycobacter.',
-            'Enfocado ayudar a mejorar la digestión y sistema inmunológico.',
-            'Promueve el equilibrio de la flora intestinal.',
-            'Disminuye la inflamación intestinal, el dolor.',
-            'Mejora el estreñimiento.',
-            'Eliminan bacterias.'
-          ],
-          content: [
-            'Suplemento alimenticio sabor limón-arándano.',
-            '1 billón de probióticos bacillus coagulans.',
-            'Fibra prebiótica.',
-            'Extracto de té blanco.',
-            'Vitamina B12.',
-            'Minerales.',
-            'Sin azúcar.',
-            'Sin calorías.',
-            'Endulzantes de origen natural.',
-          ],
-          cat:'Nutrición',
-          sub:'Digestivo',
-          images:[
-            'Probiotic_OMNILIFE_6724761.png',
-            'Fotolia_67856364_L.jpg',
-            'dfgdfgfdg.jpg',
-            'Probiotic_OMNILIFE_Tabla_nutrimental.jpg',
-          ], buyLink: 'https://wa.link/f23pro' },
+    {
+      id: 2,
+      title: 'Omnilife Probiotic',
+      subtitle: 'Añade probióticos y prebióticos a tu rutina y descubre la mejor nutrición con Omnilife Probiotic con un delicioso sabor limón-arándano.',
+      desc: 'Caja con 30 sobres. Contenido neto 150 g.',
+      beneficios: [
+        'Ayuda a eliminar la gastritis helycobacter.',
+        'Enfocado ayudar a mejorar la digestión y sistema inmunológico.',
+        'Promueve el equilibrio de la flora intestinal.',
+        'Disminuye la inflamación intestinal, el dolor.',
+        'Mejora el estreñimiento.',
+        'Eliminan bacterias.'
+      ],
+      content: [
+        'Suplemento alimenticio sabor limón-arándano.',
+        '1 billón de probióticos bacillus coagulans.',
+        'Fibra prebiótica.',
+        'Extracto de té blanco.',
+        'Vitamina B12.',
+        'Minerales.',
+        'Sin azúcar.',
+        'Sin calorías.',
+        'Endulzantes de origen natural.'
+      ],
+      cat: 'Nutrición',
+      sub: 'Digestivo',
+      images: [
+        'Probiotic_OMNILIFE_6724761.png',
+        'Fotolia_67856364_L.jpg',
+        'dfgdfgfdg.jpg',
+        'Probiotic_OMNILIFE_Tabla_nutrimental.jpg'
+      ],
+      buyLink: 'https://wa.link/qp0nt2'
+    },
 
-        { id:3,           
-	  title:'Omniplus',
-          subtitle: 'Las vitaminas y los minerales son nutrimentos importantes para el organismo, debido a que pueden promover su desarrollo, funcionamiento y mantenimiento.',
-          desc: 'Caja con 30 sobres 600 ml',
-          beneficios: [
-            'Aumenta las defensas/ hemoglobina.',
-            'Detiene la anemia.',
-            'Infecciones – Antibióticonatural',
-            'Desinflama el cuerpo.',
-            'Refuerza el Sistema Inmunológico',
-            'Refuerza el Sistema Respiratorio',
-            'Previene y mejora alergias, asma y bronquitis.'
-          ],
-          content: [
-            'Mezcla líquida, sabor frutas y endulzantes de origen natural.',
-            'Vitamina A, B1,B2, B3, B5, B6, B12, C, D y E.',
-            'Biotina',
-            'Minerales calcio, zinc, magnesio, cobre, cromo, manganeso y selenio',
-            'Fruto del monje',
-          ],
-          cat:'Nutrición',
-          sub:'Inmunológicos',
-          images:[
-            '2350430.png',
-	    'gfhfg.jpg',
-	    'dfgg.png',
-	    '1724199334_cd7cd60059c42987aca6.jpg',
-	    '2350430_tabla__nutrimental.png',
-          ], buyLink: 'https://wa.link/tn1iyl' },
+    {
+      id: 3,
+      title: 'Omniplus',
+      subtitle: 'Las vitaminas y los minerales son nutrimentos importantes para el organismo, debido a que pueden promover su desarrollo, funcionamiento y mantenimiento.',
+      desc: 'Caja con 30 sobres 600 ml',
+      beneficios: [
+        'Aumenta las defensas/ hemoglobina.',
+        'Detiene la anemia.',
+        'Infecciones – Antibiótico natural',
+        'Desinflama el cuerpo.',
+        'Refuerza el Sistema Inmunológico',
+        'Refuerza el Sistema Respiratorio',
+        'Previene y mejora alergias, asma y bronquitis.'
+      ],
+      content: [
+        'Mezcla líquida, sabor frutas y endulzantes de origen natural.',
+        'Vitamina A, B1,B2, B3, B5, B6, B12, C, D y E.',
+        'Biotina',
+        'Minerales calcio, zinc, magnesio, cobre, cromo, manganeso y selenio',
+        'Fruto del monje'
+      ],
+      cat: 'Nutrición',
+      sub: 'Inmunológicos',
+      images: [
+        '2350430.png',
+        'gfhfg.jpg',
+        'dfgg.png',
+        '1724199334_cd7cd60059c42987aca6.jpg',
+        '2350430_tabla__nutrimental.png'
+      ],
+      buyLink: 'https://wa.link/tn1iyl'
+    },
 
-        { id:4,
-          title:'Magnus',
-          subtitle: 'Producto nutricional sabor a cítrico, con vitaminas del complejo B, glicina y taurina.',
-          desc: 'Caja c/30 sobres 405g',
-          beneficios: [
-            'Da de 6 a 8 horas de energía.',
-            'Mejora el ánimo.',
-            'Aumenta el rendimiento físico.',
-            'Combate la depresión.',
-            'Reduce la ansiedad.',
-            'Combate las adicciones.',
-            'Limpia el cólon (cólon sucio)'
-          ],
-          content: [
-            'Producto nutricional sabor a cítrico.',
-            'Complejo B.',
-            'Glicina.',
-            'Taurina.'
-          ],
-          cat:'Nutrición',
-          sub:'Nutrición Ligera',
-          images:[
-            '2023500_1.png',
-            'drdg.jpg',
-            'fgdfg.jpg',
-            'CUM3243.jpg',
-            '2023500_tabla_nutrimental.jpg',
-          ], buyLink: 'https://wa.link/nrp77e' },
-      ]
-    };
+    {
+      id: 4,
+      title: 'Magnus',
+      subtitle: 'Producto nutricional sabor a cítrico, con vitaminas del complejo B, glicina y taurina.',
+      desc: 'Caja c/30 sobres 405g',
+      beneficios: [
+        'Da de 6 a 8 horas de energía.',
+        'Mejora el ánimo.',
+        'Aumenta el rendimiento físico.',
+        'Combate la depresión.',
+        'Reduce la ansiedad.',
+        'Combate las adicciones.',
+        'Limpia el cólon (cólon sucio)'
+      ],
+      content: [
+        'Producto nutricional sabor a cítrico.',
+        'Complejo B.',
+        'Glicina.',
+        'Taurina.'
+      ],
+      cat: 'Nutrición',
+      sub: 'Deportivos',
+      images: [
+        '2023500_1.png',
+        'drdg.jpg',
+        'fgdfg.jpg',
+        'CUM3243.jpg',
+        '2023500_tabla_nutrimental.jpg'
+      ],
+      buyLink: 'https://wa.link/nrp77e'
+    },
+
+    {
+      id: 5,
+      title: 'Starbien',
+      subtitle: 'Producto nutricional sabor naranja-limón, con vitaminas del complejo B, las cuales pueden favorecer el funcionamiento del sistema nervioso. Por su parte el extracto de maca puede promover la obtención de energía, colaborando en el estado de alerta del organismo.',
+      desc: 'Caja c/30 sachets 240g',
+      beneficios: [
+        'Elimina estrés, cansancio y fatiga.',
+        'Aumenta la energía física y mental.',
+        'Maximiza el rendimiento físico y mental.',
+        'Combate adicciones.',
+        'Mejora la calidad de sueño.',
+        'Contiene alto nivel de ácido fólico (mujeres gestantes).',
+        'Combate psoriasis y vitiligo.'
+      ],
+      content: [
+        'Producto nutricional sabor naranja-limón',
+        'Vitaminas del complejo B.',
+        'Vitamina A.',
+        'Ácido fólico.',
+        'Fibra de manzana.',
+        'Beta caroteno.'
+      ],
+      cat: 'Nutrición',
+      sub: 'Nutrición Especializada',
+      images: [
+        '3000730.png',
+        'psoriasis-homme-bras-ventre.jpg',
+        'vitiligo-research.jpg',
+        'PORTADA-WEB-ANTI-ESTRÉS.jpeg',
+        'istockphoto-1075891348-612x612.jpg',
+        '3000730_tabla_neutrimental.jpg',
+      ],
+      buyLink: 'https://wa.link/qlaq9f'
+    },
+
+    {
+      id: 6,
+      title: 'Omniviu Supreme',
+      subtitle: 'Producto nutricional sabor naranja-limón, con vitaminas del complejo B, las cuales pueden favorecer el funcionamiento del sistema nervioso. Por su parte el extracto de maca puede promover la obtención de energía, colaborando en el estado de alerta del organismo.',
+      desc: 'Caja c/30 sachets 150g',
+      beneficios: [
+        'Fortalece la visión y los tejidos de la vista.',
+        'Favorece el funcionamiento de la vista.',
+        'Nutre y regenera las células de la mácula del ojo.',
+        'Elimina y previene cataratas, miopía, glaucoma, conjuntivitis, carnosidad y astigmatismo.',
+        'Previene y controla el cansancio visual.',
+      ],
+      content: [
+        'Producto nutricional sabor a moras, que contiene luteína, zeaxantina y antioxidantes.',
+        'Vitamina A, C yE.',
+        'Luteína.',
+        'Zeaxantina.',
+        'Endulzado con stevia.',
+      ],
+      cat: 'Nutrición',
+      sub: 'Nutrición Especializada',
+      images: [
+        '5827415.png',
+        'nina-ejercicio-vista.jpg',
+        'fghfhghfghfh.jpg',
+        'ojos-caddtaratas.jpg',
+        'oftalmosalud-blog-cirugia-de-pterigion-antes-y-despues.jpg',
+        'celula-madre-regenera-vision.jpg',
+        '5827415_tabla_nutrimental.jpg',
+      ],
+      buyLink: 'https://wa.link/qlaq9f'
+    },
+
+    {
+      id: 7,
+      title: 'One C Mix',
+      subtitle: 'Producto nutricional sabor naranja-limón, con vitaminas del complejo B, las cuales pueden favorecer el funcionamiento del sistema nervioso. Por su parte el extracto de maca puede promover la obtención de energía, colaborando en el estado de alerta del organismo.',
+      desc: 'Caja con 30 sobres',
+      beneficios: [
+        'Desintoxica las células.',
+        'Previene el envejecimiento prematuro.',
+        'Protección de la contaminación y eldaño celular.',
+        'Refuerza el Sistema Inmunológico.',
+        'Elimina los radicales libres.',
+        'Elimina alergias y resfríos.',
+        'Desintoxicante y antioxidante Natural.',
+      ],
+      content: [
+        'Suplemento alimenticio sabor mango verde.',
+        'Antioxidante: glutatión 6 mg.',
+        'Aminoácidos.',
+        'Vitaminas A, C y E.',
+        'Fibra dietética.',
+        'Complejo B.',
+        'Minerales.',
+        'Endulzantes de origen natural.',
+        'Sugerencia de consumo: Disfrútalo en cualquier momento.',
+      ],
+      cat: 'Nutrición',
+      sub: 'Inmunológicos',
+      images: [
+        '6305929.png',
+        'mac_como_prevenir_el_envejecimiento_prematuro_1701900722.jpg',
+        'Sin-título-121134.jpg',
+        'articulos-485905.jpg',
+        'sdfsdsfe.jpg',
+        'dfffffffffg.jpg',
+        'inmu.jpg',
+        '3178516_tabla_nutrimental.jpg',
+      ],
+      buyLink: 'https://wa.link/h97m6m'
+    },
+
+    {
+      id: 8,
+      title: 'Uzo Supreme',
+      subtitle: 'Producto nutricional sabor naranja-limón, con vitaminas del complejo B, las cuales pueden favorecer el funcionamiento del sistema nervioso. Por su parte el extracto de maca puede promover la obtención de energía, colaborando en el estado de alerta del organismo.',
+      desc: 'Caja c/30 sachets 240g',
+      beneficios: [
+        'Combate y previene el Cáncer.',
+        'Detiene el aumento de las células cancerígenas.',
+        'Refuerza el sistema inmunológico.',
+        'Mejora los procesos médicosoncológicos.',
+        'Eleva las defensas.',
+        'Mejora los tratamientos de quimoterapia.',
+      ],
+      content: [
+        'Producto nutricional sabor vainilla francesa.',
+        'Salvado de Arroz.',
+        'Selenio.',
+        'Niacina.',
+        'Vitamina E.',
+      ],
+      cat: 'Nutrición',
+      sub: 'Inmunológicos',
+      images: [
+        '3875700.png',
+        'cancer-mama-prevencion.jpg',
+        'Celulas-Cancerosas-Origami-ADN-e1496030667528.jpg',
+        'Covid-19 y sistema inmunológico.jpg',
+        'que es el cancer.jpg',
+        'que es la quimioterapia.jpg',
+        '1070x840.jpg',
+        '3875700_tabla_nutrimental.jpg',
+      ],
+      buyLink: 'https://wa.link/h97m6m'
+    },
+    {
+      id: 9,
+      title: 'Power Maker',
+      subtitle: 'Producto nutricional sabor naranja-limón, con vitaminas del complejo B, las cuales pueden favorecer el funcionamiento del sistema nervioso. Por su parte el extracto de maca puede promover la obtención de energía, colaborando en el estado de alerta del organismo.',
+      desc: 'Caja c/30 sachets 240g',
+      beneficios: [
+        'Mejora el desempeño sexual.',
+        'Triplica el conteo de espermatozoides (varones).',
+        'Fortalece y regenera el útero (mujeres).',
+        'Elimina la prostatitis y prolapso',
+        'Tonifica y aumenta la masa muscular.',
+        'Regenera los tejidos musculares.',
+        'Elimina quistes y hernias.',
+        'Regenera las células óseas (fracturas).',
+        'Mejora osteoporosis, artrosis, reumatismo, poliomielitis.',
+      ],
+      content: [
+        'Suplemento alimenticio, sabor a naranja.',
+        'Arginina.',
+        'Glicina.',
+        'Colina.',
+        'Taurina.',
+        'Calcio.',
+        'Vitamina C y E.',
+        'Fruto del monje.',
+      ],
+      cat: 'Nutrición',
+      sub: 'Deportivos',
+      images: [
+        '603201.png',
+        'iStock-876816096-1024x575.jpg',
+        'Airbrush-IMAGE-ENHANCER-1762017794687-1762017794688.png',
+        'legrado-uterino-1.jpg',
+        'Amarillo y Verde Moderno Reunión Dominical Religiosa Post para Instagram (45).png',
+        '10-1.jpg',
+        'autoreparacion_muscular.jpg',
+        'hmgs-service-images-cyst-removal.jpg',
+        'como_tratar_una_hernia_4881_600.jpg',
+        'celulas-madre-y-regeneracion-osea.jpg',
+        'artritis-artrosis.jpg',
+        'polio-8b4c77ee-focus-0-0-688-364.png',
+        'difficultjointdisease-sm18.jpg',
+        'D_NQ_NP_721636-MLA92714728543_092025-O.jpg',
+      ],
+      buyLink: 'https://wa.link/h97m6m'
+    },
+
+
+
+
+
+
+
+
+
+
+
+
+
+  ]
+};
 
     // --- State & slideshow config ---
     let state = { cat:null, sub:null, query:'', filtered:[] };
