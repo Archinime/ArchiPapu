@@ -261,29 +261,47 @@
       display:grid;
       grid-template-columns: repeat(4, 1fr);
       gap:8px;
-      margin-top:6px;
+      margin-top:0; /* quitar espacio por defecto entre imagen principal y miniaturas */
       align-items:center;
       overflow:auto;
-      padding:6px;
+      padding:6px 6px 0 6px; /* quitar padding bottom para evitar espacio vertical extra */
       border-radius:8px;
       background:transparent;
     }
     .thumb-grid img, .thumb-grid video{
       width:100%;
-      height:48px; /* <-- tamaño reducido para desktop */
+      height:48px; /* tamaño reducido para desktop */
       object-fit:contain !important;
       object-position:center center;
       border-radius:6px;
+      display:block; /* evita espacios en línea */
       cursor:pointer;
       opacity:.95;
       border:2px solid transparent;
       background:transparent !important;
+      line-height:0; /* evita gaps en algunos navegadores */
     }
     .thumb-grid img.active, .thumb-grid video.active{ border-color:rgba(255,255,255,0.12); opacity:1; transform:scale(1.02); }
 
-    /* Responsive tweaks for thumb grid: aún más pequeño en móvil */
+    /* Responsive tweaks for thumb grid: aún más pequeño en móvil y sin espacio vertical */
     @media (max-width:1100px){ .thumb-grid{ grid-template-columns: repeat(3, 1fr); } }
-    @media (max-width:640px){ .thumb-grid{ grid-template-columns: repeat(4, 1fr); } .thumb-grid img, .thumb-grid video{ height:40px; } }
+    @media (max-width:640px){
+      .thumb-grid{
+        grid-template-columns: repeat(4, 1fr);
+        gap:6px;
+        padding:4px 4px 0 4px; /* minimizar padding superior y eliminar inferior */
+        margin-top:0;
+      }
+      .thumb-grid img, .thumb-grid video{
+        height:36px; /* aún más pequeño en móvil */
+        border-radius:6px;
+      }
+      .modal-image-wrap{
+        padding:8px 8px 2px 8px; /* menos padding-bottom para pegar thumbs a la imagen */
+        min-height:0; /* evitar espacio mínimo extra */
+      }
+      .image-frame{ gap:6px; } /* reducir gap vertical general */
+    }
 
     .modal-subtitle{color:var(--accent-1); font-weight:700; margin-top:6px; font-size:15px}
     .modal-details{color:var(--muted); margin-top:12px; font-size:15px; white-space:pre-wrap}
@@ -402,7 +420,7 @@
       .thumb{height:160px; object-fit:contain;}
       .modal-card img{height:calc(45vh);}
       .modal-card{max-height: calc(100vh - 48px);}
-      .modal-image-wrap{padding:6px;}
+      .modal-image-wrap{padding:8px 8px 2px 8px;}
     }
   </style>
 </head>
@@ -516,8 +534,8 @@
   <script>
     /**************************************************************************
      * Código JS completo y actualizado
-     * - Cambio principal: las imágenes se muestran completas usando object-fit: contain.
-     * - Se redujeron las miniaturas dentro del modal (thumb-grid) para desktop y móvil.
+     * - Cambio principal: las miniaturas dentro del modal se pegaron a la imagen
+     *   principal en móvil (se eliminó el espacio vertical extra).
      **************************************************************************/
 
     const PLACEHOLDER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
@@ -584,7 +602,7 @@ const DATA = {
     {
       id: 1,
       title: 'Cafezzino',
-      subtitle: 'El equilibrio que estabas esperando. Nada como una taza de café con los mejores ingredientes, como el extracto de café verde, cromo y fibra prebiótica. Comienza tus días con Cafezzino.',
+      subtitle: 'Suplemento alimenticio con café colombiano.',
       desc: 'Caja con 30 sobres. Contenido neto 150 g.',
       beneficios: [
         'Favorece a la metabolización de carbohidratos (azúcares).',
@@ -595,7 +613,6 @@ const DATA = {
         'Previene y controla el colesterol y diabetes.'
       ],
       content: [
-        'Suplemento alimenticio con café colombiano.',
         'Extracto de café verde.',
         'Cromo.',
         'Fibra prebiótica.',
@@ -621,7 +638,7 @@ const DATA = {
     {
       id: 2,
       title: 'Omnilife Probiotic',
-      subtitle: 'Añade probióticos y prebióticos a tu rutina y descubre la mejor nutrición con Omnilife Probiotic con un delicioso sabor limón-arándano.',
+      subtitle: 'Suplemento alimenticio sabor limón-arándano.',
       desc: 'Caja con 30 sobres. Contenido neto 150 g.',
       beneficios: [
         'Ayuda a eliminar la gastritis helycobacter.',
@@ -632,7 +649,6 @@ const DATA = {
         'Eliminan bacterias.'
       ],
       content: [
-        'Suplemento alimenticio sabor limón-arándano.',
         '1 billón de probióticos bacillus coagulans.',
         'Fibra prebiótica.',
         'Extracto de té blanco.',
@@ -656,7 +672,7 @@ const DATA = {
     {
       id: 3,
       title: 'Omniplus',
-      subtitle: 'Las vitaminas y los minerales son nutrimentos importantes para el organismo, debido a que pueden promover su desarrollo, funcionamiento y mantenimiento.',
+      subtitle: 'Mezcla líquida, sabor frutas y endulzantes de origen natural.',
       desc: 'Caja con 30 sobres 600 ml',
       beneficios: [
         'Aumenta las defensas/ hemoglobina.',
@@ -668,7 +684,6 @@ const DATA = {
         'Previene y mejora alergias, asma y bronquitis.'
       ],
       content: [
-        'Mezcla líquida, sabor frutas y endulzantes de origen natural.',
         'Vitamina A, B1,B2, B3, B5, B6, B12, C, D y E.',
         'Biotina',
         'Minerales calcio, zinc, magnesio, cobre, cromo, manganeso y selenio',
@@ -689,7 +704,7 @@ const DATA = {
     {
       id: 4,
       title: 'Magnus',
-      subtitle: 'Producto nutricional sabor a cítrico, con vitaminas del complejo B, glicina y taurina.',
+      subtitle: 'Producto nutricional sabor a cítrico.',
       desc: 'Caja c/30 sobres 405g',
       beneficios: [
         'Da de 6 a 8 horas de energía.',
@@ -701,7 +716,6 @@ const DATA = {
         'Limpia el cólon (cólon sucio)'
       ],
       content: [
-        'Producto nutricional sabor a cítrico.',
         'Complejo B.',
         'Glicina.',
         'Taurina.'
@@ -721,7 +735,7 @@ const DATA = {
     {
       id: 5,
       title: 'Starbien',
-      subtitle: 'Producto nutricional sabor naranja-limón, con vitaminas del complejo B, las cuales pueden favorecer el funcionamiento del sistema nervioso. Por su parte el extracto de maca puede promover la obtención de energía, colaborando en el estado de alerta del organismo.',
+      subtitle: 'Producto nutricional sabor naranja-limón.',
       desc: 'Caja c/30 sachets 240g',
       beneficios: [
         'Elimina estrés, cansancio y fatiga.',
@@ -733,7 +747,6 @@ const DATA = {
         'Combate psoriasis y vitiligo.'
       ],
       content: [
-        'Producto nutricional sabor naranja-limón',
         'Vitaminas del complejo B.',
         'Vitamina A.',
         'Ácido fólico.',
@@ -756,7 +769,7 @@ const DATA = {
     {
       id: 6,
       title: 'Omniviu Supreme',
-      subtitle: 'Producto nutricional sabor naranja-limón, con vitaminas del complejo B, las cuales pueden favorecer el funcionamiento del sistema nervioso. Por su parte el extracto de maca puede promover la obtención de energía, colaborando en el estado de alerta del organismo.',
+      subtitle: 'Producto nutricional sabor a moras, que contiene luteína, zeaxantina y antioxidantes.',
       desc: 'Caja c/30 sachets 150g',
       beneficios: [
         'Fortalece la visión y los tejidos de la vista.',
@@ -766,7 +779,6 @@ const DATA = {
         'Previene y controla el cansancio visual.',
       ],
       content: [
-        'Producto nutricional sabor a moras, que contiene luteína, zeaxantina y antioxidantes.',
         'Vitamina A, C yE.',
         'Luteína.',
         'Zeaxantina.',
@@ -789,7 +801,7 @@ const DATA = {
     {
       id: 7,
       title: 'One C Mix',
-      subtitle: 'Producto nutricional sabor naranja-limón, con vitaminas del complejo B, las cuales pueden favorecer el funcionamiento del sistema nervioso. Por su parte el extracto de maca puede promover la obtención de energía, colaborando en el estado de alerta del organismo.',
+      subtitle: 'Suplemento alimenticio sabor mango verde.',
       desc: 'Caja con 30 sobres',
       beneficios: [
         'Desintoxica las células.',
@@ -801,7 +813,6 @@ const DATA = {
         'Desintoxicante y antioxidante Natural.',
       ],
       content: [
-        'Suplemento alimenticio sabor mango verde.',
         'Antioxidante: glutatión 6 mg.',
         'Aminoácidos.',
         'Vitaminas A, C y E.',
@@ -829,7 +840,7 @@ const DATA = {
     {
       id: 8,
       title: 'Uzo Supreme',
-      subtitle: 'Producto nutricional sabor naranja-limón, con vitaminas del complejo B, las cuales pueden favorecer el funcionamiento del sistema nervioso. Por su parte el extracto de maca puede promover la obtención de energía, colaborando en el estado de alerta del organismo.',
+      subtitle: 'Producto nutricional sabor vainilla francesa.',
       desc: 'Caja c/30 sachets 240g',
       beneficios: [
         'Combate y previene el Cáncer.',
@@ -840,7 +851,6 @@ const DATA = {
         'Mejora los tratamientos de quimoterapia.',
       ],
       content: [
-        'Producto nutricional sabor vainilla francesa.',
         'Salvado de Arroz.',
         'Selenio.',
         'Niacina.',
@@ -863,7 +873,7 @@ const DATA = {
     {
       id: 9,
       title: 'Power Maker',
-      subtitle: 'Producto nutricional sabor naranja-limón, con vitaminas del complejo B, las cuales pueden favorecer el funcionamiento del sistema nervioso. Por su parte el extracto de maca puede promover la obtención de energía, colaborando en el estado de alerta del organismo.',
+      subtitle: 'Suplemento alimenticio, sabor a naranja.',
       desc: 'Caja c/30 sachets 240g',
       beneficios: [
         'Mejora el desempeño sexual.',
@@ -877,7 +887,6 @@ const DATA = {
         'Mejora osteoporosis, artrosis, reumatismo, poliomielitis.',
       ],
       content: [
-        'Suplemento alimenticio, sabor a naranja.',
         'Arginina.',
         'Glicina.',
         'Colina.',
@@ -908,7 +917,7 @@ const DATA = {
     },
 
   ]
-};
+}; 
 
     // --- State & slideshow config ---
     let state = { cat:null, sub:null, query:'', filtered:[] };
