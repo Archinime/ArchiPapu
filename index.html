@@ -175,18 +175,18 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122);
 
-        // --- Cámara más lejana en móviles y tablets ---
+        // --- Cámara según dispositivo (más arriba en PC, más lejos en móvil/tablet) ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         
         if (deviceType === 'mobile') {
             // Móvil: mucho más lejos
-            camera.position.set(0, 18, 48);
+            camera.position.set(0, 20, 55);
         } else if (deviceType === 'tablet') {
             // Tablet: más lejos que antes
-            camera.position.set(0, 16, 40);
+            camera.position.set(0, 18, 45);
         } else {
-            // Escritorio: como antes
-            camera.position.set(0, 8, 18);
+            // Escritorio: más arriba y ligeramente más lejos para mejor vista
+            camera.position.set(0, 10, 20);
         }
         camera.lookAt(0, 2, 0);
 
@@ -204,7 +204,7 @@
         controls.screenSpacePanning = true;
         controls.maxPolarAngle = Math.PI / 2; // No bajar del suelo
         controls.minDistance = 4;
-        controls.maxDistance = 40; // Más zoom out
+        controls.maxDistance = 50; // Más zoom out
         controls.target.set(0, 2, 0);
 
         // --- Límites base según dispositivo (más amplios al estar más lejos) ---
@@ -213,15 +213,12 @@
             baseMinAzimuth = -Math.PI / 2.5; // -72° (más giro porque la cámara está lejos)
             baseMaxAzimuth = Math.PI / 2.5;  // +72°
         } else if (deviceType === 'tablet') {
-            baseMinAzimuth = -Math.PI / 2.2; // -82° (aún más)
+            baseMinAzimuth = -Math.PI / 2.2; // -82°
             baseMaxAzimuth = Math.PI / 2.2;  // +82°
         } else {
             baseMinAzimuth = -Math.PI / 4;   // -45°
             baseMaxAzimuth = Math.PI / 4;    // +45°
         }
-
-        // --- Variables para control dinámico (cerca gira poco, lejos gira más) ---
-        // En el bucle de animación ajustaremos los límites según la distancia.
 
         // --- Luz principal: foco desde arriba (muy potente) ---
         const mainLight = new THREE.SpotLight(0xffeedd, 4.5);
