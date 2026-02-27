@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Habitación 3D - Iluminación Mejorada</title>
     <style>
-        body { margin:0; overflow:hidden; font-family:Arial, Helvetica, sans-serif; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, Helvetica, sans-serif;
+        }
         #info {
             position: absolute;
             top: 20px;
@@ -23,8 +27,9 @@
     </style>
 </head>
 <body>
-    <div id="info">🏠 Habitación interactiva (Iluminación mejorada)</div>
+    <div id="info">🏠 Habitación interactiva (cámara elevada, luces con mayor alcance)</div>
 
+    <!-- Importamos Three.js y OrbitControls desde CDN -->
     <script type="importmap">
         {
             "imports": {
@@ -39,14 +44,17 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
+        // --- Configuración básica de la escena ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x111122);
+        scene.background = new THREE.Color(0x111122); // Color de fondo oscuro para simular una habitación cerrada
 
-        // Cámara (vista elevada)
+        // --- Cámara ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        // Vista más arriba y lejos (ajustado a 12 de altura y 15 de distancia)
         camera.position.set(8, 12, 15);
         camera.lookAt(0, 2, 0);
 
+        // --- Renderizador ---
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
@@ -54,6 +62,7 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
+        // --- Controles de órbita ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
@@ -61,17 +70,17 @@
         controls.maxPolarAngle = Math.PI / 2;
         controls.minDistance = 2;
         controls.maxDistance = 25;
-        controls.target.set(0, 2, 0);
+        controls.target.set(0, 2, 0); // Centro de interés más alto
 
-        // --- LUCES MEJORADAS ---
+        // --- LUCES MEJORADAS (más arriba y mayor rango) ---
 
-        // 1. Ambiental más brillante (color más claro y mayor intensidad)
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2); // Intensidad 1.2
+        // Luz ambiental más brillante (color claro e intensidad 1.2)
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
         scene.add(ambientLight);
 
-        // 2. Direccional principal más fuerte
-        const directionalLight = new THREE.DirectionalLight(0xfff5e6, 2.0); // Intensidad 2.0
-        directionalLight.position.set(5, 10, 7);
+        // Luz direccional principal (más arriba, intensidad 2.0)
+        const directionalLight = new THREE.DirectionalLight(0xfff5e6, 2.0);
+        directionalLight.position.set(5, 15, 7); // Subida de y=10 a y=15
         directionalLight.castShadow = true;
         directionalLight.receiveShadow = true;
         directionalLight.shadow.mapSize.width = 1024;
@@ -86,36 +95,39 @@
         directionalLight.shadow.bias = -0.0005;
         scene.add(directionalLight);
 
-        // 3. Luz de relleno desde atrás (más intensa)
+        // Luz de relleno desde atrás (más arriba y con distancia 30)
         const backLight = new THREE.PointLight(0x4466ff, 1.0);
-        backLight.position.set(-3, 4, -3);
+        backLight.position.set(-3, 6, -3); // Subida de y=4 a y=6
+        backLight.distance = 30; // Alcance aumentado
         scene.add(backLight);
 
-        // 4. Luz puntual cálida (más intensa)
-        const pointLight = new THREE.PointLight(0xffaa66, 1.5, 15);
-        pointLight.position.set(2, 4, 2);
+        // Luz puntual cálida (más arriba y con distancia 25)
+        const pointLight = new THREE.PointLight(0xffaa66, 1.5);
+        pointLight.position.set(2, 6, 2); // Subida de y=4 a y=6
+        pointLight.distance = 25; // Antes 15
         scene.add(pointLight);
 
-        // 5. NUEVO: Foco desde el techo hacia el centro
+        // Foco desde el techo (más arriba, más ángulo y más distancia)
         const spotLight = new THREE.SpotLight(0xffffff, 1.8);
-        spotLight.position.set(0, 8, 0); // En el techo
+        spotLight.position.set(0, 10, 0); // Subido de y=8 a y=10
         spotLight.target.position.set(0, 1, 0);
         scene.add(spotLight.target);
         spotLight.castShadow = true;
         spotLight.shadow.mapSize.width = 1024;
         spotLight.shadow.mapSize.height = 1024;
-        spotLight.angle = 0.8;        // Cono amplio
+        spotLight.angle = 1.0;        // Más abierto (antes 0.8)
         spotLight.penumbra = 0.5;
         spotLight.decay = 1;
-        spotLight.distance = 20;
+        spotLight.distance = 30;       // Antes 20
         scene.add(spotLight);
 
-        // 6. NUEVO: Luz puntual adicional cerca de la silla
-        const sillaLight = new THREE.PointLight(0xffcc88, 1.2, 8);
-        sillaLight.position.set(1.5, 2.5, 1.5);
+        // Luz puntual adicional cerca de la silla (más arriba y más distancia)
+        const sillaLight = new THREE.PointLight(0xffcc88, 1.2);
+        sillaLight.position.set(1.5, 4, 1.5); // Subida de y=2.5 a y=4
+        sillaLight.distance = 15; // Antes 8
         scene.add(sillaLight);
 
-        // --- Cargador de modelos ---
+        // --- Cargador de modelos GLB ---
         const loader = new GLTFLoader();
 
         function loadModel(path) {
@@ -123,6 +135,7 @@
                 path,
                 (gltf) => {
                     const model = gltf.scene;
+                    // Asegurar que el modelo y sus hijos proyecten y reciban sombras
                     model.traverse((node) => {
                         if (node.isMesh) {
                             node.castShadow = true;
@@ -133,7 +146,7 @@
                     console.log(`✅ Modelo cargado: ${path}`);
                 },
                 (xhr) => {
-                    console.log(`${path} ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`);
+                    console.log(`${path} ${(xhr.loaded / xhr.total * 100).toFixed(0)}% cargado`);
                 },
                 (error) => {
                     console.error(`❌ Error al cargar ${path}:`, error);
@@ -141,33 +154,55 @@
             );
         }
 
-        // Lista de modelos (agrega aquí todos los que tengas)
+        // Lista completa de modelos (todos los que mencionaste)
         const modelos = [
-            'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb',
-            'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb',
-            'decoracion_escritorio.glb', 'decoracion_mueble_1.glb', 'decoracion_mueble_2.glb',
-            'poster_1.glb', 'poster_2.glb', 'poster_3.glb', 'poster_4.glb',
-            'interruptor.glb', 'maouse_pad.glb', 'lunari2.glb'
+            'piso.glb',
+            'alfombra.glb',
+            'silla.glb',
+            'paredes.glb',
+            'cama.glb',
+            'cortinas.glb',
+            'tele.glb',
+            'mueble1.glb',
+            'mueble2.glb',
+            'pc.glb',
+            'decoracion_escritorio.glb',
+            'decoracion_mueble_1.glb',
+            'decoracion_mueble_2.glb',
+            'poster_1.glb',
+            'poster_2.glb',
+            'poster_3.glb',
+            'poster_4.glb',
+            'interruptor.glb',
+            'maouse_pad.glb',
+            'lunari2.glb'
         ];
 
-        modelos.forEach(m => loadModel(m));
+        // Cargar todos los modelos
+        modelos.forEach(modelo => loadModel(modelo));
 
-        // --- Animación ---
+        // --- Animación y renderizado continuo ---
         function animate() {
             requestAnimationFrame(animate);
+
+            // Actualizar controles (necesario para damping)
             controls.update();
+
+            // Renderizar la escena
             renderer.render(scene, camera);
         }
+
         animate();
 
-        // --- Resize ---
-        window.addEventListener('resize', () => {
+        // --- Manejar cambio de tamaño de la ventana ---
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        }
 
-        console.log('Escena cargada con iluminación mejorada.');
+        console.log('Página lista. Cámara elevada, luces con mayor alcance.');
     </script>
 </body>
 </html>
