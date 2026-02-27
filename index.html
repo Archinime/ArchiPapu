@@ -14,7 +14,6 @@
             height: 100%;
             background-color: #111;
         }
-        /* Botón de tuerca */
         #settings-button {
             position: absolute;
             top: 20px;
@@ -42,7 +41,6 @@
         #settings-button:active {
             transform: scale(0.95);
         }
-        /* Panel de configuración (oculto por defecto) */
         #settings-panel {
             position: absolute;
             top: 70px;
@@ -71,9 +69,6 @@
             cursor: pointer;
             user-select: none;
             margin-bottom: 10px;
-        }
-        #settings-panel label:last-child {
-            margin-bottom: 0;
         }
         #settings-panel input[type="checkbox"] {
             width: 18px;
@@ -137,9 +132,7 @@
     </style>
 </head>
 <body>
-    <!-- Botón de tuerca -->
     <div id="settings-button">⚙️</div>
-    <!-- Panel de configuración -->
     <div id="settings-panel">
         <div id="quality-indicator">Calidad Alta</div>
         <label>
@@ -150,7 +143,6 @@
     <div id="loading">Cargando modelos...</div>
     <div id="light-status">💡 Luz encendida</div>
 
-    <!-- Importamos Three.js y OrbitControls desde CDN -->
     <script type="importmap">
         {
             "imports": {
@@ -165,7 +157,7 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        // --- Detectar tipo de dispositivo por ancho y user agent ---
+        // --- Detectar tipo de dispositivo ---
         const ua = navigator.userAgent;
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
         const width = window.innerWidth;
@@ -183,14 +175,17 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122);
 
-        // --- Cámara según dispositivo (ajustada) ---
+        // --- Cámara más lejana en móviles y tablets ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         
         if (deviceType === 'mobile') {
-            camera.position.set(0, 16, 42);
+            // Móvil: mucho más lejos
+            camera.position.set(0, 18, 48);
         } else if (deviceType === 'tablet') {
-            camera.position.set(0, 14, 34);
+            // Tablet: más lejos que antes
+            camera.position.set(0, 16, 40);
         } else {
+            // Escritorio: como antes
             camera.position.set(0, 8, 18);
         }
         camera.lookAt(0, 2, 0);
@@ -202,53 +197,44 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // --- Controles base (sin límites fijos) ---
+        // --- Controles base ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
         controls.maxPolarAngle = Math.PI / 2; // No bajar del suelo
         controls.minDistance = 4;
-        controls.maxDistance = 30;
+        controls.maxDistance = 40; // Más zoom out
         controls.target.set(0, 2, 0);
 
-        // --- Parámetros para límites dinámicos ---
-        // Definimos los ángulos máximo y mínimo en función de la distancia al target
-        // Para distancia mínima (4), ángulo máximo = 30 grados (PI/6) (para no salir)
-        // Para distancia máxima (30), ángulo máximo = 70 grados (aprox 1.22 rad) (para ver laterales sin salir)
-        // Interpolamos linealmente entre estos valores.
-        const minDist = 4;
-        const maxDist = 30;
-        const minAngle = Math.PI / 6;  // 30°
-        const maxAngle = 1.22;          // aprox 70°
-
-        // Función para actualizar límites según la distancia actual
-        function updateAzimuthLimit() {
-            const dist = camera.position.length(); // distancia desde cámara a origen (target está en 0,2,0, pero aprox)
-            // Normalizamos la distancia entre minDist y maxDist
-            let t = (dist - minDist) / (maxDist - minDist);
-            t = Math.max(0, Math.min(1, t)); // clamp
-            // Ángulo actual interpolado
-            const currentAngle = minAngle + t * (maxAngle - minAngle);
-            controls.minAzimuthAngle = -currentAngle;
-            controls.maxAzimuthAngle = currentAngle;
+        // --- Límites base según dispositivo (más amplios al estar más lejos) ---
+        let baseMinAzimuth, baseMaxAzimuth;
+        if (deviceType === 'mobile') {
+            baseMinAzimuth = -Math.PI / 2.5; // -72° (más giro porque la cámara está lejos)
+            baseMaxAzimuth = Math.PI / 2.5;  // +72°
+        } else if (deviceType === 'tablet') {
+            baseMinAzimuth = -Math.PI / 2.2; // -82° (aún más)
+            baseMaxAzimuth = Math.PI / 2.2;  // +82°
+        } else {
+            baseMinAzimuth = -Math.PI / 4;   // -45°
+            baseMaxAzimuth = Math.PI / 4;    // +45°
         }
 
-        // Llamada inicial
-        updateAzimuthLimit();
+        // --- Variables para control dinámico (cerca gira poco, lejos gira más) ---
+        // En el bucle de animación ajustaremos los límites según la distancia.
 
-        // --- Luz principal: foco desde arriba ---
-        const mainLight = new THREE.SpotLight(0xffeedd, 4.2);
-        mainLight.position.set(0, 22, 0);
+        // --- Luz principal: foco desde arriba (muy potente) ---
+        const mainLight = new THREE.SpotLight(0xffeedd, 4.5);
+        mainLight.position.set(0, 25, 0); // Más arriba
         mainLight.target.position.set(0, 1, 0);
         scene.add(mainLight.target);
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.width = 2048;
         mainLight.shadow.mapSize.height = 2048;
-        mainLight.angle = 1.4;
+        mainLight.angle = 1.5;            // Ángulo muy abierto
         mainLight.penumbra = 0.5;
         mainLight.decay = 1;
-        mainLight.distance = 80;
+        mainLight.distance = 100;          // Gran alcance
         mainLight.shadow.bias = -0.0005;
         scene.add(mainLight);
 
@@ -316,7 +302,6 @@
             );
         }
 
-        // Lista de modelos
         const modelos = [
             'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb',
             'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb',
@@ -350,7 +335,7 @@
                     mainLight.visible = lightOn;
                     localStorage.setItem('lightState', lightOn ? 'on' : 'off');
                     document.getElementById('light-status').innerText = lightOn ? '💡 Luz encendida' : '💡 Luz apagada';
-                    indicatorLight.intensity = lightOn ? 0.8 : 1.5; // feedback
+                    indicatorLight.intensity = lightOn ? 0.8 : 1.5;
                 }
             }
         }
@@ -391,7 +376,6 @@
             document.getElementById('quality-indicator').textContent = 'Modo Humilde';
         }
 
-        // Inicializar según dispositivo y localStorage
         const savedPerformanceMode = localStorage.getItem('performanceMode');
         const perfCheck = document.getElementById('performance-mode');
         
@@ -437,13 +421,30 @@
             }
         });
 
-        // --- Animación ---
+        // --- Animación con control dinámico del azimuth ---
         function animate() {
             requestAnimationFrame(animate);
+
+            // Calcular factor basado en la distancia de la cámara al origen
+            const distance = camera.position.length();
+            const nearDist = controls.minDistance;
+            const farDist = controls.maxDistance;
             
-            // Actualizar límite de azimuth según distancia actual
-            updateAzimuthLimit();
+            // Factor lineal: 0 (cerca) -> 1 (lejos)
+            let factor = (distance - nearDist) / (farDist - nearDist);
+            factor = Math.max(0, Math.min(1, factor));
             
+            // Multiplicadores: cerca = 40% del ángulo base, lejos = 160% (puedes ajustarlos)
+            const minMultiplier = 0.4;
+            const maxMultiplier = 1.6;
+            
+            const currentMinAngle = baseMinAzimuth * (minMultiplier + factor * (maxMultiplier - minMultiplier));
+            const currentMaxAngle = baseMaxAzimuth * (minMultiplier + factor * (maxMultiplier - minMultiplier));
+            
+            // Aplicar límites
+            controls.minAzimuthAngle = currentMinAngle;
+            controls.maxAzimuthAngle = currentMaxAngle;
+
             controls.update();
             renderer.render(scene, camera);
         }
@@ -464,7 +465,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada con límites dinámicos de azimuth.');
+        console.log('Página cargada. Dispositivo:', deviceType, 'con límites de rotación dinámicos.');
     </script>
 </body>
 </html>
