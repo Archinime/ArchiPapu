@@ -261,7 +261,7 @@
         // Estado de la luz
         let lightOn = true;
         
-        // Luz de señalización para el interruptor
+        // Luz de señalización para el interruptor (siempre encendida, tenue)
         const indicatorLight = new THREE.PointLight(0xffaa00, 0.8, 5);
         indicatorLight.position.set(0, 0, 0);
         scene.add(indicatorLight);
@@ -269,6 +269,12 @@
         // Variables para el interruptor
         let switchMesh = null;
         const switchPosition = new THREE.Vector3();
+
+        // --- Para hover effect ---
+        let hovered = false;
+        // Guardar materiales originales para restaurar después
+        let originalEmissive = null;
+        let originalColors = new Map(); // Mapa de material a color original
 
         // --- Cargador de modelos ---
         const loader = new GLTFLoader();
@@ -293,6 +299,21 @@
                         if (node.isMesh) {
                             node.castShadow = currentShadowState;
                             node.receiveShadow = currentShadowState;
+                            
+                            // Guardar color original si es material estándar
+                            if (node.material) {
+                                if (Array.isArray(node.material)) {
+                                    node.material.forEach(mat => {
+                                        if (mat.isMeshStandardMaterial) {
+                                            originalColors.set(mat, mat.emissive.clone());
+                                        }
+                                    });
+                                } else {
+                                    if (node.material.isMeshStandardMaterial) {
+                                        originalColors.set(node.material, node.material.emissive.clone());
+                                    }
+                                }
+                            }
                         }
                     });
                     
@@ -332,10 +353,39 @@
 
         modelos.forEach(modelo => loadModel(modelo));
 
-        // --- Raycaster para detectar clic en el interruptor ---
+        // --- Variables para raycasting hover ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
+        // Inicializamos con un valor fuera del rango para que no haya hover al inicio
+        mouse.x = -2;
+        mouse.y = -2;
 
+        // --- Eventos para actualizar coordenadas del puntero ---
+        renderer.domElement.addEventListener('mousemove', (event) => {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        });
+
+        renderer.domElement.addEventListener('touchmove', (event) => {
+            event.preventDefault();
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.touches[0].clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.touches[0].clientY - rect.top) / rect.height) * 2 + 1;
+        });
+
+        renderer.domElement.addEventListener('mouseleave', () => {
+            // Al salir del canvas, desactivamos hover
+            mouse.x = -2;
+            mouse.y = -2;
+        });
+
+        renderer.domElement.addEventListener('touchend', (e) => {
+            mouse.x = -2;
+            mouse.y = -2;
+        });
+
+        // --- Raycaster para detectar clic en el interruptor ---
         function onClick(event) {
             const rect = renderer.domElement.getBoundingClientRect();
             if (event.touches) {
@@ -441,7 +491,7 @@
             }
         });
 
-        // --- Animación con control dinámico del azimuth (solo para tablet/escritorio) ---
+        // --- Animación con control dinámico del azimuth y hover del interruptor ---
         function animate() {
             requestAnimationFrame(animate);
 
@@ -467,6 +517,40 @@
                 controls.maxAzimuthAngle = currentMaxAngle;
             }
 
+            // --- Hover detection ---
+            if (switchMesh) {
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(switchMesh, true);
+                
+                const currentlyHovered = intersects.length > 0;
+                
+                if (currentlyHovered !== hovered) {
+                    hovered = currentlyHovered;
+                    
+                    // Cambiar el brillo del interruptor
+                    const emissiveColor = hovered ? new THREE.Color(0xffaa00) : new THREE.Color(0x000000);
+                    const intensity = hovered ? 1.5 : 0.8; // Luz indicadora más intensa
+                    
+                    switchMesh.traverse((node) => {
+                        if (node.isMesh) {
+                            if (Array.isArray(node.material)) {
+                                node.material.forEach(mat => {
+                                    if (mat.isMeshStandardMaterial) {
+                                        mat.emissive.set(emissiveColor);
+                                    }
+                                });
+                            } else {
+                                if (node.material.isMeshStandardMaterial) {
+                                    node.material.emissive.set(emissiveColor);
+                                }
+                            }
+                        }
+                    });
+                    
+                    indicatorLight.intensity = intensity;
+                }
+            }
+
             controls.update();
             renderer.render(scene, camera);
         }
@@ -487,7 +571,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Dispositivo:', deviceType, 'con nuevos ajustes: móvil Y=7, targetY=7 (mirada horizontal)');
+        console.log('Página cargada. Dispositivo:', deviceType, 'con hover en interruptor.');
     </script>
 </body>
 </html>
