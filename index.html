@@ -178,17 +178,28 @@
         // --- Cámara según dispositivo ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         
+        // Valores por defecto (se sobrescribirán según dispositivo)
+        let camPosY = 10, camPosZ = 20, targetY = 2;
+        
         if (deviceType === 'mobile') {
-            // Móvil: más arriba (Y=15), más cerca (Z=5), mirando al frente (target Y=2)
-            camera.position.set(0, 15, 5);
+            // Móvil: más arriba, más cerca, y mira al frente (target a la misma altura)
+            camPosY = 12;
+            camPosZ = 4;  // Zoom más cerca
+            targetY = 12;  // Para que mire horizontal
         } else if (deviceType === 'tablet') {
-            // Tablet: vista intermedia
-            camera.position.set(0, 9, 16);
+            // Tablet: intermedio
+            camPosY = 9;
+            camPosZ = 16;
+            targetY = 2;
         } else {
-            // Escritorio: vista más arriba y alejada
-            camera.position.set(0, 10, 20);
+            // Escritorio
+            camPosY = 10;
+            camPosZ = 20;
+            targetY = 2;
         }
-        camera.lookAt(0, 2, 0);
+        
+        camera.position.set(0, camPosY, camPosZ);
+        camera.lookAt(0, targetY, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -205,7 +216,7 @@
         controls.maxPolarAngle = Math.PI / 2; // No bajar del suelo
         controls.minDistance = 4;
         controls.maxDistance = 50;
-        controls.target.set(0, 2, 0);
+        controls.target.set(0, targetY, 0);  // Importante: usar el targetY calculado
 
         // --- Límites de rotación según dispositivo ---
         let baseMinAzimuth, baseMaxAzimuth;
@@ -218,15 +229,15 @@
             useDynamicLimits = false;
         } else if (deviceType === 'tablet') {
             // Tablet: límites amplios (~±120°)
-            baseMinAzimuth = -Math.PI / 1.5;
-            baseMaxAzimuth = Math.PI / 1.5;
+            baseMinAzimuth = -Math.PI / 1.5; // -120°
+            baseMaxAzimuth = Math.PI / 1.5;  // +120°
             controls.minAzimuthAngle = baseMinAzimuth;
             controls.maxAzimuthAngle = baseMaxAzimuth;
             useDynamicLimits = true;
         } else {
             // Escritorio: límites más cerrados (~±45°)
-            baseMinAzimuth = -Math.PI / 4;
-            baseMaxAzimuth = Math.PI / 4;
+            baseMinAzimuth = -Math.PI / 4; // -45°
+            baseMaxAzimuth = Math.PI / 4;  // +45°
             controls.minAzimuthAngle = baseMinAzimuth;
             controls.maxAzimuthAngle = baseMaxAzimuth;
             useDynamicLimits = true;
@@ -476,7 +487,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Dispositivo:', deviceType, 'con nuevos ajustes (móvil: Y=15, Z=5, mira al frente).');
+        console.log('Página cargada. Dispositivo:', deviceType, 'con nuevos ajustes: móvil mira al frente (target Y=', targetY, ') y zoom más cerca.');
     </script>
 </body>
 </html>
