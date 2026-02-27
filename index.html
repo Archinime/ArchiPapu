@@ -183,15 +183,18 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122);
 
-        // --- Cámara según dispositivo ---
+        // --- Cámara según dispositivo (ajustada para mejor visión lateral sin salir) ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         
         if (deviceType === 'mobile') {
-            camera.position.set(0, 15, 38); // Móvil: más lejos
+            // Móvil: más lejos para abarcar más ángulo sin salir
+            camera.position.set(0, 16, 42);
         } else if (deviceType === 'tablet') {
-            camera.position.set(0, 13, 30); // Tablet: intermedio
+            // Tablet: intermedio
+            camera.position.set(0, 14, 34);
         } else {
-            camera.position.set(0, 8, 18); // Escritorio: como antes
+            // Escritorio: como antes
+            camera.position.set(0, 8, 18);
         }
         camera.lookAt(0, 2, 0);
 
@@ -202,7 +205,7 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // --- Controles con límites de rotación según dispositivo ---
+        // --- Controles con límites de rotación según dispositivo (optimizados) ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
@@ -210,14 +213,17 @@
         controls.maxPolarAngle = Math.PI / 2;
         
         if (deviceType === 'mobile') {
-            controls.minAzimuthAngle = -Math.PI / 5.14; // -35°
-            controls.maxAzimuthAngle = Math.PI / 5.14;  // +35°
+            // Móvil: ±40° (aproximadamente)
+            controls.minAzimuthAngle = -Math.PI / 4.5; // -40°
+            controls.maxAzimuthAngle = Math.PI / 4.5;  // +40°
         } else if (deviceType === 'tablet') {
-            controls.minAzimuthAngle = -Math.PI / 4;    // -45°
-            controls.maxAzimuthAngle = Math.PI / 4;     // +45°
+            // Tablet: ±50°
+            controls.minAzimuthAngle = -Math.PI / 3.6; // -50°
+            controls.maxAzimuthAngle = Math.PI / 3.6;  // +50°
         } else {
-            controls.minAzimuthAngle = -Math.PI / 6;    // -30°
-            controls.maxAzimuthAngle = Math.PI / 6;     // +30°
+            // Escritorio: ±30°
+            controls.minAzimuthAngle = -Math.PI / 6;  // -30°
+            controls.maxAzimuthAngle = Math.PI / 6;   // +30°
         }
         
         controls.minDistance = 4;
@@ -378,7 +384,7 @@
             document.getElementById('quality-indicator').textContent = 'Modo Humilde';
         }
 
-        // Inicializar según dispositivo y localStorage (usamos deviceType para decidir el modo por defecto)
+        // Inicializar según dispositivo y localStorage
         const savedPerformanceMode = localStorage.getItem('performanceMode');
         const perfCheck = document.getElementById('performance-mode');
         
@@ -448,7 +454,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Dispositivo:', deviceType);
+        console.log('Página cargada. Dispositivo:', deviceType, 'con nuevos límites de rotación.');
     </script>
 </body>
 </html>
