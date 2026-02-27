@@ -172,10 +172,10 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122);
 
-        // --- Cámara: más alejada en móvil por defecto ---
+        // --- Cámara: más lejos en móvil por defecto (ajustado) ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         if (isMobile) {
-            camera.position.set(0, 10, 24); // más lejos y un poco más alto
+            camera.position.set(0, 12, 28); // Más lejos y más alto
         } else {
             camera.position.set(0, 8, 18); // como antes
         }
@@ -188,17 +188,17 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // --- Controles con límites de rotación según dispositivo ---
+        // --- Controles con límites de rotación según dispositivo (reducido en móvil) ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
         controls.maxPolarAngle = Math.PI / 2;
         
-        // Límites horizontales: en móvil reducido a ±45°, en PC ±30°
+        // Límites horizontales: en móvil reducido a ±35°, en PC ±30°
         if (isMobile) {
-            controls.minAzimuthAngle = -Math.PI / 4;  // -45°
-            controls.maxAzimuthAngle = Math.PI / 4;   // +45°
+            controls.minAzimuthAngle = -Math.PI / 5.14; // aprox -35° (PI/5.14 ≈ 35°)
+            controls.maxAzimuthAngle = Math.PI / 5.14;  // +35°
         } else {
             controls.minAzimuthAngle = -Math.PI / 6;  // -30°
             controls.maxAzimuthAngle = Math.PI / 6;   // +30°
@@ -431,7 +431,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada: móvil con vista lejana y rotación ±45°.');
+        console.log('Página cargada: móvil con vista más lejana (Y=12, Z=28) y rotación ±35°.');
     </script>
 </body>
 </html>
