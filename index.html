@@ -165,19 +165,33 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        // --- Detectar móvil ---
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        // --- Detectar tipo de dispositivo por ancho y user agent ---
+        const ua = navigator.userAgent;
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+        const width = window.innerWidth;
+        
+        let deviceType = 'desktop';
+        if (width < 768 || (isMobileUA && width < 1024)) {
+            deviceType = 'mobile';
+        } else if (width >= 768 && width <= 1024 || (isMobileUA && width >= 1024)) {
+            deviceType = 'tablet';
+        }
+
+        console.log('Dispositivo detectado:', deviceType, 'ancho:', width);
 
         // --- Variables globales ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122);
 
-        // --- Cámara: más lejos en móvil por defecto ---
+        // --- Cámara según dispositivo ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        if (isMobile) {
-            camera.position.set(0, 13, 30); // Vista lejana en móvil
+        
+        if (deviceType === 'mobile') {
+            camera.position.set(0, 15, 38); // Móvil: más lejos
+        } else if (deviceType === 'tablet') {
+            camera.position.set(0, 13, 30); // Tablet: intermedio
         } else {
-            camera.position.set(0, 8, 18); // Vista en PC
+            camera.position.set(0, 8, 18); // Escritorio: como antes
         }
         camera.lookAt(0, 2, 0);
 
@@ -195,12 +209,15 @@
         controls.screenSpacePanning = true;
         controls.maxPolarAngle = Math.PI / 2;
         
-        if (isMobile) {
+        if (deviceType === 'mobile') {
             controls.minAzimuthAngle = -Math.PI / 5.14; // -35°
             controls.maxAzimuthAngle = Math.PI / 5.14;  // +35°
+        } else if (deviceType === 'tablet') {
+            controls.minAzimuthAngle = -Math.PI / 4;    // -45°
+            controls.maxAzimuthAngle = Math.PI / 4;     // +45°
         } else {
-            controls.minAzimuthAngle = -Math.PI / 6;  // -30°
-            controls.maxAzimuthAngle = Math.PI / 6;   // +30°
+            controls.minAzimuthAngle = -Math.PI / 6;    // -30°
+            controls.maxAzimuthAngle = Math.PI / 6;     // +30°
         }
         
         controls.minDistance = 4;
@@ -208,7 +225,7 @@
         controls.target.set(0, 2, 0);
 
         // --- Luz principal: foco desde arriba (más alto, mayor alcance) ---
-        const mainLight = new THREE.SpotLight(0xffeedd, 4.2); // Intensidad ligeramente mayor
+        const mainLight = new THREE.SpotLight(0xffeedd, 4.2);
         mainLight.position.set(0, 22, 0); // Subido a Y=22
         mainLight.target.position.set(0, 1, 0);
         scene.add(mainLight.target);
@@ -361,11 +378,12 @@
             document.getElementById('quality-indicator').textContent = 'Modo Humilde';
         }
 
-        // Inicializar según dispositivo y localStorage
+        // Inicializar según dispositivo y localStorage (usamos deviceType para decidir el modo por defecto)
         const savedPerformanceMode = localStorage.getItem('performanceMode');
         const perfCheck = document.getElementById('performance-mode');
         
-        if (isMobile) {
+        // Por defecto, en móvil/tablet activamos modo humilde, en desktop no
+        if (deviceType !== 'desktop') {
             if (savedPerformanceMode === null) {
                 perfCheck.checked = true;
                 setupLowQuality();
@@ -430,7 +448,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada: foco en Y=22, distancia=80, ángulo=1.4');
+        console.log('Página cargada. Dispositivo:', deviceType);
     </script>
 </body>
 </html>
