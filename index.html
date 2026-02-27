@@ -172,7 +172,7 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122);
 
-        // --- Cámara: más alejada en móvil ---
+        // --- Cámara: más alejada en móvil por defecto ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         if (isMobile) {
             camera.position.set(0, 10, 24); // más lejos y un poco más alto
@@ -195,10 +195,10 @@
         controls.screenSpacePanning = true;
         controls.maxPolarAngle = Math.PI / 2;
         
-        // Límites horizontales: más amplios en móvil (±60°), en PC (±30°)
+        // Límites horizontales: en móvil reducido a ±45°, en PC ±30°
         if (isMobile) {
-            controls.minAzimuthAngle = -Math.PI / 3;  // -60°
-            controls.maxAzimuthAngle = Math.PI / 3;   // +60°
+            controls.minAzimuthAngle = -Math.PI / 4;  // -45°
+            controls.maxAzimuthAngle = Math.PI / 4;   // +45°
         } else {
             controls.minAzimuthAngle = -Math.PI / 6;  // -30°
             controls.maxAzimuthAngle = Math.PI / 6;   // +30°
@@ -210,7 +210,7 @@
 
         // --- Luz principal: foco desde arriba (más alto) ---
         const mainLight = new THREE.SpotLight(0xffeedd, 3.5); // Intensidad aumentada
-        mainLight.position.set(0, 15, 0); // Más arriba (antes 10)
+        mainLight.position.set(0, 15, 0); // Más arriba
         mainLight.target.position.set(0, 1, 0);
         scene.add(mainLight.target);
         mainLight.castShadow = true;
@@ -219,7 +219,7 @@
         mainLight.angle = 1.2;        // Ángulo amplio
         mainLight.penumbra = 0.5;
         mainLight.decay = 1;
-        mainLight.distance = 50;       // Alcance aumentado (antes 40)
+        mainLight.distance = 50;       // Alcance aumentado
         mainLight.shadow.bias = -0.0005;
         scene.add(mainLight);
 
@@ -431,7 +431,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada: foco desde arriba, cámara más lejana en móviles.');
+        console.log('Página cargada: móvil con vista lejana y rotación ±45°.');
     </script>
 </body>
 </html>
