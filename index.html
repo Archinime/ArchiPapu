@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Habitación 3D - Iluminación Mejorada</title>
+    <title>Habitación 3D - Vista Frontal</title>
     <style>
         body {
             margin: 0;
@@ -27,7 +27,7 @@
     </style>
 </head>
 <body>
-    <div id="info">🏠 Habitación interactiva (cámara elevada, luces con mayor alcance)</div>
+    <div id="info">🏠 Habitación interactiva (vista frontal por defecto)</div>
 
     <!-- Importamos Three.js y OrbitControls desde CDN -->
     <script type="importmap">
@@ -46,13 +46,13 @@
 
         // --- Configuración básica de la escena ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x111122); // Color de fondo oscuro para simular una habitación cerrada
+        scene.background = new THREE.Color(0x111122); // Color de fondo oscuro
 
-        // --- Cámara ---
+        // --- Cámara (ahora frontal) ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        // Vista más arriba y lejos (ajustado a 12 de altura y 15 de distancia)
-        camera.position.set(8, 12, 15);
-        camera.lookAt(0, 2, 0);
+        // Vista frontal: centrada, altura media, ligeramente inclinada hacia abajo
+        camera.position.set(0, 3, 8); // X=0 centrado, Y=3 altura, Z=8 alejado
+        camera.lookAt(0, 2, 0);       // Mirando al centro de la habitación
 
         // --- Renderizador ---
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -62,25 +62,25 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // --- Controles de órbita ---
+        // --- Controles de órbita (punto de rotación centrado) ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
-        controls.maxPolarAngle = Math.PI / 2;
+        controls.maxPolarAngle = Math.PI / 2; // Evita que la cámara baje del suelo
         controls.minDistance = 2;
-        controls.maxDistance = 25;
-        controls.target.set(0, 2, 0); // Centro de interés más alto
+        controls.maxDistance = 15;
+        controls.target.set(0, 2, 0); // El centro de interés es el mismo que el lookAt inicial
 
         // --- LUCES MEJORADAS (más arriba y mayor rango) ---
 
-        // Luz ambiental más brillante (color claro e intensidad 1.2)
+        // Luz ambiental más brillante
         const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
         scene.add(ambientLight);
 
-        // Luz direccional principal (más arriba, intensidad 2.0)
+        // Luz direccional principal (más arriba)
         const directionalLight = new THREE.DirectionalLight(0xfff5e6, 2.0);
-        directionalLight.position.set(5, 15, 7); // Subida de y=10 a y=15
+        directionalLight.position.set(5, 15, 7);
         directionalLight.castShadow = true;
         directionalLight.receiveShadow = true;
         directionalLight.shadow.mapSize.width = 1024;
@@ -97,34 +97,34 @@
 
         // Luz de relleno desde atrás (más arriba y con distancia 30)
         const backLight = new THREE.PointLight(0x4466ff, 1.0);
-        backLight.position.set(-3, 6, -3); // Subida de y=4 a y=6
-        backLight.distance = 30; // Alcance aumentado
+        backLight.position.set(-3, 6, -3);
+        backLight.distance = 30;
         scene.add(backLight);
 
         // Luz puntual cálida (más arriba y con distancia 25)
         const pointLight = new THREE.PointLight(0xffaa66, 1.5);
-        pointLight.position.set(2, 6, 2); // Subida de y=4 a y=6
-        pointLight.distance = 25; // Antes 15
+        pointLight.position.set(2, 6, 2);
+        pointLight.distance = 25;
         scene.add(pointLight);
 
         // Foco desde el techo (más arriba, más ángulo y más distancia)
         const spotLight = new THREE.SpotLight(0xffffff, 1.8);
-        spotLight.position.set(0, 10, 0); // Subido de y=8 a y=10
+        spotLight.position.set(0, 10, 0);
         spotLight.target.position.set(0, 1, 0);
         scene.add(spotLight.target);
         spotLight.castShadow = true;
         spotLight.shadow.mapSize.width = 1024;
         spotLight.shadow.mapSize.height = 1024;
-        spotLight.angle = 1.0;        // Más abierto (antes 0.8)
+        spotLight.angle = 1.0;
         spotLight.penumbra = 0.5;
         spotLight.decay = 1;
-        spotLight.distance = 30;       // Antes 20
+        spotLight.distance = 30;
         scene.add(spotLight);
 
         // Luz puntual adicional cerca de la silla (más arriba y más distancia)
         const sillaLight = new THREE.PointLight(0xffcc88, 1.2);
-        sillaLight.position.set(1.5, 4, 1.5); // Subida de y=2.5 a y=4
-        sillaLight.distance = 15; // Antes 8
+        sillaLight.position.set(1.5, 4, 1.5);
+        sillaLight.distance = 15;
         scene.add(sillaLight);
 
         // --- Cargador de modelos GLB ---
@@ -135,7 +135,7 @@
                 path,
                 (gltf) => {
                     const model = gltf.scene;
-                    // Asegurar que el modelo y sus hijos proyecten y reciban sombras
+                    // Asegurar sombras
                     model.traverse((node) => {
                         if (node.isMesh) {
                             node.castShadow = true;
@@ -154,7 +154,7 @@
             );
         }
 
-        // Lista completa de modelos (todos los que mencionaste)
+        // Lista completa de modelos
         const modelos = [
             'piso.glb',
             'alfombra.glb',
@@ -178,23 +178,18 @@
             'lunari2.glb'
         ];
 
-        // Cargar todos los modelos
+        // Cargar todos
         modelos.forEach(modelo => loadModel(modelo));
 
-        // --- Animación y renderizado continuo ---
+        // --- Animación ---
         function animate() {
             requestAnimationFrame(animate);
-
-            // Actualizar controles (necesario para damping)
             controls.update();
-
-            // Renderizar la escena
             renderer.render(scene, camera);
         }
-
         animate();
 
-        // --- Manejar cambio de tamaño de la ventana ---
+        // --- Resize ---
         window.addEventListener('resize', onWindowResize, false);
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -202,7 +197,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        console.log('Página lista. Cámara elevada, luces con mayor alcance.');
+        console.log('Página lista. Vista frontal por defecto.');
     </script>
 </body>
 </html>
