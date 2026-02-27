@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Habitación 3D - Vista Frontal Elevada</title>
+    <title>Habitación 3D - Vista Frontal Elevada y Lejana</title>
     <style>
         body {
             margin: 0;
@@ -27,7 +27,7 @@
     </style>
 </head>
 <body>
-    <div id="info">🏠 Habitación interactiva (vista frontal, más arriba y lejos)</div>
+    <div id="info">🏠 Habitación interactiva (vista frontal, más arriba y más lejos)</div>
 
     <!-- Importamos Three.js y OrbitControls desde CDN -->
     <script type="importmap">
@@ -48,10 +48,10 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122); // Color de fondo oscuro
 
-        // --- Cámara (frontal, más arriba y más lejos) ---
+        // --- Cámara (frontal, mucho más arriba y más lejos) ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        // Vista frontal elevada: X=0 centrado, Y=5 altura (más arriba), Z=12 distancia (más lejos)
-        camera.position.set(0, 5, 12);
+        // Vista frontal elevada y lejana: X=0 centrado, Y=8 altura, Z=18 distancia
+        camera.position.set(0, 8, 18);
         camera.lookAt(0, 2, 0); // Sigue mirando al centro de la habitación
 
         // --- Renderizador ---
@@ -68,8 +68,8 @@
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
         controls.maxPolarAngle = Math.PI / 2; // Evita que la cámara baje del suelo
-        controls.minDistance = 3;  // Ajustado para no acercarse demasiado
-        controls.maxDistance = 20;  // Permitir alejarse un poco más
+        controls.minDistance = 4;  // Un poco más de distancia mínima para no acercarse demasiado
+        controls.maxDistance = 30;  // Aumentado para permitir alejarse aún más si se desea
         controls.target.set(0, 2, 0); // El centro de interés
 
         // --- LUCES MEJORADAS (más arriba y mayor rango) ---
@@ -197,7 +197,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        console.log('Página lista. Vista frontal, más arriba (Y=5) y más lejos (Z=12).');
+        console.log('Página lista. Vista frontal, más arriba (Y=8) y más lejos (Z=18).');
     </script>
 </body>
 </html>
