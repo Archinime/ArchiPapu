@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Habitación 3D - Vista Frontal Elevada y Lejana con Límites</title>
+    <title>Habitación 3D - Vista Elevada con Rotación Limitada</title>
     <style>
         body {
             margin: 0;
@@ -27,7 +27,7 @@
     </style>
 </head>
 <body>
-    <div id="info">🏠 Habitación interactiva (con límites de rotación)</div>
+    <div id="info">🏠 Habitación interactiva (rotación horizontal limitada)</div>
 
     <!-- Importamos Three.js y OrbitControls desde CDN -->
     <script type="importmap">
@@ -46,7 +46,7 @@
 
         // --- Configuración básica de la escena ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x111122); // Color de fondo oscuro
+        scene.background = new THREE.Color(0x111122);
 
         // --- Cámara (frontal, mucho más arriba y más lejos) ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -61,31 +61,26 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // --- Controles de órbita con límites ---
+        // --- Controles de órbita con límites de rotación horizontal ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
+        controls.maxPolarAngle = Math.PI / 2; // Evita que la cámara baje del suelo
         
-        // Límites para no salir de la habitación
-        controls.maxPolarAngle = Math.PI / 2; // No bajar del suelo
-        controls.minPolarAngle = 0.1; // Opcional: evitar que suba demasiado (puedes ajustar)
-        
-        // Límites de rotación horizontal (azimuth): -60° a +60° (en radianes)
-        controls.minAzimuthAngle = -Math.PI / 3; // -60 grados
-        controls.maxAzimuthAngle = Math.PI / 3;  // +60 grados
+        // Límites de rotación horizontal (azimuth) para no salir de la habitación
+        // Valores en radianes: ±30 grados (π/6 ≈ 0.5236)
+        controls.minAzimuthAngle = -Math.PI / 6; // -30 grados
+        controls.maxAzimuthAngle = Math.PI / 6;  // +30 grados
         
         controls.minDistance = 4;
         controls.maxDistance = 30;
         controls.target.set(0, 2, 0);
 
         // --- LUCES MEJORADAS (más arriba y mayor rango) ---
-
-        // Luz ambiental más brillante
         const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
         scene.add(ambientLight);
 
-        // Luz direccional principal (más arriba)
         const directionalLight = new THREE.DirectionalLight(0xfff5e6, 2.0);
         directionalLight.position.set(5, 15, 7);
         directionalLight.castShadow = true;
@@ -102,19 +97,16 @@
         directionalLight.shadow.bias = -0.0005;
         scene.add(directionalLight);
 
-        // Luz de relleno desde atrás
         const backLight = new THREE.PointLight(0x4466ff, 1.0);
         backLight.position.set(-3, 6, -3);
         backLight.distance = 30;
         scene.add(backLight);
 
-        // Luz puntual cálida
         const pointLight = new THREE.PointLight(0xffaa66, 1.5);
         pointLight.position.set(2, 6, 2);
         pointLight.distance = 25;
         scene.add(pointLight);
 
-        // Foco desde el techo
         const spotLight = new THREE.SpotLight(0xffffff, 1.8);
         spotLight.position.set(0, 10, 0);
         spotLight.target.position.set(0, 1, 0);
@@ -128,7 +120,6 @@
         spotLight.distance = 30;
         scene.add(spotLight);
 
-        // Luz puntual cerca de la silla
         const sillaLight = new THREE.PointLight(0xffcc88, 1.2);
         sillaLight.position.set(1.5, 4, 1.5);
         sillaLight.distance = 15;
@@ -162,29 +153,13 @@
 
         // Lista completa de modelos
         const modelos = [
-            'piso.glb',
-            'alfombra.glb',
-            'silla.glb',
-            'paredes.glb',
-            'cama.glb',
-            'cortinas.glb',
-            'tele.glb',
-            'mueble1.glb',
-            'mueble2.glb',
-            'pc.glb',
-            'decoracion_escritorio.glb',
-            'decoracion_mueble_1.glb',
-            'decoracion_mueble_2.glb',
-            'poster_1.glb',
-            'poster_2.glb',
-            'poster_3.glb',
-            'poster_4.glb',
-            'interruptor.glb',
-            'maouse_pad.glb',
-            'lunari2.glb'
+            'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb',
+            'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb',
+            'decoracion_escritorio.glb', 'decoracion_mueble_1.glb', 'decoracion_mueble_2.glb',
+            'poster_1.glb', 'poster_2.glb', 'poster_3.glb', 'poster_4.glb',
+            'interruptor.glb', 'maouse_pad.glb', 'lunari2.glb'
         ];
 
-        // Cargar todos
         modelos.forEach(modelo => loadModel(modelo));
 
         // --- Animación ---
@@ -203,7 +178,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        console.log('Página lista. Vista frontal, más arriba (Y=8) y más lejos (Z=18). Límites de rotación activados.');
+        console.log('Página lista. Rotación horizontal limitada a ±30° para no salir de la habitación.');
     </script>
 </body>
 </html>
