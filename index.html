@@ -51,40 +51,38 @@
         // --- Cámara ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         // Vista más arriba y lejos
-        camera.position.set(8, 12, 15); // Aumentamos Y y alejamos en Z
+        camera.position.set(8, 12, 15);
         camera.lookAt(0, 2, 0);
 
         // --- Renderizador ---
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true; // Activamos sombras por si acaso (los modelos deben tener configuradas las sombras en Blender)
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Sombras más suaves
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // --- Controles de órbita (para moverse como en un videojuego) ---
+        // --- Controles de órbita ---
         const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true; // Suavizado de movimiento
+        controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
-        controls.maxPolarAngle = Math.PI / 2; // Evita que la cámara vaya por debajo del suelo
+        controls.maxPolarAngle = Math.PI / 2;
         controls.minDistance = 2;
-        controls.maxDistance = 25; // Aumentamos para permitir alejarse más
-        controls.target.set(0, 2, 0); // El centro de interés ahora más alto
+        controls.maxDistance = 25;
+        controls.target.set(0, 2, 0);
 
-        // --- Luces ---
+        // --- Luces existentes ---
         
-        // Luz ambiental suave para iluminar todo
+        // Luz ambiental
         const ambientLight = new THREE.AmbientLight(0x404060);
         scene.add(ambientLight);
 
-        // Luz principal (similar a una ventana o foco)
+        // Luz direccional principal
         const directionalLight = new THREE.DirectionalLight(0xfff5e6, 1);
         directionalLight.position.set(5, 10, 7);
         directionalLight.castShadow = true;
         directionalLight.receiveShadow = true;
-        
-        // Configurar sombras para la luz direccional
         directionalLight.shadow.mapSize.width = 1024;
         directionalLight.shadow.mapSize.height = 1024;
         const d = 10;
@@ -102,34 +100,52 @@
         backLight.position.set(-3, 2, -3);
         scene.add(backLight);
 
-        // Una luz puntual cálida para dar ambiente
+        // Luz puntual cálida
         const pointLight = new THREE.PointLight(0xffaa66, 0.8, 10);
         pointLight.position.set(2, 3, 2);
         scene.add(pointLight);
 
+        // --- NUEVA LUZ DE FOCO (SPOTLIGHT) ---
+        // Creamos un spotlight con intensidad 1.5, ángulo de apertura de 30° (0.5 rad aprox) y atenuación suave
+        const spotLight = new THREE.SpotLight(0xffeedd, 1.5);
+        spotLight.position.set(2, 5, 3); // Colócalo donde quieras, por ejemplo encima de la silla
+        spotLight.target.position.set(0, 1, 0); // Hacia dónde apunta (centro de la habitación)
+        scene.add(spotLight.target); // ¡Importante añadir el target a la escena!
+        
+        // Configuración del foco
+        spotLight.castShadow = true;
+        spotLight.shadow.mapSize.width = 1024;
+        spotLight.shadow.mapSize.height = 1024;
+        spotLight.shadow.bias = -0.0001;
+        spotLight.angle = 0.6; // Ángulo del cono (radianes) ~34 grados
+        spotLight.penumbra = 0.3; // Suavizado del borde
+        spotLight.decay = 1; // Atenuación
+        spotLight.distance = 20; // Distancia máxima de alcance
+        
+        scene.add(spotLight);
+
+        // Opcional: añadir un pequeño helper para visualizar la posición del foco (puedes eliminarlo después)
+        // const spotLightHelper = new THREE.SpotLightHelper(spotLight);
+        // scene.add(spotLightHelper);
+
         // --- Cargador de modelos GLB ---
         const loader = new GLTFLoader();
 
-        // Función para cargar modelos manteniendo su transformación original
         function loadModel(path, scene) {
             loader.load(
                 path,
                 (gltf) => {
                     const model = gltf.scene;
-                    
-                    // Asegurar que el modelo y sus hijos puedan recibir y proyectar sombras
                     model.traverse((node) => {
                         if (node.isMesh) {
                             node.castShadow = true;
                             node.receiveShadow = true;
                         }
                     });
-                    
                     scene.add(model);
                     console.log(`Modelo cargado: ${path}`);
                 },
                 (xhr) => {
-                    // Progreso de carga (opcional)
                     console.log(`${path} ${(xhr.loaded / xhr.total * 100)}% cargado`);
                 },
                 (error) => {
@@ -138,7 +154,7 @@
             );
         }
 
-        // Cargamos los modelos (asegúrate de que están en la misma carpeta)
+        // Cargamos todos los modelos
         loadModel('piso.glb', scene);
         loadModel('alfombra.glb', scene);
         loadModel('silla.glb', scene);
@@ -158,23 +174,17 @@
         loadModel('poster_4.glb', scene);
         loadModel('interruptor.glb', scene);
         loadModel('maouse_pad.glb', scene);
-        loadModel('luz.glb', scene);
-        loadModel('lunari2.glb', scene); // Modelo adicional
+        loadModel('lunari2.glb', scene);
 
-        // --- Animación y renderizado continuo ---
+        // --- Animación ---
         function animate() {
             requestAnimationFrame(animate);
-
-            // Actualizar controles (necesario para damping)
             controls.update();
-
-            // Renderizar la escena
             renderer.render(scene, camera);
         }
-
         animate();
 
-        // --- Manejar cambio de tamaño de la ventana ---
+        // --- Resize ---
         window.addEventListener('resize', onWindowResize, false);
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -182,8 +192,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // Pequeño mensaje en consola
-        console.log('Página lista. Modelos: piso, alfombra, silla, lunari2');
+        console.log('Página lista. Se ha añadido un spotlight adicional.');
     </script>
 </body>
 </html>
