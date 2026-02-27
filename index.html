@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <!-- Meta viewport para correcto escalado en móviles y evitar zoom -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Habitación 3D - Configuración de Calidad</title>
     <style>
@@ -26,6 +27,10 @@
             font-size: 14px;
             backdrop-filter: blur(5px);
             border: 1px solid rgba(255,255,255,0.2);
+            max-width: 80%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         #settings {
             position: absolute;
@@ -44,6 +49,8 @@
             gap: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             pointer-events: auto;
+            /* Asegurar que sea táctil en móviles */
+            -webkit-tap-highlight-color: transparent;
         }
         #settings label {
             display: flex;
@@ -53,8 +60,8 @@
             user-select: none;
         }
         #settings input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             cursor: pointer;
             accent-color: #4CAF50;
         }
@@ -68,8 +75,23 @@
             letter-spacing: 0.5px;
         }
         @media (max-width: 600px) {
-            #info { font-size: 12px; top: 10px; left: 10px; padding: 5px 10px; }
-            #settings { padding: 10px 15px; font-size: 12px; gap: 10px; }
+            #info {
+                font-size: 12px;
+                top: 10px;
+                left: 10px;
+                padding: 5px 10px;
+            }
+            #settings {
+                padding: 10px 15px;
+                font-size: 12px;
+                gap: 8px;
+                top: 10px;
+                right: 10px;
+            }
+            #settings input[type="checkbox"] {
+                width: 24px;
+                height: 24px;
+            }
         }
         #loading {
             position: absolute;
@@ -84,10 +106,16 @@
             pointer-events: none;
             backdrop-filter: blur(4px);
         }
+        /* Para móviles, agrandar área táctil si es necesario */
+        @media (hover: none) and (pointer: coarse) {
+            #settings label {
+                padding: 5px 0;
+            }
+        }
     </style>
 </head>
 <body>
-    <div id="info">🏠 Habitación interactiva (ajusta calidad según dispositivo)</div>
+    <div id="info">🏠 Habitación interactiva</div>
     <div id="settings">
         <span id="quality-indicator">Calidad Alta</span>
         <label>
@@ -270,7 +298,7 @@
         // --- Inicializar con alta calidad ---
         setupHighQuality();
 
-        // --- Evento del checkbox ---
+        // --- Evento del checkbox (funciona en móvil y desktop) ---
         const perfCheck = document.getElementById('performance-mode');
         perfCheck.addEventListener('change', (e) => {
             if (e.target.checked) {
@@ -320,7 +348,7 @@
             );
         }
 
-        // Lista de modelos
+        // Lista de modelos (ajústala según tus archivos)
         const modelos = [
             'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb',
             'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb',
@@ -339,7 +367,7 @@
         }
         animate();
 
-        // --- Resize ---
+        // --- Resize (maneja cambios de orientación) ---
         window.addEventListener('resize', onWindowResize, false);
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -347,14 +375,14 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // --- Prevenir scroll táctil ---
+        // --- Prevenir scroll táctil en el canvas ---
         document.body.addEventListener('touchstart', (e) => {
             if (e.target === renderer.domElement) {
                 e.preventDefault();
             }
         }, { passive: false });
 
-        console.log('Página cargada. Usa el interruptor para cambiar calidad.');
+        console.log('Página cargada. Usa el interruptor para cambiar calidad. Funciona en móviles.');
     </script>
 </body>
 </html>
