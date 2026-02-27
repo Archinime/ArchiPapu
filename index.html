@@ -183,17 +183,14 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122);
 
-        // --- Cámara según dispositivo (ajustada para mejor visión lateral sin salir) ---
+        // --- Cámara según dispositivo (ajustada) ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         
         if (deviceType === 'mobile') {
-            // Móvil: más lejos para abarcar más ángulo sin salir
             camera.position.set(0, 16, 42);
         } else if (deviceType === 'tablet') {
-            // Tablet: intermedio
             camera.position.set(0, 14, 34);
         } else {
-            // Escritorio: como antes
             camera.position.set(0, 8, 18);
         }
         camera.lookAt(0, 2, 0);
@@ -205,43 +202,53 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // --- Controles con límites de rotación según dispositivo (optimizados) ---
+        // --- Controles base (sin límites fijos) ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
-        controls.maxPolarAngle = Math.PI / 2;
-        
-        if (deviceType === 'mobile') {
-            // Móvil: ±40° (aproximadamente)
-            controls.minAzimuthAngle = -Math.PI / 4.5; // -40°
-            controls.maxAzimuthAngle = Math.PI / 4.5;  // +40°
-        } else if (deviceType === 'tablet') {
-            // Tablet: ±50°
-            controls.minAzimuthAngle = -Math.PI / 3.6; // -50°
-            controls.maxAzimuthAngle = Math.PI / 3.6;  // +50°
-        } else {
-            // Escritorio: ±30°
-            controls.minAzimuthAngle = -Math.PI / 6;  // -30°
-            controls.maxAzimuthAngle = Math.PI / 6;   // +30°
-        }
-        
+        controls.maxPolarAngle = Math.PI / 2; // No bajar del suelo
         controls.minDistance = 4;
         controls.maxDistance = 30;
         controls.target.set(0, 2, 0);
 
-        // --- Luz principal: foco desde arriba (más alto, mayor alcance) ---
+        // --- Parámetros para límites dinámicos ---
+        // Definimos los ángulos máximo y mínimo en función de la distancia al target
+        // Para distancia mínima (4), ángulo máximo = 30 grados (PI/6) (para no salir)
+        // Para distancia máxima (30), ángulo máximo = 70 grados (aprox 1.22 rad) (para ver laterales sin salir)
+        // Interpolamos linealmente entre estos valores.
+        const minDist = 4;
+        const maxDist = 30;
+        const minAngle = Math.PI / 6;  // 30°
+        const maxAngle = 1.22;          // aprox 70°
+
+        // Función para actualizar límites según la distancia actual
+        function updateAzimuthLimit() {
+            const dist = camera.position.length(); // distancia desde cámara a origen (target está en 0,2,0, pero aprox)
+            // Normalizamos la distancia entre minDist y maxDist
+            let t = (dist - minDist) / (maxDist - minDist);
+            t = Math.max(0, Math.min(1, t)); // clamp
+            // Ángulo actual interpolado
+            const currentAngle = minAngle + t * (maxAngle - minAngle);
+            controls.minAzimuthAngle = -currentAngle;
+            controls.maxAzimuthAngle = currentAngle;
+        }
+
+        // Llamada inicial
+        updateAzimuthLimit();
+
+        // --- Luz principal: foco desde arriba ---
         const mainLight = new THREE.SpotLight(0xffeedd, 4.2);
-        mainLight.position.set(0, 22, 0); // Subido a Y=22
+        mainLight.position.set(0, 22, 0);
         mainLight.target.position.set(0, 1, 0);
         scene.add(mainLight.target);
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.width = 2048;
         mainLight.shadow.mapSize.height = 2048;
-        mainLight.angle = 1.4;            // Ángulo más abierto (aprox 80°)
+        mainLight.angle = 1.4;
         mainLight.penumbra = 0.5;
         mainLight.decay = 1;
-        mainLight.distance = 80;           // Alcance aumentado
+        mainLight.distance = 80;
         mainLight.shadow.bias = -0.0005;
         scene.add(mainLight);
 
@@ -309,7 +316,7 @@
             );
         }
 
-        // Lista de modelos (asegúrate de que 'interruptor.glb' esté incluido)
+        // Lista de modelos
         const modelos = [
             'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb',
             'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb',
@@ -388,7 +395,6 @@
         const savedPerformanceMode = localStorage.getItem('performanceMode');
         const perfCheck = document.getElementById('performance-mode');
         
-        // Por defecto, en móvil/tablet activamos modo humilde, en desktop no
         if (deviceType !== 'desktop') {
             if (savedPerformanceMode === null) {
                 perfCheck.checked = true;
@@ -434,6 +440,10 @@
         // --- Animación ---
         function animate() {
             requestAnimationFrame(animate);
+            
+            // Actualizar límite de azimuth según distancia actual
+            updateAzimuthLimit();
+            
             controls.update();
             renderer.render(scene, camera);
         }
@@ -454,7 +464,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Dispositivo:', deviceType, 'con nuevos límites de rotación.');
+        console.log('Página cargada con límites dinámicos de azimuth.');
     </script>
 </body>
 </html>
