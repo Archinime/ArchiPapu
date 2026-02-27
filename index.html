@@ -13,6 +13,7 @@
             position: fixed;
             width: 100%;
             height: 100%;
+            background-color: #111122;
         }
         #info {
             position: absolute;
@@ -53,11 +54,25 @@
             pointer-events: none;
             backdrop-filter: blur(4px);
         }
+        #fps {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: lime;
+            background: rgba(0,0,0,0.5);
+            padding: 4px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            z-index: 100;
+            pointer-events: none;
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
-    <div id="info">🏠 Habitación (modo móvil: calidad baja)</div>
+    <div id="info">🏠 Habitación (modo móvil: máxima fluidez)</div>
     <div id="loading">Cargando modelos...</div>
+    <div id="fps">FPS: --</div>
 
     <!-- Importamos Three.js y OrbitControls desde CDN -->
     <script type="importmap">
@@ -88,59 +103,60 @@
 
         // --- Renderizador con configuraciones extremas para móvil ---
         const renderer = new THREE.WebGLRenderer({ 
-            antialias: !isMobile,                // Sin antialiasing en móvil
-            powerPreference: isMobile ? "high-performance" : "default"
+            antialias: false,                     // Nunca en móvil
+            powerPreference: "high-performance"
         });
-        renderer.setSize(window.innerWidth, window.innerHeight);
         
-        // EN MÓVIL: DESACTIVAMOS SOMBRAS COMPLETAMENTE (principal causa de lag)
-        renderer.shadowMap.enabled = !isMobile;   // Sombra solo en desktop
+        // En móvil, reducimos la resolución al 75% para ganar rendimiento
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        if (isMobile) {
+            width = Math.floor(window.innerWidth * 0.75);
+            height = Math.floor(window.innerHeight * 0.75);
+        }
+        renderer.setSize(width, height);
         
-        // En móvil, forzamos pixel ratio a 1 (más rápido)
-        renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 3));
+        // Escalamos con CSS para que ocupe toda la pantalla
+        renderer.domElement.style.width = '100%';
+        renderer.domElement.style.height = '100%';
+        
+        renderer.shadowMap.enabled = false;       // Sin sombras en móvil
+        renderer.setPixelRatio(1);                 // Forzamos pixel ratio 1 en móvil (más rápido)
         
         document.body.appendChild(renderer.domElement);
 
-        // --- Controles de órbita con límites (igual para ambos) ---
+        // --- Controles de órbita con límites y sin damping en móvil ---
         const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = isMobile ? 0.1 : 0.05; // Menos damping en móvil (más responsive)
+        controls.enableDamping = !isMobile;        // Sin damping en móvil (más responsive)
+        controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
         controls.maxPolarAngle = Math.PI / 2;
         
         // Límites de rotación horizontal (azimuth) para no salir de la habitación
-        controls.minAzimuthAngle = -Math.PI / 6; // -30 grados
-        controls.maxAzimuthAngle = Math.PI / 6;  // +30 grados
+        controls.minAzimuthAngle = -Math.PI / 6;   // -30 grados
+        controls.maxAzimuthAngle = Math.PI / 6;    // +30 grados
         
         controls.minDistance = 4;
-        controls.maxDistance = isMobile ? 20 : 30; // Menor distancia en móvil para menos carga
+        controls.maxDistance = isMobile ? 18 : 30; // Menor distancia en móvil
         controls.target.set(0, 2, 0);
 
-        // --- LUCES: Versión simplificada para móvil vs completa para desktop ---
+        // --- LUCES: Versión ultra simple para móvil ---
         if (isMobile) {
-            // MÓVIL: solo luces esenciales y sin sombras
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.5); // Más brillante para compensar
+            // MÓVIL: solo luz ambiental + una direccional suave, sin sombras
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.8); // Más brillante
             scene.add(ambientLight);
 
-            // Una única luz direccional SIN sombras
-            const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.5);
+            // Luz direccional desde arriba (sin sombras)
+            const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
             dirLight.position.set(5, 10, 7);
-            // No se activan sombras
             scene.add(dirLight);
 
-            // Pequeña luz de relleno desde atrás
-            const backLight = new THREE.PointLight(0x4466ff, 0.8);
-            backLight.position.set(-3, 4, -3);
-            scene.add(backLight);
-
-            // Luz puntual cálida (solo una)
-            const pointLight = new THREE.PointLight(0xffaa66, 1.0);
-            pointLight.position.set(2, 4, 2);
-            scene.add(pointLight);
-
-            // No incluimos spotLight ni sillaLight para reducir cálculos
+            // Opcional: una luz puntual muy suave para dar algo de volumen
+            const fillLight = new THREE.PointLight(0x4466aa, 0.6);
+            fillLight.position.set(-2, 3, 2);
+            scene.add(fillLight);
         } else {
-            // DESKTOP: versión completa con sombras y todas las luces (como antes)
+            // DESKTOP: versión completa con todas las luces (sin cambios)
             const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
             scene.add(ambientLight);
 
@@ -208,9 +224,13 @@
                     const model = gltf.scene;
                     model.traverse((node) => {
                         if (node.isMesh) {
-                            // En móvil no hay sombras, pero dejamos las propiedades por si acaso
+                            // Desactivamos sombras siempre en móvil, en desktop según corresponda
                             node.castShadow = !isMobile;
                             node.receiveShadow = !isMobile;
+                            // Opcional: simplificar materiales (opcional, pero podría afectar)
+                            // if (isMobile && node.material) {
+                            //     node.material.flatShading = true; // Descomentar si se desea sombreado plano
+                            // }
                         }
                     });
                     scene.add(model);
@@ -240,6 +260,29 @@
 
         modelos.forEach(modelo => loadModel(modelo));
 
+        // --- Sistema simple de medición de FPS ---
+        let lastTime = performance.now();
+        let frames = 0;
+        const fpsElem = document.getElementById('fps');
+
+        function updateFPS() {
+            frames++;
+            const now = performance.now();
+            const delta = now - lastTime;
+            if (delta >= 1000) {
+                const fps = Math.round((frames * 1000) / delta);
+                fpsElem.textContent = `FPS: ${fps}`;
+                frames = 0;
+                lastTime = now;
+            }
+            requestAnimationFrame(updateFPS);
+        }
+        if (isMobile) {
+            updateFPS(); // Solo en móvil para no consumir recursos en desktop
+        } else {
+            fpsElem.style.display = 'none';
+        }
+
         // --- Animación ---
         function animate() {
             requestAnimationFrame(animate);
@@ -251,9 +294,16 @@
         // --- Manejar cambio de tamaño de la ventana (incluyendo orientación) ---
         window.addEventListener('resize', onWindowResize, false);
         function onWindowResize() {
+            let newWidth = window.innerWidth;
+            let newHeight = window.innerHeight;
+            if (isMobile) {
+                // Mantenemos la reducción de resolución
+                newWidth = Math.floor(window.innerWidth * 0.75);
+                newHeight = Math.floor(window.innerHeight * 0.75);
+            }
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(newWidth, newHeight);
         }
 
         // --- Prevenir el desplazamiento táctil de la página ---
@@ -263,7 +313,7 @@
             }
         }, { passive: false });
 
-        console.log('Página optimizada para móvil: sin sombras, pocas luces, pixel ratio 1.');
+        console.log('Página optimizada para móvil: resolución reducida, sin damping, luces mínimas.');
     </script>
 </body>
 </html>
