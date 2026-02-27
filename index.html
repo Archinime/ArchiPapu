@@ -50,7 +50,9 @@
 
         // --- Cámara ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(5, 20, 8);
+        // Vista más arriba y lejos
+        camera.position.set(8, 12, 15); // Aumentamos Y y alejamos en Z
+        camera.lookAt(0, 2, 0);
 
         // --- Renderizador ---
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -67,8 +69,8 @@ camera.position.set(5, 20, 8);
         controls.screenSpacePanning = true;
         controls.maxPolarAngle = Math.PI / 2; // Evita que la cámara vaya por debajo del suelo
         controls.minDistance = 2;
-        controls.maxDistance = 15;
-        controls.target.set(0, 1, 0);
+        controls.maxDistance = 25; // Aumentamos para permitir alejarse más
+        controls.target.set(0, 2, 0); // El centro de interés ahora más alto
 
         // --- Luces ---
         
@@ -105,9 +107,6 @@ camera.position.set(5, 20, 8);
         pointLight.position.set(2, 3, 2);
         scene.add(pointLight);
 
-        // Opcional: una pequeña malla de suelo invisible para ayudar con las sombras (si el piso no recibe sombras bien)
-        // Pero como ya tenemos piso.glb, no es necesario.
-
         // --- Cargador de modelos GLB ---
         const loader = new GLTFLoader();
 
@@ -139,19 +138,11 @@ camera.position.set(5, 20, 8);
             );
         }
 
-        // Cargamos los tres modelos (asumimos que están en la misma carpeta)
+        // Cargamos los modelos (asegúrate de que están en la misma carpeta)
         loadModel('piso.glb', scene);
         loadModel('alfombra.glb', scene);
         loadModel('silla.glb', scene);
-        loadModel('lunari2.glb', scene);
-
-        // Opcional: agregar una cuadrícula o ejes para referencia (puedes comentarlo si no lo deseas)
-        // const gridHelper = new THREE.GridHelper(10, 20, 0x888888, 0x444444);
-        // gridHelper.position.y = 0.01; // un poco arriba para evitar z-fighting
-        // scene.add(gridHelper);
-        
-        // const axesHelper = new THREE.AxesHelper(5);
-        // scene.add(axesHelper);
+        loadModel('lunari2.glb', scene); // Modelo adicional
 
         // --- Animación y renderizado continuo ---
         function animate() {
@@ -175,7 +166,7 @@ camera.position.set(5, 20, 8);
         }
 
         // Pequeño mensaje en consola
-        console.log('Página lista. Modelos: piso, alfombra, silla (deben estar en la misma carpeta)');
+        console.log('Página lista. Modelos: piso, alfombra, silla, lunari2');
     </script>
 </body>
 </html>
