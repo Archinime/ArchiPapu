@@ -179,8 +179,8 @@
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         
         if (deviceType === 'mobile') {
-            // Móvil: más arriba y más cerca (Y=12, Z=7)
-            camera.position.set(0, 12, 7);
+            // Móvil: más arriba (Y=15), más cerca (Z=5), mirando al frente (target Y=2)
+            camera.position.set(0, 15, 5);
         } else if (deviceType === 'tablet') {
             // Tablet: vista intermedia
             camera.position.set(0, 9, 16);
@@ -209,27 +209,27 @@
 
         // --- Límites de rotación según dispositivo ---
         let baseMinAzimuth, baseMaxAzimuth;
-        let useDynamicLimits = false; // Por defecto no usamos límites dinámicos
+        let useDynamicLimits = false;
 
         if (deviceType === 'mobile') {
             // Móvil: sin límites de giro (360°)
             controls.minAzimuthAngle = undefined;
             controls.maxAzimuthAngle = undefined;
-            useDynamicLimits = false; // No necesitamos dinámicos
+            useDynamicLimits = false;
         } else if (deviceType === 'tablet') {
             // Tablet: límites amplios (~±120°)
-            baseMinAzimuth = -Math.PI / 1.5; // -120°
-            baseMaxAzimuth = Math.PI / 1.5;  // +120°
+            baseMinAzimuth = -Math.PI / 1.5;
+            baseMaxAzimuth = Math.PI / 1.5;
             controls.minAzimuthAngle = baseMinAzimuth;
             controls.maxAzimuthAngle = baseMaxAzimuth;
-            useDynamicLimits = true; // Activamos dinámicos para tablet
+            useDynamicLimits = true;
         } else {
             // Escritorio: límites más cerrados (~±45°)
-            baseMinAzimuth = -Math.PI / 4; // -45°
-            baseMaxAzimuth = Math.PI / 4;  // +45°
+            baseMinAzimuth = -Math.PI / 4;
+            baseMaxAzimuth = Math.PI / 4;
             controls.minAzimuthAngle = baseMinAzimuth;
             controls.maxAzimuthAngle = baseMaxAzimuth;
-            useDynamicLimits = true; // Activamos dinámicos para escritorio
+            useDynamicLimits = true;
         }
 
         // --- Luz principal: foco desde arriba (muy potente) ---
@@ -476,7 +476,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Dispositivo:', deviceType, 'con nuevos ajustes de cámara (móvil: Y=12, Z=7).');
+        console.log('Página cargada. Dispositivo:', deviceType, 'con nuevos ajustes (móvil: Y=15, Z=5, mira al frente).');
     </script>
 </body>
 </html>
