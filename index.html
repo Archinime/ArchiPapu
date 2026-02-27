@@ -179,13 +179,13 @@
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         
         if (deviceType === 'mobile') {
-            // Móvil: más cerca y más arriba
-            camera.position.set(0, 10, 9);
+            // Móvil: más arriba y más cerca (Y=12, Z=7)
+            camera.position.set(0, 12, 7);
         } else if (deviceType === 'tablet') {
-            // Tablet: vista intermedia, con giro amplio
+            // Tablet: vista intermedia
             camera.position.set(0, 9, 16);
         } else {
-            // Escritorio: vista más arriba y alejada, giro limitado
+            // Escritorio: vista más arriba y alejada
             camera.position.set(0, 10, 20);
         }
         camera.lookAt(0, 2, 0);
@@ -476,7 +476,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Dispositivo:', deviceType, 'con nuevos ajustes de cámara (móvil: más cerca y arriba).');
+        console.log('Página cargada. Dispositivo:', deviceType, 'con nuevos ajustes de cámara (móvil: Y=12, Z=7).');
     </script>
 </body>
 </html>
