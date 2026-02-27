@@ -182,10 +182,10 @@
         let camPosY = 10, camPosZ = 20, targetY = 2;
         
         if (deviceType === 'mobile') {
-            // Móvil: más arriba que antes pero no tanto, mira al frente (target = misma altura)
-            camPosY = 10;        // Bajado de 12 a 10
-            camPosZ = 4;         // Zoom cerca
-            targetY = 10;        // Para que mire horizontal
+            // Móvil: más abajo que antes (Y=9 en lugar de 10), sigue mirando al frente
+            camPosY = 9;          // Bajada un poco
+            camPosZ = 4;           // Zoom cerca
+            targetY = 9;           // Para que mire horizontal
         } else if (deviceType === 'tablet') {
             // Tablet: intermedio
             camPosY = 9;
@@ -487,7 +487,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Dispositivo:', deviceType, 'con nuevos ajustes: móvil Y=10, targetY=10 (mirada horizontal)');
+        console.log('Página cargada. Dispositivo:', deviceType, 'con nuevos ajustes: móvil Y=9, targetY=9 (mirada horizontal)');
     </script>
 </body>
 </html>
