@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Habitación 3D - Interruptor de Luz</title>
+    <title>Habitación 3D - Foco desde arriba</title>
     <style>
         body {
             margin: 0;
@@ -172,8 +172,13 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122);
 
+        // --- Cámara: más alejada en móvil ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 8, 18);
+        if (isMobile) {
+            camera.position.set(0, 10, 24); // más lejos y un poco más alto
+        } else {
+            camera.position.set(0, 8, 18); // como antes
+        }
         camera.lookAt(0, 2, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -203,35 +208,31 @@
         controls.maxDistance = 30;
         controls.target.set(0, 2, 0);
 
-        // --- Luz principal: el foco (única luz) ---
-        // Parámetros ampliados: más intensidad, más distancia, más ángulo
-        const mainLight = new THREE.SpotLight(0xffeedd, 3.0); // Intensidad alta
-        mainLight.position.set(0, 10, 0); // Techo
+        // --- Luz principal: foco desde arriba (más alto) ---
+        const mainLight = new THREE.SpotLight(0xffeedd, 3.5); // Intensidad aumentada
+        mainLight.position.set(0, 15, 0); // Más arriba (antes 10)
         mainLight.target.position.set(0, 1, 0);
         scene.add(mainLight.target);
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.width = 2048;
         mainLight.shadow.mapSize.height = 2048;
-        mainLight.angle = 1.2;        // Ángulo amplio (unos 68°)
+        mainLight.angle = 1.2;        // Ángulo amplio
         mainLight.penumbra = 0.5;
         mainLight.decay = 1;
-        mainLight.distance = 40;       // Gran alcance
+        mainLight.distance = 50;       // Alcance aumentado (antes 40)
         mainLight.shadow.bias = -0.0005;
         scene.add(mainLight);
 
-        // Estado de la luz (encendida/apagada) - por defecto encendida
+        // Estado de la luz
         let lightOn = true;
         
-        // Luz de señalización para el interruptor (siempre encendida, tenue)
+        // Luz de señalización para el interruptor
         const indicatorLight = new THREE.PointLight(0xffaa00, 0.8, 5);
-        indicatorLight.position.set(0, 0, 0); // Se colocará cuando cargue el interruptor
+        indicatorLight.position.set(0, 0, 0);
         scene.add(indicatorLight);
 
-        // Para el resplandor adicional al pasar el mouse, podemos usar otra luz o cambiar intensidad
-        // pero por ahora lo dejamos así.
-
-        // --- Variables para el interruptor ---
-        let switchMesh = null;          // Referencia al objeto del interruptor
+        // Variables para el interruptor
+        let switchMesh = null;
         const switchPosition = new THREE.Vector3();
 
         // --- Cargador de modelos ---
@@ -252,7 +253,6 @@
                 (gltf) => {
                     const model = gltf.scene;
                     
-                    // Configurar sombras según el estado actual
                     const currentShadowState = renderer.shadowMap.enabled;
                     model.traverse((node) => {
                         if (node.isMesh) {
@@ -263,15 +263,11 @@
                     
                     scene.add(model);
                     
-                    // Si es el interruptor, guardamos referencia y posición
                     if (path.includes('interruptor.glb')) {
                         switchMesh = model;
-                        // Obtener la posición del modelo (puede tener varios hijos, tomamos el centro)
                         model.traverse((node) => {
                             if (node.isMesh) {
-                                // Tomamos la posición del primer mesh encontrado
                                 node.getWorldPosition(switchPosition);
-                                // Colocamos la luz indicadora allí
                                 indicatorLight.position.copy(switchPosition);
                             }
                         });
@@ -307,38 +303,33 @@
         const mouse = new THREE.Vector2();
 
         function onClick(event) {
-            // Calcular posición del mouse en coordenadas normalizadas (-1 a 1)
             const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            if (event.touches) {
+                mouse.x = ((event.touches[0].clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((event.touches[0].clientY - rect.top) / rect.height) * 2 + 1;
+            } else {
+                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            }
 
             raycaster.setFromCamera(mouse, camera);
 
-            // Si el interruptor ya se cargó, comprobamos intersección
             if (switchMesh) {
-                // Recorremos todos los hijos del interruptor para detectar cualquier parte
                 const intersects = raycaster.intersectObject(switchMesh, true);
                 if (intersects.length > 0) {
-                    // Alternar luz
                     lightOn = !lightOn;
                     mainLight.visible = lightOn;
-                    
-                    // Guardar estado en localStorage
                     localStorage.setItem('lightState', lightOn ? 'on' : 'off');
-                    
-                    // Actualizar texto indicador
                     document.getElementById('light-status').innerText = lightOn ? '💡 Luz encendida' : '💡 Luz apagada';
-                    
-                    // Pequeña animación visual: podemos hacer que la luz indicadora parpadee
-                    indicatorLight.intensity = lightOn ? 0.8 : 1.5; // Cambia un poco
+                    indicatorLight.intensity = lightOn ? 0.8 : 1.5; // feedback
                 }
             }
         }
 
         renderer.domElement.addEventListener('click', onClick);
         renderer.domElement.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Para evitar scroll
-            onClick(e.touches[0]);
+            e.preventDefault();
+            onClick(e);
         });
 
         // --- Persistencia del estado de la luz ---
@@ -355,38 +346,28 @@
 
         // --- Configuración de calidad (modo humilde) ---
         function setupHighQuality() {
-            // Modo alta calidad: sombras detalladas, antialiasing, pixel ratio alto
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
-            
-            // Ajustar calidad de sombras del foco
             mainLight.shadow.mapSize.width = 2048;
             mainLight.shadow.mapSize.height = 2048;
-            
             document.getElementById('quality-indicator').textContent = 'Calidad Alta';
         }
 
         function setupLowQuality() {
-            // Modo humilde: sombras más simples o desactivadas, pixel ratio bajo
-            renderer.shadowMap.enabled = false; // Desactivamos sombras para mayor rendimiento
+            renderer.shadowMap.enabled = false;
             renderer.setPixelRatio(1);
-            
-            // Aunque desactivemos shadowMap, podemos reducir aún más si se desea
             mainLight.shadow.mapSize.width = 512;
             mainLight.shadow.mapSize.height = 512;
-            
             document.getElementById('quality-indicator').textContent = 'Modo Humilde';
         }
 
-        // Inicializar según dispositivo y localStorage para el modo humilde
+        // Inicializar según dispositivo y localStorage
         const savedPerformanceMode = localStorage.getItem('performanceMode');
         const perfCheck = document.getElementById('performance-mode');
         
-        // Por defecto, en móvil activamos modo humilde, en PC no
         if (isMobile) {
             if (savedPerformanceMode === null) {
-                // Primera vez: activar
                 perfCheck.checked = true;
                 setupLowQuality();
             } else {
@@ -405,7 +386,6 @@
             }
         }
 
-        // Evento del checkbox
         perfCheck.addEventListener('change', (e) => {
             if (e.target.checked) {
                 setupLowQuality();
@@ -431,10 +411,6 @@
         // --- Animación ---
         function animate() {
             requestAnimationFrame(animate);
-            
-            // Pequeño efecto: la luz indicadora parpadea suavemente (opcional)
-            // indicatorLight.intensity = 0.8 + Math.sin(Date.now() * 0.005) * 0.2;
-            
             controls.update();
             renderer.render(scene, camera);
         }
@@ -455,7 +431,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada con interruptor de luz.');
+        console.log('Página cargada: foco desde arriba, cámara más lejana en móviles.');
     </script>
 </body>
 </html>
