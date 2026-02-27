@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Habitación 3D - Una sola luz (foco)</title>
+    <title>Habitación 3D - Interruptor de Luz</title>
     <style>
         body {
             margin: 0;
@@ -37,6 +37,9 @@
         #settings-button:hover {
             transform: scale(1.1);
         }
+        #settings-button:active {
+            transform: scale(0.95);
+        }
         #settings-panel {
             position: absolute;
             top: 70px;
@@ -44,60 +47,47 @@
             background: rgba(30,30,40,0.95);
             backdrop-filter: blur(10px);
             color: white;
-            padding: 20px;
-            border-radius: 24px;
+            padding: 15px 20px;
+            border-radius: 20px;
             border: 1px solid rgba(255,255,255,0.2);
             z-index: 250;
-            font-size: 15px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             pointer-events: auto;
             display: none;
-            min-width: 240px;
-            backdrop-filter: blur(15px);
+            min-width: 200px;
         }
         #settings-panel.visible {
             display: block;
         }
-        #settings-panel h3 {
-            margin: 0 0 15px 0;
-            font-size: 16px;
-            font-weight: 400;
-            color: #ccc;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-            padding-bottom: 8px;
-        }
-        .setting-item {
+        #settings-panel label {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 15px;
+            gap: 15px;
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 10px;
         }
-        .setting-item:last-child {
+        #settings-panel label:last-child {
             margin-bottom: 0;
         }
-        .setting-item label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-            color: #fff;
-        }
-        .setting-item input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
+        #settings-panel input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
             cursor: pointer;
             accent-color: #4CAF50;
         }
         #quality-indicator {
             background: #4CAF50;
             color: white;
-            padding: 6px 12px;
+            padding: 4px 10px;
             border-radius: 50px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
+            letter-spacing: 0.5px;
             text-align: center;
-            margin-bottom: 15px;
-            letter-spacing: 0.3px;
+            margin-bottom: 10px;
         }
         @media (max-width: 600px) {
             #settings-button {
@@ -110,9 +100,9 @@
             #settings-panel {
                 top: 60px;
                 right: 10px;
-                padding: 15px;
-                min-width: 200px;
-                font-size: 14px;
+                padding: 12px 15px;
+                font-size: 13px;
+                min-width: 180px;
             }
         }
         #loading {
@@ -128,22 +118,34 @@
             pointer-events: none;
             backdrop-filter: blur(4px);
         }
+        #light-status {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            z-index: 100;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+        }
     </style>
 </head>
 <body>
     <div id="settings-button">⚙️</div>
     <div id="settings-panel">
-        <h3>⚡ Configuración</h3>
-        <div id="quality-indicator">Modo Normal</div>
-        <div class="setting-item">
-            <label>
-                <span>💡 Modo humilde (ahorro)</span>
-                <input type="checkbox" id="performance-mode">
-            </label>
-        </div>
+        <div id="quality-indicator">Calidad Alta</div>
+        <label>
+            <span>Modo humilde</span>
+            <input type="checkbox" id="performance-mode">
+        </label>
     </div>
     <div id="loading">Cargando modelos...</div>
+    <div id="light-status">💡 Luz encendida</div>
 
+    <!-- Importamos Three.js y OrbitControls desde CDN -->
     <script type="importmap">
         {
             "imports": {
@@ -182,128 +184,115 @@
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
         controls.maxPolarAngle = Math.PI / 2;
-        // Ángulo de rotación horizontal: un poco más amplio en móvil (45°), en PC 30°
-        if (isMobile) {
-            controls.minAzimuthAngle = -Math.PI / 4; // -45°
-            controls.maxAzimuthAngle = Math.PI / 4;  // +45°
-        } else {
-            controls.minAzimuthAngle = -Math.PI / 6; // -30°
-            controls.maxAzimuthAngle = Math.PI / 6;  // +30°
-        }
+        // En móvil, aumentamos el rango de giro horizontal
+        controls.minAzimuthAngle = isMobile ? -Math.PI / 3 : -Math.PI / 6; // ±60° en móvil, ±30° en PC
+        controls.maxAzimuthAngle = isMobile ? Math.PI / 3 : Math.PI / 6;
         controls.minDistance = 4;
-        controls.maxDistance = 30;
+        controls.maxDistance = isMobile ? 20 : 30;
         controls.target.set(0, 2, 0);
 
-        // Almacén de luces actuales (solo habrá una)
-        let currentLight = null;
+        // --- LUZ ÚNICA: SPOTLIGHT (foco) ---
+        const spotLight = new THREE.SpotLight(0xffffff, 1.5);
+        spotLight.position.set(0, 8, 2); // Colocamos el foco en una posición que ilumine bien
+        spotLight.target.position.set(0, 1, 0);
+        scene.add(spotLight.target);
+        spotLight.castShadow = true;
+        spotLight.shadow.mapSize.width = 1024;
+        spotLight.shadow.mapSize.height = 1024;
+        spotLight.angle = 0.8;
+        spotLight.penumbra = 0.3;
+        spotLight.decay = 1;
+        spotLight.distance = 20;
+        scene.add(spotLight);
 
-        // --- Función para configurar iluminación (solo un foco) ---
-        function setupLight(performanceMode) {
-            // Eliminar luz anterior si existe
-            if (currentLight) {
-                if (currentLight.target) scene.remove(currentLight.target);
-                scene.remove(currentLight);
-                currentLight = null;
-            }
+        // Variable de estado de la luz
+        let lightOn = true; // Por defecto encendida
 
-            if (performanceMode) {
-                // Modo humilde: foco más tenue, sin sombras, menor distancia
-                const spotLight = new THREE.SpotLight(0xfff5e6, 1.2);
-                spotLight.position.set(0, 8, 2); // Ligeramente desplazado para mejor ángulo
-                spotLight.target.position.set(0, 1, 0);
-                scene.add(spotLight.target);
-                spotLight.castShadow = false; // Sin sombras
-                spotLight.angle = 1.0;
-                spotLight.penumbra = 0.5;
-                spotLight.decay = 1;
-                spotLight.distance = 20;
-                scene.add(spotLight);
-                currentLight = spotLight;
-
-                // Ajustes de renderer
-                renderer.shadowMap.enabled = false;
-                renderer.setPixelRatio(1);
-                
-                // Controles sin damping y menor distancia
-                controls.enableDamping = false;
-                controls.maxDistance = 18;
-
-                document.getElementById('quality-indicator').textContent = 'Modo humilde 🌱';
-            } else {
-                // Modo normal: foco intenso con sombras
-                const spotLight = new THREE.SpotLight(0xfff5e6, 2.5);
-                spotLight.position.set(0, 10, 3);
-                spotLight.target.position.set(0, 1, 0);
-                scene.add(spotLight.target);
-                spotLight.castShadow = true;
-                spotLight.shadow.mapSize.width = 1024;
-                spotLight.shadow.mapSize.height = 1024;
-                spotLight.angle = 0.8;
-                spotLight.penumbra = 0.4;
-                spotLight.decay = 1;
-                spotLight.distance = 30;
-                scene.add(spotLight);
-                currentLight = spotLight;
-
-                renderer.shadowMap.enabled = true;
-                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
-                
-                controls.enableDamping = true;
-                controls.maxDistance = 30;
-
-                document.getElementById('quality-indicator').textContent = 'Modo normal ✨';
-            }
-
-            // Actualizar sombras en los modelos
-            scene.traverse(node => {
-                if (node.isMesh) {
-                    node.castShadow = !performanceMode;
-                    node.receiveShadow = !performanceMode;
-                }
-            });
+        // Función para actualizar la luz y el texto
+        function setLightState(on) {
+            lightOn = on;
+            spotLight.visible = lightOn;
+            document.getElementById('light-status').textContent = lightOn ? '💡 Luz encendida' : '💡 Luz apagada';
+            localStorage.setItem('lightState', lightOn ? 'on' : 'off');
         }
 
-        // --- Cargar preferencia guardada o establecer según dispositivo ---
-        let savedMode = localStorage.getItem('modoHumilde');
-        let defaultPerformanceMode;
-
-        if (savedMode !== null) {
-            defaultPerformanceMode = savedMode === 'true';
+        // Cargar estado guardado
+        const savedLight = localStorage.getItem('lightState');
+        if (savedLight === 'off') {
+            setLightState(false);
         } else {
-            defaultPerformanceMode = isMobile; // En móvil, true; en PC, false
+            setLightState(true); // por defecto on
         }
 
-        // Aplicar configuración inicial
-        setupLight(defaultPerformanceMode);
+        // --- Variables para el modo de calidad (ahora solo afecta a otros aspectos, no a la luz principal) ---
+        let currentLights = [spotLight, spotLight.target]; // Solo para mantener consistencia
 
-        // Sincronizar checkbox
+        function setupHighQuality() {
+            // En alta calidad, podemos tener más detalles, pero la luz es la misma
+            // Por ahora solo ajustamos el renderer y controles
+            renderer.shadowMap.enabled = true;
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
+            controls.enableDamping = true;
+            controls.maxDistance = isMobile ? 20 : 30;
+            document.getElementById('quality-indicator').textContent = 'Calidad Alta';
+        }
+
+        function setupLowQuality() {
+            // Modo humilde: sin sombras, menos resolución, sin damping
+            renderer.shadowMap.enabled = false;
+            renderer.setPixelRatio(1);
+            controls.enableDamping = false;
+            controls.maxDistance = isMobile ? 15 : 18;
+            document.getElementById('quality-indicator').textContent = 'Modo humilde';
+        }
+
+        // Detectar móvil y activar modo humilde por defecto si es móvil
+        if (isMobile) {
+            setupLowQuality();
+            document.getElementById('performance-mode').checked = true;
+        } else {
+            setupHighQuality();
+            document.getElementById('performance-mode').checked = false;
+        }
+
+        // --- Evento del checkbox de modo humilde ---
         const perfCheck = document.getElementById('performance-mode');
-        perfCheck.checked = defaultPerformanceMode;
-
-        // Evento cambio
         perfCheck.addEventListener('change', (e) => {
-            const newMode = e.target.checked;
-            setupLight(newMode);
-            localStorage.setItem('modoHumilde', newMode);
+            if (e.target.checked) {
+                setupLowQuality();
+            } else {
+                setupHighQuality();
+            }
+            localStorage.setItem('qualityMode', e.target.checked ? 'low' : 'high');
         });
 
-        // --- Panel de configuración (tuerca) ---
+        // Cargar modo guardado
+        const savedQuality = localStorage.getItem('qualityMode');
+        if (savedQuality === 'low') {
+            setupLowQuality();
+            perfCheck.checked = true;
+        } else if (savedQuality === 'high') {
+            setupHighQuality();
+            perfCheck.checked = false;
+        }
+
+        // --- Mostrar/ocultar panel de configuración ---
         const settingsButton = document.getElementById('settings-button');
         const settingsPanel = document.getElementById('settings-panel');
         settingsButton.addEventListener('click', () => {
             settingsPanel.classList.toggle('visible');
         });
-
         document.addEventListener('click', (e) => {
             if (!settingsButton.contains(e.target) && !settingsPanel.contains(e.target)) {
                 settingsPanel.classList.remove('visible');
             }
         });
 
-        // --- Cargador de modelos ---
+        // --- Cargador de modelos con detección del interruptor ---
         const loader = new GLTFLoader();
         let modelsLoaded = 0;
         const totalModels = 20; // Ajusta según tu lista
+        let interruptorModel = null; // Referencia al modelo del interruptor
 
         function updateLoading() {
             document.getElementById('loading').innerText = `Cargando modelos: ${modelsLoaded}/${totalModels}`;
@@ -317,14 +306,32 @@
                 path,
                 (gltf) => {
                     const model = gltf.scene;
-                    const performanceMode = perfCheck.checked;
+                    
+                    // Configurar sombras según modo actual
+                    const shadowsOn = renderer.shadowMap.enabled;
                     model.traverse((node) => {
                         if (node.isMesh) {
-                            node.castShadow = !performanceMode;
-                            node.receiveShadow = !performanceMode;
+                            node.castShadow = shadowsOn;
+                            node.receiveShadow = shadowsOn;
                         }
                     });
+
                     scene.add(model);
+                    
+                    // Si es el modelo del interruptor, guardamos referencia y añadimos interactividad
+                    if (path.includes('interruptor.glb')) {
+                        interruptorModel = model;
+                        // Buscar el primer mesh para asignarle eventos (o todo el modelo)
+                        // Recorremos para encontrar un mesh y asignarle un nombre si no tiene
+                        model.traverse((node) => {
+                            if (node.isMesh) {
+                                // Guardamos el mesh para eventos
+                                // Añadimos propiedades para interacción
+                                node.userData.isInterruptor = true;
+                            }
+                        });
+                    }
+
                     modelsLoaded++;
                     updateLoading();
                     console.log(`✅ Modelo cargado: ${path}`);
@@ -338,6 +345,7 @@
             );
         }
 
+        // Lista de modelos (ajústala a tus archivos)
         const modelos = [
             'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb',
             'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb',
@@ -347,6 +355,99 @@
         ];
 
         modelos.forEach(modelo => loadModel(modelo));
+
+        // --- Raycaster para detectar clics en el interruptor ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function onMouseClick(event) {
+            // Calcular posición del mouse en coordenadas normalizadas
+            mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+            mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            // Buscar objetos intersectados que sean del interruptor
+            const intersects = raycaster.intersectObjects(scene.children, true); // recursivo
+            for (let intersect of intersects) {
+                let obj = intersect.object;
+                // Subir hasta encontrar el modelo del interruptor o un objeto marcado
+                while (obj) {
+                    if (obj.userData && obj.userData.isInterruptor) {
+                        // Encontramos el interruptor
+                        setLightState(!lightOn); // Alternar luz
+                        return;
+                    }
+                    obj = obj.parent;
+                }
+            }
+        }
+
+        // Efecto de brillo al pasar el mouse
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+            mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            let hovered = false;
+            for (let intersect of intersects) {
+                let obj = intersect.object;
+                while (obj) {
+                    if (obj.userData && obj.userData.isInterruptor) {
+                        hovered = true;
+                        // Cambiar emisión del material
+                        if (obj.material) {
+                            if (Array.isArray(obj.material)) {
+                                obj.material.forEach(mat => {
+                                    if (mat.emissive) {
+                                        mat.emissive.setHex(0x444444); // Brillo suave
+                                    }
+                                });
+                            } else if (obj.material.emissive) {
+                                obj.material.emissive.setHex(0x444444);
+                            }
+                        }
+                        break;
+                    }
+                    obj = obj.parent;
+                }
+            }
+
+            // Restaurar emisión si no está hovered
+            // Para simplificar, recorremos todos los objetos del interruptor y restauramos
+            if (!hovered && interruptorModel) {
+                interruptorModel.traverse(node => {
+                    if (node.isMesh && node.material) {
+                        if (Array.isArray(node.material)) {
+                            node.material.forEach(mat => {
+                                if (mat.emissive) {
+                                    mat.emissive.setHex(0x000000);
+                                }
+                            });
+                        } else if (node.material.emissive) {
+                            node.material.emissive.setHex(0x000000);
+                        }
+                    }
+                });
+            }
+        }
+
+        // Añadir event listeners
+        renderer.domElement.addEventListener('click', onMouseClick);
+        renderer.domElement.addEventListener('mousemove', onMouseMove);
+        // Para móvil: touch events
+        renderer.domElement.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            onMouseClick(touch);
+        });
+        renderer.domElement.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            onMouseMove(touch);
+        });
 
         // --- Animación ---
         function animate() {
@@ -371,7 +472,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Una sola luz (foco) con modo humilde.');
+        console.log('Página cargada. Haz clic en el interruptor para encender/apagar la luz.');
     </script>
 </body>
 </html>
