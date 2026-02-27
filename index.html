@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Habitación 3D - Vista Frontal Elevada y Lejana</title>
+    <title>Habitación 3D - Vista Frontal Elevada y Lejana con Límites</title>
     <style>
         body {
             margin: 0;
@@ -27,7 +27,7 @@
     </style>
 </head>
 <body>
-    <div id="info">🏠 Habitación interactiva (vista frontal, más arriba y más lejos)</div>
+    <div id="info">🏠 Habitación interactiva (con límites de rotación)</div>
 
     <!-- Importamos Three.js y OrbitControls desde CDN -->
     <script type="importmap">
@@ -50,9 +50,8 @@
 
         // --- Cámara (frontal, mucho más arriba y más lejos) ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        // Vista frontal elevada y lejana: X=0 centrado, Y=8 altura, Z=18 distancia
         camera.position.set(0, 8, 18);
-        camera.lookAt(0, 2, 0); // Sigue mirando al centro de la habitación
+        camera.lookAt(0, 2, 0);
 
         // --- Renderizador ---
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -62,15 +61,23 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // --- Controles de órbita (punto de rotación centrado) ---
+        // --- Controles de órbita con límites ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
-        controls.maxPolarAngle = Math.PI / 2; // Evita que la cámara baje del suelo
-        controls.minDistance = 4;  // Un poco más de distancia mínima para no acercarse demasiado
-        controls.maxDistance = 30;  // Aumentado para permitir alejarse aún más si se desea
-        controls.target.set(0, 2, 0); // El centro de interés
+        
+        // Límites para no salir de la habitación
+        controls.maxPolarAngle = Math.PI / 2; // No bajar del suelo
+        controls.minPolarAngle = 0.1; // Opcional: evitar que suba demasiado (puedes ajustar)
+        
+        // Límites de rotación horizontal (azimuth): -60° a +60° (en radianes)
+        controls.minAzimuthAngle = -Math.PI / 3; // -60 grados
+        controls.maxAzimuthAngle = Math.PI / 3;  // +60 grados
+        
+        controls.minDistance = 4;
+        controls.maxDistance = 30;
+        controls.target.set(0, 2, 0);
 
         // --- LUCES MEJORADAS (más arriba y mayor rango) ---
 
@@ -95,19 +102,19 @@
         directionalLight.shadow.bias = -0.0005;
         scene.add(directionalLight);
 
-        // Luz de relleno desde atrás (más arriba y con distancia 30)
+        // Luz de relleno desde atrás
         const backLight = new THREE.PointLight(0x4466ff, 1.0);
         backLight.position.set(-3, 6, -3);
         backLight.distance = 30;
         scene.add(backLight);
 
-        // Luz puntual cálida (más arriba y con distancia 25)
+        // Luz puntual cálida
         const pointLight = new THREE.PointLight(0xffaa66, 1.5);
         pointLight.position.set(2, 6, 2);
         pointLight.distance = 25;
         scene.add(pointLight);
 
-        // Foco desde el techo (más arriba, más ángulo y más distancia)
+        // Foco desde el techo
         const spotLight = new THREE.SpotLight(0xffffff, 1.8);
         spotLight.position.set(0, 10, 0);
         spotLight.target.position.set(0, 1, 0);
@@ -121,7 +128,7 @@
         spotLight.distance = 30;
         scene.add(spotLight);
 
-        // Luz puntual adicional cerca de la silla (más arriba y más distancia)
+        // Luz puntual cerca de la silla
         const sillaLight = new THREE.PointLight(0xffcc88, 1.2);
         sillaLight.position.set(1.5, 4, 1.5);
         sillaLight.distance = 15;
@@ -135,7 +142,6 @@
                 path,
                 (gltf) => {
                     const model = gltf.scene;
-                    // Asegurar sombras
                     model.traverse((node) => {
                         if (node.isMesh) {
                             node.castShadow = true;
@@ -197,7 +203,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        console.log('Página lista. Vista frontal, más arriba (Y=8) y más lejos (Z=18).');
+        console.log('Página lista. Vista frontal, más arriba (Y=8) y más lejos (Z=18). Límites de rotación activados.');
     </script>
 </body>
 </html>
