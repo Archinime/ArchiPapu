@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Habitación 3D - Vista Frontal</title>
+    <title>Habitación 3D - Vista Frontal Elevada</title>
     <style>
         body {
             margin: 0;
@@ -27,7 +27,7 @@
     </style>
 </head>
 <body>
-    <div id="info">🏠 Habitación interactiva (vista frontal por defecto)</div>
+    <div id="info">🏠 Habitación interactiva (vista frontal, más arriba y lejos)</div>
 
     <!-- Importamos Three.js y OrbitControls desde CDN -->
     <script type="importmap">
@@ -48,11 +48,11 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122); // Color de fondo oscuro
 
-        // --- Cámara (ahora frontal) ---
+        // --- Cámara (frontal, más arriba y más lejos) ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        // Vista frontal: centrada, altura media, ligeramente inclinada hacia abajo
-        camera.position.set(0, 3, 8); // X=0 centrado, Y=3 altura, Z=8 alejado
-        camera.lookAt(0, 2, 0);       // Mirando al centro de la habitación
+        // Vista frontal elevada: X=0 centrado, Y=5 altura (más arriba), Z=12 distancia (más lejos)
+        camera.position.set(0, 5, 12);
+        camera.lookAt(0, 2, 0); // Sigue mirando al centro de la habitación
 
         // --- Renderizador ---
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -68,9 +68,9 @@
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
         controls.maxPolarAngle = Math.PI / 2; // Evita que la cámara baje del suelo
-        controls.minDistance = 2;
-        controls.maxDistance = 15;
-        controls.target.set(0, 2, 0); // El centro de interés es el mismo que el lookAt inicial
+        controls.minDistance = 3;  // Ajustado para no acercarse demasiado
+        controls.maxDistance = 20;  // Permitir alejarse un poco más
+        controls.target.set(0, 2, 0); // El centro de interés
 
         // --- LUCES MEJORADAS (más arriba y mayor rango) ---
 
@@ -197,7 +197,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        console.log('Página lista. Vista frontal por defecto.');
+        console.log('Página lista. Vista frontal, más arriba (Y=5) y más lejos (Z=12).');
     </script>
 </body>
 </html>
