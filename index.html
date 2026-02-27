@@ -3,74 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Habitación 3D - Configuración de Calidad</title>
+    <title>Habitación 3D - Una sola luz (foco)</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             position: fixed;
             width: 100%;
             height: 100%;
         }
-        /* Botón de configuración (tuerca) */
         #settings-button {
             position: absolute;
             top: 20px;
             right: 20px;
-            width: 48px;
-            height: 48px;
-            background: rgba(20, 20, 30, 0.8);
+            width: 44px;
+            height: 44px;
+            background: rgba(30,30,40,0.85);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255,255,255,0.2);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 26px;
+            font-size: 24px;
             cursor: pointer;
             z-index: 300;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
             user-select: none;
         }
         #settings-button:hover {
-            background: rgba(40, 40, 55, 0.9);
             transform: scale(1.1);
         }
-        #settings-button:active {
-            transform: scale(0.95);
-        }
-        /* Panel de configuración (oculto por defecto) */
         #settings-panel {
             position: absolute;
-            top: 80px;
+            top: 70px;
             right: 20px;
-            background: rgba(20, 20, 30, 0.95);
-            backdrop-filter: blur(15px);
+            background: rgba(30,30,40,0.95);
+            backdrop-filter: blur(10px);
             color: white;
             padding: 20px;
             border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255,255,255,0.2);
             z-index: 250;
             font-size: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
             pointer-events: auto;
             display: none;
             min-width: 240px;
             backdrop-filter: blur(15px);
-            animation: slideIn 0.2s ease-out;
-        }
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
         #settings-panel.visible {
             display: block;
@@ -78,26 +61,28 @@
         #settings-panel h3 {
             margin: 0 0 15px 0;
             font-size: 16px;
-            font-weight: 500;
-            color: #ddd;
+            font-weight: 400;
+            color: #ccc;
             border-bottom: 1px solid rgba(255,255,255,0.2);
             padding-bottom: 8px;
         }
-        #settings-panel label {
+        .setting-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
+        .setting-item label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             cursor: pointer;
-            user-select: none;
-            padding: 8px 0;
-            border-radius: 8px;
-            transition: background 0.2s;
+            color: #fff;
         }
-        #settings-panel label:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-        #settings-panel input[type="checkbox"] {
+        .setting-item input[type="checkbox"] {
             width: 20px;
             height: 20px;
             cursor: pointer;
@@ -108,27 +93,26 @@
             color: white;
             padding: 6px 12px;
             border-radius: 50px;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
+            font-size: 13px;
+            font-weight: bold;
             text-align: center;
             margin-bottom: 15px;
-            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
         @media (max-width: 600px) {
             #settings-button {
-                top: 16px;
-                right: 16px;
-                width: 44px;
-                height: 44px;
-                font-size: 24px;
+                top: 10px;
+                right: 10px;
+                width: 40px;
+                height: 40px;
+                font-size: 22px;
             }
             #settings-panel {
-                top: 70px;
-                right: 16px;
-                padding: 16px;
-                font-size: 14px;
+                top: 60px;
+                right: 10px;
+                padding: 15px;
                 min-width: 200px;
+                font-size: 14px;
             }
         }
         #loading {
@@ -137,31 +121,29 @@
             right: 20px;
             color: white;
             background: rgba(0,0,0,0.5);
-            padding: 6px 12px;
-            border-radius: 20px;
+            padding: 5px 10px;
+            border-radius: 10px;
             font-size: 12px;
             z-index: 100;
             pointer-events: none;
             backdrop-filter: blur(4px);
-            border: 1px solid rgba(255,255,255,0.1);
         }
     </style>
 </head>
 <body>
-    <!-- Botón de tuerca -->
     <div id="settings-button">⚙️</div>
-    <!-- Panel de configuración -->
     <div id="settings-panel">
-        <h3>⚙️ Configuración</h3>
-        <div id="quality-indicator">Calidad Alta</div>
-        <label>
-            <span>🌀 Modo humilde</span>
-            <input type="checkbox" id="performance-mode">
-        </label>
+        <h3>⚡ Configuración</h3>
+        <div id="quality-indicator">Modo Normal</div>
+        <div class="setting-item">
+            <label>
+                <span>💡 Modo humilde (ahorro)</span>
+                <input type="checkbox" id="performance-mode">
+            </label>
+        </div>
     </div>
     <div id="loading">Cargando modelos...</div>
 
-    <!-- Importamos Three.js y OrbitControls desde CDN -->
     <script type="importmap">
         {
             "imports": {
@@ -191,195 +173,127 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
         document.body.appendChild(renderer.domElement);
 
-        // Controles (se configurarán después según el modo)
+        // Controles
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
         controls.maxPolarAngle = Math.PI / 2;
-        
-        // Establecer límites de azimuth según dispositivo
+        // Ángulo de rotación horizontal: un poco más amplio en móvil (45°), en PC 30°
         if (isMobile) {
-            controls.minAzimuthAngle = -Math.PI / 4; // -45 grados
-            controls.maxAzimuthAngle = Math.PI / 4;  // +45 grados
+            controls.minAzimuthAngle = -Math.PI / 4; // -45°
+            controls.maxAzimuthAngle = Math.PI / 4;  // +45°
         } else {
-            controls.minAzimuthAngle = -Math.PI / 6; // -30 grados
-            controls.maxAzimuthAngle = Math.PI / 6;  // +30 grados
+            controls.minAzimuthAngle = -Math.PI / 6; // -30°
+            controls.maxAzimuthAngle = Math.PI / 6;  // +30°
         }
-        
         controls.minDistance = 4;
         controls.maxDistance = 30;
         controls.target.set(0, 2, 0);
 
-        // Contenedores para las luces (para poder eliminarlas al cambiar de modo)
-        let currentLights = [];
+        // Almacén de luces actuales (solo habrá una)
+        let currentLight = null;
 
-        // --- Funciones de configuración de calidad ---
-        function setupHighQuality() {
-            // Eliminar luces anteriores
-            currentLights.forEach(light => {
-                if (light.target) scene.remove(light.target);
-                scene.remove(light);
-            });
-            currentLights = [];
+        // --- Función para configurar iluminación (solo un foco) ---
+        function setupLight(performanceMode) {
+            // Eliminar luz anterior si existe
+            if (currentLight) {
+                if (currentLight.target) scene.remove(currentLight.target);
+                scene.remove(currentLight);
+                currentLight = null;
+            }
 
-            // Renderer
-            renderer.shadowMap.enabled = true;
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
+            if (performanceMode) {
+                // Modo humilde: foco más tenue, sin sombras, menor distancia
+                const spotLight = new THREE.SpotLight(0xfff5e6, 1.2);
+                spotLight.position.set(0, 8, 2); // Ligeramente desplazado para mejor ángulo
+                spotLight.target.position.set(0, 1, 0);
+                scene.add(spotLight.target);
+                spotLight.castShadow = false; // Sin sombras
+                spotLight.angle = 1.0;
+                spotLight.penumbra = 0.5;
+                spotLight.decay = 1;
+                spotLight.distance = 20;
+                scene.add(spotLight);
+                currentLight = spotLight;
 
-            // Controles
-            controls.enableDamping = true;
-            controls.maxDistance = 30;
+                // Ajustes de renderer
+                renderer.shadowMap.enabled = false;
+                renderer.setPixelRatio(1);
+                
+                // Controles sin damping y menor distancia
+                controls.enableDamping = false;
+                controls.maxDistance = 18;
 
-            // --- Luces de alta calidad (con sombras) ---
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
-            scene.add(ambientLight);
-            currentLights.push(ambientLight);
+                document.getElementById('quality-indicator').textContent = 'Modo humilde 🌱';
+            } else {
+                // Modo normal: foco intenso con sombras
+                const spotLight = new THREE.SpotLight(0xfff5e6, 2.5);
+                spotLight.position.set(0, 10, 3);
+                spotLight.target.position.set(0, 1, 0);
+                scene.add(spotLight.target);
+                spotLight.castShadow = true;
+                spotLight.shadow.mapSize.width = 1024;
+                spotLight.shadow.mapSize.height = 1024;
+                spotLight.angle = 0.8;
+                spotLight.penumbra = 0.4;
+                spotLight.decay = 1;
+                spotLight.distance = 30;
+                scene.add(spotLight);
+                currentLight = spotLight;
 
-            const directionalLight = new THREE.DirectionalLight(0xfff5e6, 2.0);
-            directionalLight.position.set(5, 15, 7);
-            directionalLight.castShadow = true;
-            directionalLight.receiveShadow = true;
-            directionalLight.shadow.mapSize.width = 1024;
-            directionalLight.shadow.mapSize.height = 1024;
-            const d = 10;
-            directionalLight.shadow.camera.left = -d;
-            directionalLight.shadow.camera.right = d;
-            directionalLight.shadow.camera.top = d;
-            directionalLight.shadow.camera.bottom = -d;
-            directionalLight.shadow.camera.near = 2;
-            directionalLight.shadow.camera.far = 20;
-            directionalLight.shadow.bias = -0.0005;
-            scene.add(directionalLight);
-            currentLights.push(directionalLight);
+                renderer.shadowMap.enabled = true;
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
+                
+                controls.enableDamping = true;
+                controls.maxDistance = 30;
 
-            const backLight = new THREE.PointLight(0x4466ff, 1.0);
-            backLight.position.set(-3, 6, -3);
-            backLight.distance = 30;
-            scene.add(backLight);
-            currentLights.push(backLight);
+                document.getElementById('quality-indicator').textContent = 'Modo normal ✨';
+            }
 
-            const pointLight = new THREE.PointLight(0xffaa66, 1.5);
-            pointLight.position.set(2, 6, 2);
-            pointLight.distance = 25;
-            scene.add(pointLight);
-            currentLights.push(pointLight);
-
-            const spotLight = new THREE.SpotLight(0xffffff, 1.8);
-            spotLight.position.set(0, 10, 0);
-            spotLight.target.position.set(0, 1, 0);
-            scene.add(spotLight.target);
-            spotLight.castShadow = true;
-            spotLight.shadow.mapSize.width = 1024;
-            spotLight.shadow.mapSize.height = 1024;
-            spotLight.angle = 1.0;
-            spotLight.penumbra = 0.5;
-            spotLight.decay = 1;
-            spotLight.distance = 30;
-            scene.add(spotLight);
-            currentLights.push(spotLight);
-            currentLights.push(spotLight.target);
-
-            const sillaLight = new THREE.PointLight(0xffcc88, 1.2);
-            sillaLight.position.set(1.5, 4, 1.5);
-            sillaLight.distance = 15;
-            scene.add(sillaLight);
-            currentLights.push(sillaLight);
-
-            // Actualizar sombras en modelos (si ya están cargados)
+            // Actualizar sombras en los modelos
             scene.traverse(node => {
                 if (node.isMesh) {
-                    node.castShadow = true;
-                    node.receiveShadow = true;
+                    node.castShadow = !performanceMode;
+                    node.receiveShadow = !performanceMode;
                 }
             });
-
-            document.getElementById('quality-indicator').textContent = 'Calidad Alta';
-        }
-
-        function setupLowQuality() {
-            // Eliminar luces anteriores
-            currentLights.forEach(light => {
-                if (light.target) scene.remove(light.target);
-                scene.remove(light);
-            });
-            currentLights = [];
-
-            // Renderer: sin sombras, pixel ratio bajo
-            renderer.shadowMap.enabled = false;
-            renderer.setPixelRatio(1);
-
-            // Controles: sin damping, menor distancia máxima
-            controls.enableDamping = false;
-            controls.maxDistance = 18;
-
-            // --- Luces de baja calidad (mínimas, sin sombras) ---
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
-            scene.add(ambientLight);
-            currentLights.push(ambientLight);
-
-            const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
-            dirLight.position.set(5, 10, 7);
-            scene.add(dirLight);
-            currentLights.push(dirLight);
-
-            const fillLight = new THREE.PointLight(0x4466aa, 0.6);
-            fillLight.position.set(-2, 3, 2);
-            scene.add(fillLight);
-            currentLights.push(fillLight);
-
-            // Desactivar sombras en modelos
-            scene.traverse(node => {
-                if (node.isMesh) {
-                    node.castShadow = false;
-                    node.receiveShadow = false;
-                }
-            });
-
-            document.getElementById('quality-indicator').textContent = 'Modo Humilde';
         }
 
         // --- Cargar preferencia guardada o establecer según dispositivo ---
-        const perfCheck = document.getElementById('performance-mode');
-        
-        // Función para aplicar modo según checkbox
-        function applyModeFromCheckbox() {
-            if (perfCheck.checked) {
-                setupLowQuality();
-            } else {
-                setupHighQuality();
-            }
-        }
+        let savedMode = localStorage.getItem('modoHumilde');
+        let defaultPerformanceMode;
 
-        // Determinar estado inicial
-        const savedMode = localStorage.getItem('modoHumilde');
         if (savedMode !== null) {
-            // Si hay preferencia guardada, usarla
-            perfCheck.checked = savedMode === 'true';
+            defaultPerformanceMode = savedMode === 'true';
         } else {
-            // Si no, activar en móvil, desactivar en PC
-            perfCheck.checked = isMobile;
+            defaultPerformanceMode = isMobile; // En móvil, true; en PC, false
         }
-        applyModeFromCheckbox();
 
-        // Guardar preferencia al cambiar
+        // Aplicar configuración inicial
+        setupLight(defaultPerformanceMode);
+
+        // Sincronizar checkbox
+        const perfCheck = document.getElementById('performance-mode');
+        perfCheck.checked = defaultPerformanceMode;
+
+        // Evento cambio
         perfCheck.addEventListener('change', (e) => {
-            localStorage.setItem('modoHumilde', e.target.checked);
-            applyModeFromCheckbox();
+            const newMode = e.target.checked;
+            setupLight(newMode);
+            localStorage.setItem('modoHumilde', newMode);
         });
 
-        // --- Mostrar/ocultar panel al hacer clic en la tuerca ---
+        // --- Panel de configuración (tuerca) ---
         const settingsButton = document.getElementById('settings-button');
         const settingsPanel = document.getElementById('settings-panel');
-        settingsButton.addEventListener('click', (e) => {
-            e.stopPropagation();
+        settingsButton.addEventListener('click', () => {
             settingsPanel.classList.toggle('visible');
         });
 
-        // Cerrar panel si se hace clic fuera
         document.addEventListener('click', (e) => {
             if (!settingsButton.contains(e.target) && !settingsPanel.contains(e.target)) {
                 settingsPanel.classList.remove('visible');
@@ -403,12 +317,11 @@
                 path,
                 (gltf) => {
                     const model = gltf.scene;
-                    // Las sombras se activan/desactivan según el modo actual
-                    const currentShadowState = renderer.shadowMap.enabled;
+                    const performanceMode = perfCheck.checked;
                     model.traverse((node) => {
                         if (node.isMesh) {
-                            node.castShadow = currentShadowState;
-                            node.receiveShadow = currentShadowState;
+                            node.castShadow = !performanceMode;
+                            node.receiveShadow = !performanceMode;
                         }
                     });
                     scene.add(model);
@@ -425,7 +338,6 @@
             );
         }
 
-        // Lista de modelos (ajústala a tus archivos)
         const modelos = [
             'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb',
             'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb',
@@ -459,7 +371,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Usa la tuerca para ajustar calidad.');
+        console.log('Página cargada. Una sola luz (foco) con modo humilde.');
     </script>
 </body>
 </html>
