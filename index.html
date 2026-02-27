@@ -179,8 +179,8 @@
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         
         if (deviceType === 'mobile') {
-            // Móvil: vista más cercana a la cama, con giro libre
-            camera.position.set(0, 7, 12);
+            // Móvil: más cerca y más arriba
+            camera.position.set(0, 10, 9);
         } else if (deviceType === 'tablet') {
             // Tablet: vista intermedia, con giro amplio
             camera.position.set(0, 9, 16);
@@ -476,7 +476,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Dispositivo:', deviceType, 'con nuevos ajustes de cámara y rotación.');
+        console.log('Página cargada. Dispositivo:', deviceType, 'con nuevos ajustes de cámara (móvil: más cerca y arriba).');
     </script>
 </body>
 </html>
