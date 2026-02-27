@@ -172,12 +172,12 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122);
 
-        // --- Cámara: más lejos en móvil por defecto (ajustado) ---
+        // --- Cámara: más lejos en móvil por defecto ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         if (isMobile) {
-            camera.position.set(0, 13, 30); // Más lejos y más alto
+            camera.position.set(0, 13, 30); // Vista lejana en móvil
         } else {
-            camera.position.set(0, 8, 18); // como antes
+            camera.position.set(0, 8, 18); // Vista en PC
         }
         camera.lookAt(0, 2, 0);
 
@@ -188,16 +188,15 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // --- Controles con límites de rotación según dispositivo (reducido en móvil) ---
+        // --- Controles con límites de rotación según dispositivo ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
         controls.maxPolarAngle = Math.PI / 2;
         
-        // Límites horizontales: en móvil reducido a ±35°, en PC ±30°
         if (isMobile) {
-            controls.minAzimuthAngle = -Math.PI / 5.14; // aprox -35° (PI/5.14 ≈ 35°)
+            controls.minAzimuthAngle = -Math.PI / 5.14; // -35°
             controls.maxAzimuthAngle = Math.PI / 5.14;  // +35°
         } else {
             controls.minAzimuthAngle = -Math.PI / 6;  // -30°
@@ -208,18 +207,18 @@
         controls.maxDistance = 30;
         controls.target.set(0, 2, 0);
 
-        // --- Luz principal: foco desde arriba (más alto, más potencia, más rango) ---
-        const mainLight = new THREE.SpotLight(0xffeedd, 4.0); // Intensidad aumentada a 4.0
-        mainLight.position.set(0, 18, 0); // Más arriba (Y=18 en lugar de 15)
+        // --- Luz principal: foco desde arriba (más alto, mayor alcance) ---
+        const mainLight = new THREE.SpotLight(0xffeedd, 4.2); // Intensidad ligeramente mayor
+        mainLight.position.set(0, 22, 0); // Subido a Y=22
         mainLight.target.position.set(0, 1, 0);
         scene.add(mainLight.target);
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.width = 2048;
         mainLight.shadow.mapSize.height = 2048;
-        mainLight.angle = 1.3;        // Ángulo un poco mayor (antes 1.2)
+        mainLight.angle = 1.4;            // Ángulo más abierto (aprox 80°)
         mainLight.penumbra = 0.5;
         mainLight.decay = 1;
-        mainLight.distance = 60;       // Mayor alcance (antes 50)
+        mainLight.distance = 80;           // Alcance aumentado
         mainLight.shadow.bias = -0.0005;
         scene.add(mainLight);
 
@@ -431,7 +430,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada: móvil con vista (Y=13, Z=30), foco (Y=18, int=4.0, dist=60)');
+        console.log('Página cargada: foco en Y=22, distancia=80, ángulo=1.4');
     </script>
 </body>
 </html>
