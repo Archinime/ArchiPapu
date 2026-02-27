@@ -175,17 +175,17 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122);
 
-        // --- Cámara según dispositivo (más arriba en PC, más lejos en móvil/tablet) ---
+        // --- Cámara según dispositivo ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         
         if (deviceType === 'mobile') {
-            // Móvil: mucho más lejos
-            camera.position.set(0, 20, 55);
+            // Móvil: vista más cercana a la cama, con giro libre
+            camera.position.set(0, 7, 12);
         } else if (deviceType === 'tablet') {
-            // Tablet: más lejos que antes
-            camera.position.set(0, 18, 45);
+            // Tablet: vista intermedia, con giro amplio
+            camera.position.set(0, 9, 16);
         } else {
-            // Escritorio: más arriba y ligeramente más lejos para mejor vista
+            // Escritorio: vista más arriba y alejada, giro limitado
             camera.position.set(0, 10, 20);
         }
         camera.lookAt(0, 2, 0);
@@ -204,34 +204,46 @@
         controls.screenSpacePanning = true;
         controls.maxPolarAngle = Math.PI / 2; // No bajar del suelo
         controls.minDistance = 4;
-        controls.maxDistance = 50; // Más zoom out
+        controls.maxDistance = 50;
         controls.target.set(0, 2, 0);
 
-        // --- Límites base según dispositivo (más amplios al estar más lejos) ---
+        // --- Límites de rotación según dispositivo ---
         let baseMinAzimuth, baseMaxAzimuth;
+        let useDynamicLimits = false; // Por defecto no usamos límites dinámicos
+
         if (deviceType === 'mobile') {
-            baseMinAzimuth = -Math.PI / 2.5; // -72° (más giro porque la cámara está lejos)
-            baseMaxAzimuth = Math.PI / 2.5;  // +72°
+            // Móvil: sin límites de giro (360°)
+            controls.minAzimuthAngle = undefined;
+            controls.maxAzimuthAngle = undefined;
+            useDynamicLimits = false; // No necesitamos dinámicos
         } else if (deviceType === 'tablet') {
-            baseMinAzimuth = -Math.PI / 2.2; // -82°
-            baseMaxAzimuth = Math.PI / 2.2;  // +82°
+            // Tablet: límites amplios (~±120°)
+            baseMinAzimuth = -Math.PI / 1.5; // -120°
+            baseMaxAzimuth = Math.PI / 1.5;  // +120°
+            controls.minAzimuthAngle = baseMinAzimuth;
+            controls.maxAzimuthAngle = baseMaxAzimuth;
+            useDynamicLimits = true; // Activamos dinámicos para tablet
         } else {
-            baseMinAzimuth = -Math.PI / 4;   // -45°
-            baseMaxAzimuth = Math.PI / 4;    // +45°
+            // Escritorio: límites más cerrados (~±45°)
+            baseMinAzimuth = -Math.PI / 4; // -45°
+            baseMaxAzimuth = Math.PI / 4;  // +45°
+            controls.minAzimuthAngle = baseMinAzimuth;
+            controls.maxAzimuthAngle = baseMaxAzimuth;
+            useDynamicLimits = true; // Activamos dinámicos para escritorio
         }
 
         // --- Luz principal: foco desde arriba (muy potente) ---
         const mainLight = new THREE.SpotLight(0xffeedd, 4.5);
-        mainLight.position.set(0, 25, 0); // Más arriba
+        mainLight.position.set(0, 25, 0);
         mainLight.target.position.set(0, 1, 0);
         scene.add(mainLight.target);
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.width = 2048;
         mainLight.shadow.mapSize.height = 2048;
-        mainLight.angle = 1.5;            // Ángulo muy abierto
+        mainLight.angle = 1.5;
         mainLight.penumbra = 0.5;
         mainLight.decay = 1;
-        mainLight.distance = 100;          // Gran alcance
+        mainLight.distance = 100;
         mainLight.shadow.bias = -0.0005;
         scene.add(mainLight);
 
@@ -418,29 +430,31 @@
             }
         });
 
-        // --- Animación con control dinámico del azimuth ---
+        // --- Animación con control dinámico del azimuth (solo para tablet/escritorio) ---
         function animate() {
             requestAnimationFrame(animate);
 
-            // Calcular factor basado en la distancia de la cámara al origen
-            const distance = camera.position.length();
-            const nearDist = controls.minDistance;
-            const farDist = controls.maxDistance;
-            
-            // Factor lineal: 0 (cerca) -> 1 (lejos)
-            let factor = (distance - nearDist) / (farDist - nearDist);
-            factor = Math.max(0, Math.min(1, factor));
-            
-            // Multiplicadores: cerca = 40% del ángulo base, lejos = 160% (puedes ajustarlos)
-            const minMultiplier = 0.4;
-            const maxMultiplier = 1.6;
-            
-            const currentMinAngle = baseMinAzimuth * (minMultiplier + factor * (maxMultiplier - minMultiplier));
-            const currentMaxAngle = baseMaxAzimuth * (minMultiplier + factor * (maxMultiplier - minMultiplier));
-            
-            // Aplicar límites
-            controls.minAzimuthAngle = currentMinAngle;
-            controls.maxAzimuthAngle = currentMaxAngle;
+            if (useDynamicLimits) {
+                // Calcular factor basado en la distancia de la cámara al origen
+                const distance = camera.position.length();
+                const nearDist = controls.minDistance;
+                const farDist = controls.maxDistance;
+                
+                // Factor lineal: 0 (cerca) -> 1 (lejos)
+                let factor = (distance - nearDist) / (farDist - nearDist);
+                factor = Math.max(0, Math.min(1, factor));
+                
+                // Multiplicadores: cerca = 40% del ángulo base, lejos = 160%
+                const minMultiplier = 0.4;
+                const maxMultiplier = 1.6;
+                
+                const currentMinAngle = baseMinAzimuth * (minMultiplier + factor * (maxMultiplier - minMultiplier));
+                const currentMaxAngle = baseMaxAzimuth * (minMultiplier + factor * (maxMultiplier - minMultiplier));
+                
+                // Aplicar límites
+                controls.minAzimuthAngle = currentMinAngle;
+                controls.maxAzimuthAngle = currentMaxAngle;
+            }
 
             controls.update();
             renderer.render(scene, camera);
@@ -462,7 +476,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Dispositivo:', deviceType, 'con límites de rotación dinámicos.');
+        console.log('Página cargada. Dispositivo:', deviceType, 'con nuevos ajustes de cámara y rotación.');
     </script>
 </body>
 </html>
