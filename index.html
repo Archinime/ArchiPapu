@@ -134,10 +134,8 @@
         const ua = navigator.userAgent;
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
         const width = window.innerWidth;
-        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ?
-            'mobile' : 
-            (width >= 768 && width <= 1024) ?
-            'tablet' : 'desktop';
+        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : 
+                         (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
 
         // --- Escena ---
         const scene = new THREE.Scene();
@@ -149,11 +147,12 @@
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
         camera.position.set(0, camPosY, camPosZ);
 
-        // --- RENDERIZADOR PRO ---
+        // --- RENDERIZADOR PRO (CORREGIDO) ---
         const renderer = new THREE.WebGLRenderer({ 
             antialias: true, 
             powerPreference: "high-performance",
-            logarithmicDepthBuffer: true
+            // IMPORTANTE: Se desactiva el buffer logarítmico para evitar z-fighting en el OutlineEffect
+            logarithmicDepthBuffer: false 
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
         
@@ -168,8 +167,8 @@
 
         // --- EFECTO DE CONTORNO ANIME (OutlineEffect) ---
         const effect = new OutlineEffect(renderer, {
-            defaultThickness: 0.0008,
-            defaultColor: [0, 0, 0], // Borde negro
+            defaultThickness: 0.0015, // Ajuste base un poco más grueso
+            defaultColor: [0, 0, 0], 
             defaultAlpha: 1.0,
             defaultKeepAlive: true
         });
@@ -180,16 +179,13 @@
         controls.target.set(0, targetY, 0);
 
         // --- LUCES ---
-        // 1. Luz Ambiental base
         const ambient = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambient);
 
-        // 2. Luz de rebote
         const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
         hemiLight.position.set(0, 20, 0);
         scene.add(hemiLight);
 
-        // 3. Luz Principal (SpotLight)
         const mainLight = new THREE.SpotLight(0xffeedd, 6);
         mainLight.position.set(2, 22, 2); 
         mainLight.angle = Math.PI / 3;
@@ -208,7 +204,6 @@
         scene.add(mainLight);
         scene.add(mainLight.target);
 
-        // 4. Luz indicadora del interruptor
         const indicatorLight = new THREE.PointLight(0xffaa00, 0.8, 5);
         scene.add(indicatorLight);
 
@@ -241,7 +236,7 @@
                         }
                     }
                 });
-      
+                
                 scene.add(model);
                 
                 if (path.includes('interruptor.glb')) {
@@ -291,6 +286,7 @@
             const rect = renderer.domElement.getBoundingClientRect();
             const x = event.touches ? event.touches[0].clientX : event.clientX;
             const y = event.touches ? event.touches[0].clientY : event.clientY;
+            
             mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
 
@@ -323,24 +319,21 @@
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
         perfCheck.addEventListener('change', updateQuality);
 
-        // --- Animación ---
+        // --- Animación (CORREGIDA) ---
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
             
-            // --- NUEVO FIX: LÍMITE DE GROSOR ---
             const currentDist = camera.position.distanceTo(controls.target);
             
-            // Calculamos el grosor ideal según la distancia
-            let dynamicThickness = 0.0022 / currentDist;
+            // Suavizamos el cálculo dinámico para que no cambie tan bruscamente
+            let dynamicThickness = 0.003 / currentDist; 
             
-            // Establecemos un grosor mínimo absoluto para evitar los puntitos (z-fighting/sub-pixel)
-            const minThickness = 0.00015; 
+            // Subimos el grosor mínimo absoluto para evitar los puntos ciegos (línea sólida)
+            const minThickness = 0.0012; 
             
-            // Math.max elegirá el valor más alto entre el dinámico y el mínimo.
-            // Así garantizamos que NUNCA sea menor a 0.00015, por más lejos que estés.
             effect.defaultThickness = Math.max(minThickness, dynamicThickness);
-
+            
             // Renderizamos con el efecto
             effect.render(scene, camera);
         }
