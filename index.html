@@ -143,7 +143,9 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050508); 
 
-        // --- Cámara optimizada ---
+        // --- Cámara optimizada (ARREGLO DE PROFUNDIDAD PARA CONTORNOS) ---
+        // Se cambió el near de 0.1 a 0.5 y far a 200 para dar muchísima más precisión 
+        // al Z-Buffer y evitar que las líneas negras se superpongan desde lejos.
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
         let camPosY = 10, camPosZ = 20, targetY = 2;
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
@@ -153,6 +155,7 @@
         const renderer = new THREE.WebGLRenderer({ 
             antialias: true, 
             powerPreference: "high-performance"
+            // Se eliminó logarithmicDepthBuffer: true porque causa conflictos graves con el OutlineEffect a lo lejos
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
         
@@ -166,6 +169,7 @@
         document.body.appendChild(renderer.domElement);
 
         // --- EFECTO DE CONTORNO ANIME (OutlineEffect) ---
+        // Ajuste de defaultThickness ligeramente para compensar la nueva perspectiva
         const effect = new OutlineEffect(renderer, {
             defaultThickness: 0.0015, 
             defaultColor: [0, 0, 0], 
@@ -179,23 +183,23 @@
         controls.target.set(0, targetY, 0);
 
         // --- LUCES ---
-        const ambient = new THREE.AmbientLight(0xffffff, 0.5); // Incrementado un poco para iluminar mejor las imágenes
+        const ambient = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambient);
 
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6); // Incrementado para relleno
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
         hemiLight.position.set(0, 20, 0);
         scene.add(hemiLight);
 
-        // Luz Principal (MODIFICADA PARA MAYOR RANGO Y FUERZA)
-        const mainLight = new THREE.SpotLight(0xffeedd, 12); // Fuerza al doble
-        mainLight.position.set(2, 22, 2);
-        mainLight.angle = Math.PI / 1.5; // Ángulo mucho más amplio para alcanzar las paredes
-        mainLight.penumbra = 0.5; // Suavidad en los bordes
-        mainLight.decay = 1.5; // Menos decaimiento para que la luz viaje más lejos
-        mainLight.distance = 150; // Mayor distancia de alcance
+        // Luz Principal
+        const mainLight = new THREE.SpotLight(0xffeedd, 6);
+        mainLight.position.set(2, 22, 2); 
+        mainLight.angle = Math.PI / 3;
+        mainLight.penumbra = 0.8; 
+        mainLight.decay = 2; 
+        mainLight.distance = 60;
         
         mainLight.castShadow = true;
-        mainLight.shadow.mapSize.set(2048, 2048);
+        mainLight.shadow.mapSize.set(2048, 2048); 
         mainLight.shadow.camera.near = 0.5;
         mainLight.shadow.camera.far = 40;
         mainLight.shadow.bias = -0.0001;
@@ -224,7 +228,7 @@
             'interruptor.glb', 'maouse_pad.glb', 'techo.glb', 'base_foco.glb', 'lunari2.glb', 
             'foco.glb'
         ];
-        
+
         let switchMesh = null;
         let focoMesh = null;
 
@@ -289,11 +293,11 @@
 
         function updateLighting() {
             const isLow = perfCheck.checked;
+
             if (lightOn) {
                 mainLight.visible = true;
-                // Ajustados también para que al encender la luz, el ambiente apoye a las imágenes
-                ambient.intensity = isLow ? 1.0 : 0.5;
-                hemiLight.intensity = isLow ? 0.8 : 0.6;
+                ambient.intensity = isLow ? 0.8 : 0.3;
+                hemiLight.intensity = isLow ? 0.8 : 0.4;
                 indicatorLight.intensity = 0.8;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
                 
@@ -355,7 +359,7 @@
             renderer.shadowMap.enabled = !isLow;
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-            
+
             scene.traverse(n => { 
                 if(n.isMesh) { 
                     if (focoMesh && (n === focoMesh || focoMesh.children.includes(n))) return;
