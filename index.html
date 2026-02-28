@@ -256,6 +256,8 @@
         mainLight.decay = 1;
         mainLight.distance = 100;
         mainLight.shadow.bias = -0.0005;
+        // --- FIX: Añadimos normalBias para eliminar el acné de sombras en las paredes ---
+        mainLight.shadow.normalBias = 0.02;
         scene.add(mainLight);
 
         // Estado de la luz
