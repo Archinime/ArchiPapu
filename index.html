@@ -151,7 +151,8 @@
         const renderer = new THREE.WebGLRenderer({ 
             antialias: true, 
             powerPreference: "high-performance",
-            logarithmicDepthBuffer: false 
+            // MEJORA: Cambiado a true para evitar que el contorno parpadee o se corte con el modelo (Z-fighting)
+            logarithmicDepthBuffer: true 
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
         
@@ -165,8 +166,10 @@
         document.body.appendChild(renderer.domElement);
 
         // --- EFECTO DE CONTORNO ANIME (OutlineEffect) ---
+        // MEJORA: Se aumentó un poco el defaultThickness a un valor estable (0.002) 
+        // para que no necesite redimensionarse dinámicamente, haciendo las líneas perfectamente rectas.
         const effect = new OutlineEffect(renderer, {
-            defaultThickness: 0.0005,
+            defaultThickness: 0.002, 
             defaultColor: [0, 0, 0], 
             defaultAlpha: 1.0,
             defaultKeepAlive: true
@@ -221,44 +224,37 @@
             'decoracion_5_mueble_1.glb', 'decoracion_2_mueble_2.glb', 'decoracion_piso.glb',
             'poster_1.glb', 'poster_2.glb', 'poster_3.glb', 'poster_4.glb',
             'interruptor.glb', 'maouse_pad.glb', 'techo.glb', 'base_foco.glb', 'lunari2.glb', 
-            'foco.glb' // <-- Añadido el foco aquí
+            'foco.glb'
         ];
-        
+
         let switchMesh = null;
-        let focoMesh = null; // Variable para controlar el objeto del foco
+        let focoMesh = null;
 
         modelos.forEach(path => {
             loader.load(path, (gltf) => {
                 const model = gltf.scene;
                 
-                // Configuración especial si es el foco
                 if (path.includes('foco.glb')) {
                     focoMesh = model;
                     
-                    // Obtener la posición central del foco
                     const box = new THREE.Box3().setFromObject(model);
                     const center = new THREE.Vector3();
                     box.getCenter(center);
                     
-                    // Mover la luz principal exactamente al foco
                     mainLight.position.copy(center);
-                    // Bajar la luz un poquito (0.2) para que el propio cascarón del foco no tape la luz y proyecte sombra en toda la sala
                     mainLight.position.y -= 0.2; 
                     
                     model.traverse((node) => {
                         if (node.isMesh) {
-                            node.castShadow = false; // El foco no debe proyectar sombra para no tapar su propia luz
+                            node.castShadow = false;
                             node.receiveShadow = false;
-                            
                             if (node.material) {
-                                // Hacer que el material "brille" (emita luz visualmente)
                                 node.material.emissive = new THREE.Color(0xffeedd);
                                 node.material.emissiveIntensity = lightOn ? 1.5 : 0;
                             }
                         }
                     });
                 } else {
-                    // Lógica para el resto de los modelos
                     model.traverse((node) => {
                         if (node.isMesh) {
                             node.castShadow = true;
@@ -276,7 +272,7 @@
                 }
                  
                 scene.add(model);
-                
+
                 if (path.includes('interruptor.glb')) {
                     switchMesh = model;
                     const box = new THREE.Box3().setFromObject(model);
@@ -294,6 +290,7 @@
 
         function updateLighting() {
             const isLow = perfCheck.checked;
+            
             if (lightOn) {
                 mainLight.visible = true;
                 ambient.intensity = isLow ? 0.8 : 0.3;
@@ -301,7 +298,6 @@
                 indicatorLight.intensity = 0.8;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
                 
-                // Hacer que el foco visualmente brille
                 if (focoMesh) {
                     focoMesh.traverse((node) => {
                         if (node.isMesh && node.material) {
@@ -315,8 +311,7 @@
                 hemiLight.intensity = 0.05; 
                 indicatorLight.intensity = 2;
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
-                
-                // Apagar el brillo visual del foco
+
                 if (focoMesh) {
                     focoMesh.traverse((node) => {
                         if (node.isMesh && node.material) {
@@ -346,6 +341,7 @@
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
+
             if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
                 toggleLight();
             }
@@ -360,10 +356,9 @@
             renderer.shadowMap.enabled = !isLow;
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-            
+
             scene.traverse(n => { 
                 if(n.isMesh) { 
-                    // Evitamos reactivar las sombras en el foco
                     if (focoMesh && (n === focoMesh || focoMesh.children.includes(n))) return;
                     
                     n.castShadow = !isLow; 
@@ -383,9 +378,9 @@
             requestAnimationFrame(animate);
             controls.update();
             
-            const currentDist = camera.position.distanceTo(controls.target);
-            let dynamicThickness = 0.02 / currentDist;
-            effect.defaultThickness = THREE.MathUtils.clamp(dynamicThickness, 0.0003, 0.0025);
+            // MEJORA: Se eliminó el cálculo dinámico (dynamicThickness) que causaba 
+            // que las líneas vibraran o se vieran chuecas al mover la cámara.
+            // Ahora respeta el defaultThickness estable que configuramos arriba.
             
             effect.render(scene, camera);
         }
