@@ -138,7 +138,7 @@
 
         // --- Escena ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050508); // Fondo un poco más oscuro
+        scene.background = new THREE.Color(0x050508);
 
         // --- Cámara optimizada ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
@@ -146,7 +146,7 @@
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
         camera.position.set(0, camPosY, camPosZ);
 
-        // --- RENDERIZADOR PRO (Mejorado para fotorealismo) ---
+        // --- RENDERIZADOR PRO ---
         const renderer = new THREE.WebGLRenderer({ 
             antialias: true, 
             powerPreference: "high-performance",
@@ -154,11 +154,9 @@
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
         
-        // Mejoras de realismo en renderizado
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Sombras muy suaves
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.outputEncoding = THREE.sRGBEncoding;
-        // ToneMapping para rango dinámico realista
         renderer.toneMapping = THREE.ACESFilmicToneMapping; 
         renderer.toneMappingExposure = 1.0;
         
@@ -169,18 +167,17 @@
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.target.set(0, targetY, 0);
+        // Limitar el ángulo vertical para no pasar por debajo del suelo
+        controls.maxPolarAngle = Math.PI / 2; // 90 grados, evita ir bajo el suelo
 
         // --- LUCES ---
-        // 1. Luz Ambiental base
         const ambient = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambient);
 
-        // 2. Luz de rebote
         const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
         hemiLight.position.set(0, 20, 0);
         scene.add(hemiLight);
 
-        // 3. Luz Principal (SpotLight)
         const mainLight = new THREE.SpotLight(0xffeedd, 6); 
         mainLight.position.set(2, 22, 2); 
         mainLight.angle = Math.PI / 3;
@@ -199,7 +196,6 @@
         scene.add(mainLight);
         scene.add(mainLight.target);
 
-        // 4. Luz indicadora del interruptor
         const indicatorLight = new THREE.PointLight(0xffaa00, 0.8, 5);
         scene.add(indicatorLight);
 
@@ -214,6 +210,12 @@
             'interruptor.glb', 'maouse_pad.glb', 'lunari2.glb'
         ];
         let switchMesh = null;
+
+        // --- Lista de meshes que pueden colisionar (se llena al cargar) ---
+        const collisionMeshes = [];
+
+        // --- Nombres de modelos que NO deben bloquear la cámara (suelo, alfombra, interruptor, etc.) ---
+        const ignoreCollisionKeywords = ['piso', 'alfombra', 'interruptor', 'maouse_pad', 'poster']; // los posters son planos finos, se pueden ignorar
 
         modelos.forEach(path => {
             loader.load(path, (gltf) => {
@@ -230,6 +232,14 @@
                             }
                             node.material.side = THREE.DoubleSide;
                         }
+
+                        // Agregar a la lista de colisiones solo si no está en la lista de ignorados
+                        const shouldIgnore = ignoreCollisionKeywords.some(keyword => 
+                            node.name.toLowerCase().includes(keyword) || path.toLowerCase().includes(keyword)
+                        );
+                        if (!shouldIgnore) {
+                            collisionMeshes.push(node);
+                        }
                     }
                 });
                 scene.add(model);
@@ -242,12 +252,43 @@
                 
                 modelsLoaded++;
                 document.getElementById('loading').innerText = `Cargando: ${modelsLoaded}/${modelos.length}`;
-                if (modelsLoaded === modelos.length) document.getElementById('loading').style.display = 'none';
+                if (modelsLoaded === modelos.length) {
+                    document.getElementById('loading').style.display = 'none';
+                }
             });
         });
 
-        // --- SISTEMA DE ILUMINACIÓN CENTRALIZADO ---
-        // Maneja la intensidad de las luces según si están encendidas y si el modo humilde está activo
+        // --- SISTEMA DE COLISIONES PARA LA CÁMARA ---
+        const raycaster = new THREE.Raycaster();
+        const collisionOffset = 0.2; // distancia mínima de separación al chocar
+
+        function applyCameraCollision() {
+            if (collisionMeshes.length === 0) return; // aún no hay modelos
+
+            // Dirección desde el target hacia la cámara
+            const direction = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+            const distance = camera.position.distanceTo(controls.target);
+
+            // Lanzamos un rayo desde el target hacia la cámara
+            raycaster.set(controls.target, direction);
+            const intersects = raycaster.intersectObjects(collisionMeshes);
+
+            // Filtramos intersecciones que estén más cerca que la distancia actual
+            let minDistance = distance;
+            for (let i = 0; i < intersects.length; i++) {
+                const intersect = intersects[i];
+                if (intersect.distance < distance && intersect.distance > 0.1) {
+                    minDistance = Math.min(minDistance, intersect.distance - collisionOffset);
+                }
+            }
+
+            // Si la distancia mínima es menor que la actual, reposicionamos la cámara
+            if (minDistance < distance) {
+                camera.position.copy(controls.target.clone().add(direction.multiplyScalar(minDistance)));
+            }
+        }
+
+        // --- SISTEMA DE ILUMINACIÓN ---
         const perfCheck = document.getElementById('performance-mode');
         let lightOn = localStorage.getItem('lightState') !== 'off';
 
@@ -255,29 +296,21 @@
             const isLow = perfCheck.checked;
             
             if (lightOn) {
-                // HABITACIÓN ILUMINADA
                 mainLight.visible = true;
-                // Compensamos la luz en modo humilde porque no hay sombras
                 ambient.intensity = isLow ? 0.8 : 0.3;
                 hemiLight.intensity = isLow ? 0.8 : 0.4;
                 indicatorLight.intensity = 0.8;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
             } else {
-                // HABITACIÓN A OSCURAS (Realismo aplicado)
                 mainLight.visible = false;
-                // Reducimos la luz ambiental drásticamente para que se vea oscuro
                 ambient.intensity = 0.02; 
-                hemiLight.intensity = 0.05; // Solo un levísimo rebote para no ver todo 100% negro
-                // El led del interruptor resalta más en la oscuridad
+                hemiLight.intensity = 0.05;
                 indicatorLight.intensity = 2; 
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
             }
         }
 
         // --- Interacción Interruptor ---
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-
         function toggleLight() {
             lightOn = !lightOn;
             localStorage.setItem('lightState', lightOn ? 'on' : 'off');
@@ -308,7 +341,6 @@
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
             
-            // Actualizamos materiales para apagar/encender cálculos de sombras
             scene.traverse(n => { 
                 if(n.isMesh) { 
                     n.castShadow = !isLow; 
@@ -318,7 +350,7 @@
             });
             
             localStorage.setItem('performanceMode', isLow);
-            updateLighting(); // Llama al gestor de luces para reajustar intensidades
+            updateLighting();
         }
 
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
@@ -327,7 +359,13 @@
         // --- Animación ---
         function animate() {
             requestAnimationFrame(animate);
+
+            // Actualizar controles primero
             controls.update();
+
+            // Aplicar colisión después de que la cámara se haya movido
+            applyCameraCollision();
+
             renderer.render(scene, camera);
         }
         animate();
@@ -338,6 +376,9 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
+
+        // --- Variables auxiliares para interacción ---
+        const mouse = new THREE.Vector2();
 
         // Configuración inicial de UI
         updateQuality();
