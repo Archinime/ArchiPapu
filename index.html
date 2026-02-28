@@ -35,12 +35,9 @@
             transition: transform 0.2s;
             user-select: none;
         }
-        #settings-button:hover {
-            transform: scale(1.1);
-        }
-        #settings-button:active {
-            transform: scale(0.95);
-        }
+        #settings-button:hover { transform: scale(1.1); }
+        #settings-button:active { transform: scale(0.95); }
+        
         #settings-panel {
             position: absolute;
             top: 70px;
@@ -58,9 +55,8 @@
             display: none;
             min-width: 200px;
         }
-        #settings-panel.visible {
-            display: block;
-        }
+        #settings-panel.visible { display: block; }
+        
         #settings-panel label {
             display: flex;
             align-items: center;
@@ -91,16 +87,20 @@
             #settings-button { top: 10px; right: 10px; width: 40px; height: 40px; font-size: 22px; }
             #settings-panel { top: 60px; right: 10px; padding: 12px 15px; font-size: 13px; min-width: 180px; }
         }
-        #loading {
-            position: absolute; bottom: 20px; right: 20px; color: white;
-            background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 10px;
-            font-size: 12px; z-index: 100; pointer-events: none; backdrop-filter: blur(4px);
+        #loading, #light-status {
+            position: absolute;
+            bottom: 20px;
+            color: white;
+            background: rgba(0,0,0,0.5); 
+            padding: 5px 10px; 
+            border-radius: 10px;
+            font-size: 12px; 
+            z-index: 100; 
+            pointer-events: none;
+            backdrop-filter: blur(4px);
         }
-        #light-status {
-            position: absolute; bottom: 20px; left: 20px; color: white;
-            background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 10px;
-            font-size: 12px; z-index: 100; pointer-events: none; backdrop-filter: blur(4px);
-        }
+        #loading { right: 20px; }
+        #light-status { left: 20px; }
     </style>
 </head>
 <body>
@@ -140,22 +140,28 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0a0a12);
 
-        // --- Cámara optimizada para evitar Z-Fighting ---
+        // --- Cámara optimizada ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
         let camPosY = 10, camPosZ = 20, targetY = 2;
         if (deviceType === 'mobile') { camPosY = 8; camPosZ = 12; targetY = 5; }
         camera.position.set(0, camPosY, camPosZ);
 
-        // --- RENDERIZADOR PRO (Logarithmic Depth Buffer para eliminar líneas) ---
+        // --- RENDERIZADOR PRO (Mejorado para fotorealismo) ---
         const renderer = new THREE.WebGLRenderer({ 
             antialias: true, 
             powerPreference: "high-performance",
-            logarithmicDepthBuffer: true // ESTO ELIMINA EL PARPADEO Y RAYAS POR CÁMARA
+            logarithmicDepthBuffer: true
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        
+        // Mejoras de realismo en renderizado
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Sombras muy suaves
         renderer.outputEncoding = THREE.sRGBEncoding;
+        // El ToneMapping es clave para que los colores de Blender se vean reales y la luz no queme la imagen
+        renderer.toneMapping = THREE.ACESFilmicToneMapping; 
+        renderer.toneMappingExposure = 1.0;
+        
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
@@ -164,22 +170,36 @@
         controls.enableDamping = true;
         controls.target.set(0, targetY, 0);
 
-        // --- Luz Principal Mejorada ---
-        const mainLight = new THREE.SpotLight(0xffeedd, 4);
-        mainLight.position.set(0, 20, 0);
+        // --- LUCES MEJORADAS ---
+        // 1. Luz Ambiental base
+        const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambient);
+
+        // 2. Luz de rebote (Simula la luz rebotando en el suelo hacia el techo, crucial para realismo)
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
+        hemiLight.position.set(0, 20, 0);
+        scene.add(hemiLight);
+
+        // 3. Luz Principal (SpotLight con propiedades físicas)
+        const mainLight = new THREE.SpotLight(0xffeedd, 6); // Ligeramente cálida
+        mainLight.position.set(2, 22, 2); // Ligeramente descentrada para mejores sombras
+        mainLight.angle = Math.PI / 3;
+        mainLight.penumbra = 0.8; // Bordes de luz difuminados (como un foco real)
+        mainLight.decay = 2; // Atenuación física realista
+        mainLight.distance = 60;
+        
         mainLight.castShadow = true;
-        mainLight.shadow.mapSize.set(2048, 2048);
+        mainLight.shadow.mapSize.set(2048, 2048); // Alta resolución
         mainLight.shadow.camera.near = 0.5;
-        mainLight.shadow.camera.far = 50;
+        mainLight.shadow.camera.far = 40;
         mainLight.shadow.bias = -0.0001;
-        mainLight.shadow.normalBias = 0.02; // Evita rayas sin separar la sombra del objeto
+        mainLight.shadow.normalBias = 0.02;
+        mainLight.shadow.radius = 4; // Suaviza el ruido en los bordes de la sombra
+        
         scene.add(mainLight);
         scene.add(mainLight.target);
 
-        // Luces extra para que no se vea plano
-        const ambient = new THREE.AmbientLight(0x404040, 0.5);
-        scene.add(ambient);
-
+        // 4. Luz indicadora del interruptor
         const indicatorLight = new THREE.PointLight(0xffaa00, 0.8, 5);
         scene.add(indicatorLight);
 
@@ -203,22 +223,23 @@
                         node.castShadow = true;
                         node.receiveShadow = true;
                         
-                        // FIX DE MATERIALES PARA RAYAS
                         if(node.material) {
-                            node.material.shadowSide = THREE.FrontSide; // Mejor para objetos cerrados
+                            node.material.shadowSide = THREE.FrontSide;
                             if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
-                                node.material.shadowSide = THREE.BackSide; // Específico para paredes/suelos
+                                node.material.shadowSide = THREE.BackSide;
                             }
-                            node.material.side = THREE.DoubleSide; // Asegura que se vea todo
+                            node.material.side = THREE.DoubleSide;
                         }
                     }
                 });
                 scene.add(model);
+                
                 if (path.includes('interruptor.glb')) {
                     switchMesh = model;
                     const box = new THREE.Box3().setFromObject(model);
                     box.getCenter(indicatorLight.position);
                 }
+                
                 modelsLoaded++;
                 document.getElementById('loading').innerText = `Cargando: ${modelsLoaded}/${modelos.length}`;
                 if (modelsLoaded === modelos.length) document.getElementById('loading').style.display = 'none';
@@ -256,18 +277,38 @@
 
         // --- Calidad / Modo Humilde ---
         const perfCheck = document.getElementById('performance-mode');
+        
         function updateQuality() {
             const isLow = perfCheck.checked;
+            
+            // Apaga el ShadowMap general
             renderer.shadowMap.enabled = !isLow;
+            
+            // Reduce la resolución a la mitad (1) para ahorrar GPU
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
+            
+            // Al quitar las sombras, la escena se puede ver muy oscura. Compensamos la luz ambiental.
+            ambient.intensity = isLow ? 0.8 : 0.3;
+            hemiLight.intensity = isLow ? 0.8 : 0.4;
+            
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-            scene.traverse(n => { if(n.isMesh) { n.castShadow = !isLow; n.receiveShadow = !isLow; }});
+            
+            // Recorremos los modelos para recompilar shaders sin sombras
+            scene.traverse(n => { 
+                if(n.isMesh) { 
+                    n.castShadow = !isLow; 
+                    n.receiveShadow = !isLow; 
+                    // CRÍTICO: Indica a Three.js que actualice el material en la tarjeta gráfica
+                    if(n.material) n.material.needsUpdate = true; 
+                }
+            });
+            
             localStorage.setItem('performanceMode', isLow);
         }
 
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
         perfCheck.addEventListener('change', updateQuality);
-        
+
         // --- Animación ---
         function animate() {
             requestAnimationFrame(animate);
@@ -284,7 +325,10 @@
         });
 
         // Configuración inicial de UI
-        if(!lightOn) { mainLight.visible = false; document.getElementById('light-status').innerText = '💡 Luz apagada'; }
+        if(!lightOn) { 
+            mainLight.visible = false;
+            document.getElementById('light-status').innerText = '💡 Luz apagada'; 
+        }
         updateQuality();
         document.getElementById('settings-button').onclick = () => document.getElementById('settings-panel').classList.toggle('visible');
     </script>
