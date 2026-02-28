@@ -14,95 +14,6 @@
             height: 100%;
             background-color: #111;
         }
-        #settings-button {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 44px;
-            height: 44px;
-            background: rgba(30,30,40,0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 300;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
-            user-select: none;
-        }
-        #settings-button:hover {
-            transform: scale(1.1);
-        }
-        #settings-button:active {
-            transform: scale(0.95);
-        }
-        #settings-panel {
-            position: absolute;
-            top: 70px;
-            right: 20px;
-            background: rgba(30,30,40,0.95);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.2);
-            z-index: 250;
-            font-size: 14px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            pointer-events: auto;
-            display: none;
-            min-width: 200px;
-        }
-        #settings-panel.visible {
-            display: block;
-        }
-        #settings-panel label {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-            cursor: pointer;
-            user-select: none;
-            margin-bottom: 10px;
-        }
-        #settings-panel input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            accent-color: #4CAF50;
-        }
-        #quality-indicator {
-            background: #4CAF50;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 50px;
-            font-size: 12px;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        @media (max-width: 600px) {
-            #settings-button {
-                top: 10px;
-                right: 10px;
-                width: 40px;
-                height: 40px;
-                font-size: 22px;
-            }
-            #settings-panel {
-                top: 60px;
-                right: 10px;
-                padding: 12px 15px;
-                font-size: 13px;
-                min-width: 180px;
-            }
-        }
         #loading {
             position: absolute;
             bottom: 20px;
@@ -132,14 +43,6 @@
     </style>
 </head>
 <body>
-    <div id="settings-button">⚙️</div>
-    <div id="settings-panel">
-        <div id="quality-indicator">Calidad Alta</div>
-        <label>
-            <span>Modo humilde</span>
-            <input type="checkbox" id="performance-mode">
-        </label>
-    </div>
     <div id="loading">Cargando modelos...</div>
     <div id="light-status">💡 Luz encendida</div>
 
@@ -183,9 +86,9 @@
         
         if (deviceType === 'mobile') {
             // Móvil: más abajo (Y=7) y más lejos (Z=10)
-            camPosY = 7;          // Bajada
-            camPosZ = 10;          // Más lejos
-            targetY = 7;           // Para que mire horizontal
+            camPosY = 7;
+            camPosZ = 10;
+            targetY = 7;
         } else if (deviceType === 'tablet') {
             // Tablet: intermedio
             camPosY = 9;
@@ -205,7 +108,7 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
         document.body.appendChild(renderer.domElement);
 
         // --- Controles base ---
@@ -216,7 +119,7 @@
         controls.maxPolarAngle = Math.PI / 2; // No bajar del suelo
         controls.minDistance = 4;
         controls.maxDistance = 50;
-        controls.target.set(0, targetY, 0);  // Importante: usar el targetY calculado
+        controls.target.set(0, targetY, 0);
 
         // --- Límites de rotación según dispositivo ---
         let baseMinAzimuth, baseMaxAzimuth;
@@ -288,11 +191,11 @@
                 (gltf) => {
                     const model = gltf.scene;
                     
-                    const currentShadowState = renderer.shadowMap.enabled;
+                    // Siempre con sombras activadas
                     model.traverse((node) => {
                         if (node.isMesh) {
-                            node.castShadow = currentShadowState;
-                            node.receiveShadow = currentShadowState;
+                            node.castShadow = true;
+                            node.receiveShadow = true;
                         }
                     });
                     
@@ -379,89 +282,6 @@
             document.getElementById('light-status').innerText = '💡 Luz encendida';
         }
 
-        // --- Configuración de calidad (modo humilde) - MEJORADA ---
-        function setupHighQuality() {
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
-            mainLight.shadow.mapSize.width = 2048;
-            mainLight.shadow.mapSize.height = 2048;
-            // Forzar actualización de sombras en modelos existentes
-            scene.traverse((node) => {
-                if (node.isMesh) {
-                    node.castShadow = true;
-                    node.receiveShadow = true;
-                }
-            });
-            document.getElementById('quality-indicator').textContent = 'Calidad Alta';
-            console.log('Modo alta calidad activado');
-        }
-
-        function setupLowQuality() {
-            renderer.shadowMap.enabled = false;
-            renderer.setPixelRatio(1);
-            mainLight.shadow.mapSize.width = 512;
-            mainLight.shadow.mapSize.height = 512;
-            // Desactivar sombras en todos los modelos
-            scene.traverse((node) => {
-                if (node.isMesh) {
-                    node.castShadow = false;
-                    node.receiveShadow = false;
-                }
-            });
-            document.getElementById('quality-indicator').textContent = 'Modo Humilde';
-            console.log('Modo humilde activado');
-        }
-
-        // Inicializar según dispositivo y localStorage (modo humilde por defecto en móviles)
-        const savedPerformanceMode = localStorage.getItem('performanceMode');
-        const perfCheck = document.getElementById('performance-mode');
-        
-        if (deviceType !== 'desktop') {
-            // En móvil/tablet, por defecto activado si no hay preferencia guardada
-            if (savedPerformanceMode === null) {
-                perfCheck.checked = true;
-                setupLowQuality();
-            } else {
-                perfCheck.checked = savedPerformanceMode === 'true';
-                if (perfCheck.checked) setupLowQuality();
-                else setupHighQuality();
-            }
-        } else {
-            // En escritorio, por defecto desactivado
-            if (savedPerformanceMode === null) {
-                perfCheck.checked = false;
-                setupHighQuality();
-            } else {
-                perfCheck.checked = savedPerformanceMode === 'true';
-                if (perfCheck.checked) setupLowQuality();
-                else setupHighQuality();
-            }
-        }
-
-        // Evento para cambiar modo
-        perfCheck.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                setupLowQuality();
-            } else {
-                setupHighQuality();
-            }
-            localStorage.setItem('performanceMode', e.target.checked);
-        });
-
-        // --- Mostrar/ocultar panel de configuración ---
-        const settingsButton = document.getElementById('settings-button');
-        const settingsPanel = document.getElementById('settings-panel');
-        settingsButton.addEventListener('click', () => {
-            settingsPanel.classList.toggle('visible');
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!settingsButton.contains(e.target) && !settingsPanel.contains(e.target)) {
-                settingsPanel.classList.remove('visible');
-            }
-        });
-
         // --- Animación (sin hover) ---
         function animate() {
             requestAnimationFrame(animate);
@@ -505,7 +325,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Dispositivo:', deviceType, 'con modo humilde corregido y sin hover.');
+        console.log('Página cargada. Dispositivo:', deviceType, 'con calidad máxima fijada y sin hover.');
     </script>
 </body>
 </html>
