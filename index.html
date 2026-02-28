@@ -151,7 +151,6 @@
         const renderer = new THREE.WebGLRenderer({ 
             antialias: true, 
             powerPreference: "high-performance",
-            // MEJORA: Cambiado a true para evitar que el contorno parpadee o se corte con el modelo (Z-fighting)
             logarithmicDepthBuffer: true 
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -166,10 +165,10 @@
         document.body.appendChild(renderer.domElement);
 
         // --- EFECTO DE CONTORNO ANIME (OutlineEffect) ---
-        // MEJORA: Se aumentó un poco el defaultThickness a un valor estable (0.002) 
-        // para que no necesite redimensionarse dinámicamente, haciendo las líneas perfectamente rectas.
+        // MEJORA: Se redujo el defaultThickness a 0.001 para que sea más fino, 
+        // manteniendo la estabilidad para que las líneas sigan perfectamente rectas.
         const effect = new OutlineEffect(renderer, {
-            defaultThickness: 0.002, 
+            defaultThickness: 0.001, 
             defaultColor: [0, 0, 0], 
             defaultAlpha: 1.0,
             defaultKeepAlive: true
@@ -377,11 +376,6 @@
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
-            
-            // MEJORA: Se eliminó el cálculo dinámico (dynamicThickness) que causaba 
-            // que las líneas vibraran o se vieran chuecas al mover la cámara.
-            // Ahora respeta el defaultThickness estable que configuramos arriba.
-            
             effect.render(scene, camera);
         }
         animate();
