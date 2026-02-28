@@ -178,21 +178,17 @@
         // --- Cámara según dispositivo ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         
-        // Valores por defecto (se sobrescribirán según dispositivo)
         let camPosY = 10, camPosZ = 20, targetY = 2;
         
         if (deviceType === 'mobile') {
-            // Móvil: más abajo (Y=7) y más lejos (Z=10)
-            camPosY = 7;          // Bajada
-            camPosZ = 10;          // Más lejos
-            targetY = 7;           // Para que mire horizontal
+            camPosY = 7;          // Altura
+            camPosZ = 10;          // Distancia
+            targetY = 7;           // Mira al frente
         } else if (deviceType === 'tablet') {
-            // Tablet: intermedio
             camPosY = 9;
             camPosZ = 16;
             targetY = 2;
         } else {
-            // Escritorio
             camPosY = 10;
             camPosZ = 20;
             targetY = 2;
@@ -213,37 +209,34 @@
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
-        controls.maxPolarAngle = Math.PI / 2; // No bajar del suelo
+        controls.maxPolarAngle = Math.PI / 2;
         controls.minDistance = 4;
         controls.maxDistance = 50;
-        controls.target.set(0, targetY, 0);  // Importante: usar el targetY calculado
+        controls.target.set(0, targetY, 0);
 
         // --- Límites de rotación según dispositivo ---
         let baseMinAzimuth, baseMaxAzimuth;
         let useDynamicLimits = false;
 
         if (deviceType === 'mobile') {
-            // Móvil: sin límites de giro (360°)
             controls.minAzimuthAngle = undefined;
             controls.maxAzimuthAngle = undefined;
             useDynamicLimits = false;
         } else if (deviceType === 'tablet') {
-            // Tablet: límites amplios (~±120°)
-            baseMinAzimuth = -Math.PI / 1.5; // -120°
-            baseMaxAzimuth = Math.PI / 1.5;  // +120°
+            baseMinAzimuth = -Math.PI / 1.5;
+            baseMaxAzimuth = Math.PI / 1.5;
             controls.minAzimuthAngle = baseMinAzimuth;
             controls.maxAzimuthAngle = baseMaxAzimuth;
             useDynamicLimits = true;
         } else {
-            // Escritorio: límites más cerrados (~±45°)
-            baseMinAzimuth = -Math.PI / 4; // -45°
-            baseMaxAzimuth = Math.PI / 4;  // +45°
+            baseMinAzimuth = -Math.PI / 4;
+            baseMaxAzimuth = Math.PI / 4;
             controls.minAzimuthAngle = baseMinAzimuth;
             controls.maxAzimuthAngle = baseMaxAzimuth;
             useDynamicLimits = true;
         }
 
-        // --- Luz principal: foco desde arriba (muy potente) ---
+        // --- Luz principal: foco desde arriba ---
         const mainLight = new THREE.SpotLight(0xffeedd, 4.5);
         mainLight.position.set(0, 25, 0);
         mainLight.target.position.set(0, 1, 0);
@@ -261,7 +254,7 @@
         // Estado de la luz
         let lightOn = true;
         
-        // Luz de señalización para el interruptor (solo para indicar posición, sin hover)
+        // Luz de señalización para el interruptor
         const indicatorLight = new THREE.PointLight(0xffaa00, 0.8, 5);
         indicatorLight.position.set(0, 0, 0);
         scene.add(indicatorLight);
@@ -273,7 +266,7 @@
         // --- Cargador de modelos ---
         const loader = new GLTFLoader();
         let modelsLoaded = 0;
-        const totalModels = 20; // Ajusta según tu lista
+        const totalModels = 20;
 
         function updateLoading() {
             document.getElementById('loading').innerText = `Cargando modelos: ${modelsLoaded}/${totalModels}`;
@@ -288,11 +281,11 @@
                 (gltf) => {
                     const model = gltf.scene;
                     
-                    const currentShadowState = renderer.shadowMap.enabled;
+                    // Configurar sombras iniciales (todas activas)
                     model.traverse((node) => {
                         if (node.isMesh) {
-                            node.castShadow = currentShadowState;
-                            node.receiveShadow = currentShadowState;
+                            node.castShadow = true;
+                            node.receiveShadow = true;
                         }
                     });
                     
@@ -332,11 +325,10 @@
 
         modelos.forEach(modelo => loadModel(modelo));
 
-        // --- Variables para raycasting (solo clic) ---
+        // --- Raycaster para detectar clic en el interruptor ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        // --- Evento de clic en el interruptor ---
         function onClick(event) {
             const rect = renderer.domElement.getBoundingClientRect();
             if (event.touches) {
@@ -379,20 +371,15 @@
             document.getElementById('light-status').innerText = '💡 Luz encendida';
         }
 
-        // --- Configuración de calidad (modo humilde) - MEJORADA ---
+        // --- Configuración de calidad (modo humilde) - VERSIÓN SIMPLIFICADA ---
         function setupHighQuality() {
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
             mainLight.shadow.mapSize.width = 2048;
             mainLight.shadow.mapSize.height = 2048;
-            // Forzar actualización de sombras en modelos existentes
-            scene.traverse((node) => {
-                if (node.isMesh) {
-                    node.castShadow = true;
-                    node.receiveShadow = true;
-                }
-            });
+            // Forzar actualización de la matriz de sombra
+            mainLight.shadow.camera.updateProjectionMatrix();
             document.getElementById('quality-indicator').textContent = 'Calidad Alta';
             console.log('Modo alta calidad activado');
         }
@@ -400,25 +387,16 @@
         function setupLowQuality() {
             renderer.shadowMap.enabled = false;
             renderer.setPixelRatio(1);
-            mainLight.shadow.mapSize.width = 512;
-            mainLight.shadow.mapSize.height = 512;
-            // Desactivar sombras en todos los modelos
-            scene.traverse((node) => {
-                if (node.isMesh) {
-                    node.castShadow = false;
-                    node.receiveShadow = false;
-                }
-            });
+            // No es necesario cambiar mapSize porque shadowMap está desactivado
             document.getElementById('quality-indicator').textContent = 'Modo Humilde';
             console.log('Modo humilde activado');
         }
 
-        // Inicializar según dispositivo y localStorage (modo humilde por defecto en móviles)
+        // Inicializar según dispositivo y localStorage
         const savedPerformanceMode = localStorage.getItem('performanceMode');
         const perfCheck = document.getElementById('performance-mode');
         
         if (deviceType !== 'desktop') {
-            // En móvil/tablet, por defecto activado si no hay preferencia guardada
             if (savedPerformanceMode === null) {
                 perfCheck.checked = true;
                 setupLowQuality();
@@ -428,7 +406,6 @@
                 else setupHighQuality();
             }
         } else {
-            // En escritorio, por defecto desactivado
             if (savedPerformanceMode === null) {
                 perfCheck.checked = false;
                 setupHighQuality();
@@ -439,7 +416,6 @@
             }
         }
 
-        // Evento para cambiar modo
         perfCheck.addEventListener('change', (e) => {
             if (e.target.checked) {
                 setupLowQuality();
@@ -462,12 +438,11 @@
             }
         });
 
-        // --- Animación (sin hover) ---
+        // --- Animación con control dinámico del azimuth (solo tablet/escritorio) ---
         function animate() {
             requestAnimationFrame(animate);
 
             if (useDynamicLimits) {
-                // Calcular factor basado en la distancia de la cámara al origen
                 const distance = camera.position.length();
                 const nearDist = controls.minDistance;
                 const farDist = controls.maxDistance;
@@ -505,7 +480,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Dispositivo:', deviceType, 'con modo humilde corregido y sin hover.');
+        console.log('Página cargada. Modo humilde simplificado y corregido.');
     </script>
 </body>
 </html>
