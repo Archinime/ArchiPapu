@@ -166,7 +166,6 @@
         document.body.appendChild(renderer.domElement);
 
         // --- EFECTO DE CONTORNO ANIME SUAVIZADO ---
-        // Se redujo el grosor, se ajustó el color a un gris muy oscuro y se añadió transparencia (alpha)
         const effect = new OutlineEffect(renderer, {
             defaultThickness: 0.0008, 
             defaultColor: [0.05, 0.05, 0.08], 
@@ -255,10 +254,20 @@
                         }
                     });
                 } else {
+                    // ARREGLO PARA PÓSTERS: Detectamos si el archivo es un póster
+                    const isPoster = path.includes('poster');
+
                     model.traverse((node) => {
                         if (node.isMesh) {
-                            node.castShadow = true;
-                            node.receiveShadow = true;
+                            if (isPoster) {
+                                // Etiquetamos el póster para que el actualizador de calidad no lo altere
+                                node.userData.isPoster = true;
+                                node.castShadow = false;
+                                node.receiveShadow = false; // Esto evita que se oscurezca por la pared
+                            } else {
+                                node.castShadow = true;
+                                node.receiveShadow = true;
+                            }
                             
                             if(node.material) {
                                 node.material.shadowSide = THREE.FrontSide;
@@ -360,6 +369,9 @@
             scene.traverse(n => { 
                 if(n.isMesh) { 
                     if (focoMesh && (n === focoMesh || focoMesh.children.includes(n))) return;
+                    
+                    // ARREGLO PARA PÓSTERS: Evitamos reactivar las sombras en los pósters
+                    if (n.userData.isPoster) return; 
                     
                     n.castShadow = !isLow; 
                     n.receiveShadow = !isLow; 
