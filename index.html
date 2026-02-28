@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Habitación 3D - Foco desde arriba</title>
+    <title>Habitación 3D - Pro</title>
     <style>
         body {
             margin: 0;
@@ -88,46 +88,18 @@
             margin-bottom: 10px;
         }
         @media (max-width: 600px) {
-            #settings-button {
-                top: 10px;
-                right: 10px;
-                width: 40px;
-                height: 40px;
-                font-size: 22px;
-            }
-            #settings-panel {
-                top: 60px;
-                right: 10px;
-                padding: 12px 15px;
-                font-size: 13px;
-                min-width: 180px;
-            }
+            #settings-button { top: 10px; right: 10px; width: 40px; height: 40px; font-size: 22px; }
+            #settings-panel { top: 60px; right: 10px; padding: 12px 15px; font-size: 13px; min-width: 180px; }
         }
         #loading {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            color: white;
-            background: rgba(0,0,0,0.5);
-            padding: 5px 10px;
-            border-radius: 10px;
-            font-size: 12px;
-            z-index: 100;
-            pointer-events: none;
-            backdrop-filter: blur(4px);
+            position: absolute; bottom: 20px; right: 20px; color: white;
+            background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 10px;
+            font-size: 12px; z-index: 100; pointer-events: none; backdrop-filter: blur(4px);
         }
         #light-status {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            color: white;
-            background: rgba(0,0,0,0.5);
-            padding: 5px 10px;
-            border-radius: 10px;
-            font-size: 12px;
-            z-index: 100;
-            pointer-events: none;
-            backdrop-filter: blur(4px);
+            position: absolute; bottom: 20px; left: 20px; color: white;
+            background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 10px;
+            font-size: 12px; z-index: 100; pointer-events: none; backdrop-filter: blur(4px);
         }
     </style>
 </head>
@@ -157,183 +129,63 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        // --- Detectar tipo de dispositivo ---
+        // --- Detección de dispositivo ---
         const ua = navigator.userAgent;
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
         const width = window.innerWidth;
-        
-        let deviceType = 'desktop';
-        if (width < 768 || (isMobileUA && width < 1024)) {
-            deviceType = 'mobile';
-        } else if (width >= 768 && width <= 1024 || (isMobileUA && width >= 1024)) {
-            deviceType = 'tablet';
-        }
+        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : 
+                         (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
 
-        console.log('Dispositivo detectado:', deviceType, 'ancho:', width);
-
-        // --- Variables globales ---
+        // --- Escena ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x111122);
+        scene.background = new THREE.Color(0x0a0a12);
 
-        // --- Cámara según dispositivo ---
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
-        
-        // Valores por defecto (se sobrescribirán según dispositivo)
+        // --- Cámara optimizada para evitar Z-Fighting ---
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
         let camPosY = 10, camPosZ = 20, targetY = 2;
-        if (deviceType === 'mobile') {
-            camPosY = 7;
-            camPosZ = 10;
-            targetY = 7;
-        } else if (deviceType === 'tablet') {
-            camPosY = 9;
-            camPosZ = 16;
-            targetY = 2;
-        } else {
-            camPosY = 10;
-            camPosZ = 20;
-            targetY = 2;
-        }
-        
+        if (deviceType === 'mobile') { camPosY = 8; camPosZ = 12; targetY = 5; }
         camera.position.set(0, camPosY, camPosZ);
-        camera.lookAt(0, targetY, 0);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        // --- RENDERIZADOR PRO (Logarithmic Depth Buffer para eliminar líneas) ---
+        const renderer = new THREE.WebGLRenderer({ 
+            antialias: true, 
+            powerPreference: "high-performance",
+            logarithmicDepthBuffer: true // ESTO ELIMINA EL PARPADEO Y RAYAS POR CÁMARA
+        });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
-        // --- Controles base ---
+        // --- Controles ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.screenSpacePanning = true;
-        controls.maxPolarAngle = Math.PI / 2;
-        controls.minDistance = 4;
-        controls.maxDistance = 50;
         controls.target.set(0, targetY, 0);
 
-        // --- Límites de rotación según dispositivo ---
-        let baseMinAzimuth, baseMaxAzimuth;
-        let useDynamicLimits = false;
-
-        if (deviceType === 'mobile') {
-            controls.minAzimuthAngle = undefined;
-            controls.maxAzimuthAngle = undefined;
-            useDynamicLimits = false;
-        } else if (deviceType === 'tablet') {
-            baseMinAzimuth = -Math.PI / 1.5;
-            baseMaxAzimuth = Math.PI / 1.5;
-            controls.minAzimuthAngle = baseMinAzimuth;
-            controls.maxAzimuthAngle = baseMaxAzimuth;
-            useDynamicLimits = true;
-        } else {
-            baseMinAzimuth = -Math.PI / 4;
-            baseMaxAzimuth = Math.PI / 4;
-            controls.minAzimuthAngle = baseMinAzimuth;
-            controls.maxAzimuthAngle = baseMaxAzimuth;
-            useDynamicLimits = true;
-        }
-
-        // --- Luz principal: foco desde arriba (muy potente) ---
-        const mainLight = new THREE.SpotLight(0xffeedd, 4.5);
-        mainLight.position.set(0, 25, 0);
-        mainLight.target.position.set(0, 1, 0);
-        scene.add(mainLight.target);
+        // --- Luz Principal Mejorada ---
+        const mainLight = new THREE.SpotLight(0xffeedd, 4);
+        mainLight.position.set(0, 20, 0);
         mainLight.castShadow = true;
-        mainLight.shadow.mapSize.width = 2048;
-        mainLight.shadow.mapSize.height = 2048;
-        mainLight.angle = 1.5;
-        mainLight.penumbra = 0.5;
-        mainLight.decay = 1;
-        mainLight.distance = 100;
-        
-        // FIX EXTREMO PARA LUCES:
-        mainLight.shadow.bias = -0.0005; 
-        mainLight.shadow.normalBias = 0.05; 
-        mainLight.shadow.radius = 2; // Añade un ligero desenfoque a la sombra para matar artefactos
-        
+        mainLight.shadow.mapSize.set(2048, 2048);
+        mainLight.shadow.camera.near = 0.5;
+        mainLight.shadow.camera.far = 50;
+        mainLight.shadow.bias = -0.0001;
+        mainLight.shadow.normalBias = 0.02; // Evita rayas sin separar la sombra del objeto
         scene.add(mainLight);
+        scene.add(mainLight.target);
 
-        // Estado de la luz
-        let lightOn = true;
-        
-        // Luz de señalización para el interruptor
+        // Luces extra para que no se vea plano
+        const ambient = new THREE.AmbientLight(0x404040, 0.5);
+        scene.add(ambient);
+
         const indicatorLight = new THREE.PointLight(0xffaa00, 0.8, 5);
-        indicatorLight.position.set(0, 0, 0);
         scene.add(indicatorLight);
 
-        // Variables para el interruptor
-        let switchMesh = null;
-        const switchPosition = new THREE.Vector3();
-
-        // --- Cargador de modelos ---
+        // --- Carga de Modelos ---
         const loader = new GLTFLoader();
         let modelsLoaded = 0;
-        const totalModels = 20;
-
-        function updateLoading() {
-            document.getElementById('loading').innerText = `Cargando modelos: ${modelsLoaded}/${totalModels}`;
-            if (modelsLoaded === totalModels) {
-                document.getElementById('loading').style.display = 'none';
-            }
-        }
-
-        function loadModel(path) {
-            loader.load(
-                path,
-                (gltf) => {
-                    const model = gltf.scene;
-                    
-                    const currentShadowState = renderer.shadowMap.enabled;
-                    model.traverse((node) => {
-                        if (node.isMesh) {
-                            node.castShadow = currentShadowState;
-                            node.receiveShadow = currentShadowState;
-                            
-                            // --- FIX DEFINITIVO PARA RAYAS EN MATERIALES ---
-                            if (node.material) {
-                                // 1. Obliga a la sombra a proyectarse desde la cara trasera del polígono. 
-                                // Esto elimina casi el 100% del "Shadow Acne" (las rayas) en las paredes.
-                                node.material.shadowSide = THREE.BackSide;
-                                
-                                // 2. Si el modelo de Blender vino "DoubleSided" (doble cara), puede causar parpadeo (Z-fighting). 
-                                // Esto fuerza a renderizar solo la cara visible frontal.
-                                // NOTA: Si alguna cortina o póster desaparece por detrás, avísame para hacer una excepción.
-                                node.material.side = THREE.FrontSide;
-                                
-                                node.material.needsUpdate = true;
-                            }
-                        }
-                    });
-                    
-                    scene.add(model);
-                    
-                    if (path.includes('interruptor.glb')) {
-                        switchMesh = model;
-                        model.traverse((node) => {
-                            if (node.isMesh) {
-                                node.getWorldPosition(switchPosition);
-                                indicatorLight.position.copy(switchPosition);
-                            }
-                        });
-                        console.log('Interruptor cargado en:', switchPosition);
-                    }
-                    
-                    modelsLoaded++;
-                    updateLoading();
-                    console.log(`✅ Modelo cargado: ${path}`);
-                },
-                (xhr) => {},
-                (error) => {
-                    console.error(`❌ Error al cargar ${path}:`, error);
-                    modelsLoaded++;
-                    updateLoading();
-                }
-            );
-        }
-
         const modelos = [
             'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb',
             'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb',
@@ -341,181 +193,100 @@
             'poster_1.glb', 'poster_2.glb', 'poster_3.glb', 'poster_4.glb',
             'interruptor.glb', 'maouse_pad.glb', 'lunari2.glb'
         ];
-        modelos.forEach(modelo => loadModel(modelo));
+        let switchMesh = null;
 
-        // --- Variables para raycasting (solo clic) ---
+        modelos.forEach(path => {
+            loader.load(path, (gltf) => {
+                const model = gltf.scene;
+                model.traverse((node) => {
+                    if (node.isMesh) {
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+                        
+                        // FIX DE MATERIALES PARA RAYAS
+                        if(node.material) {
+                            node.material.shadowSide = THREE.FrontSide; // Mejor para objetos cerrados
+                            if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
+                                node.material.shadowSide = THREE.BackSide; // Específico para paredes/suelos
+                            }
+                            node.material.side = THREE.DoubleSide; // Asegura que se vea todo
+                        }
+                    }
+                });
+                scene.add(model);
+                if (path.includes('interruptor.glb')) {
+                    switchMesh = model;
+                    const box = new THREE.Box3().setFromObject(model);
+                    box.getCenter(indicatorLight.position);
+                }
+                modelsLoaded++;
+                document.getElementById('loading').innerText = `Cargando: ${modelsLoaded}/${modelos.length}`;
+                if (modelsLoaded === modelos.length) document.getElementById('loading').style.display = 'none';
+            });
+        });
+
+        // --- Interacción Interruptor ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
+        let lightOn = localStorage.getItem('lightState') !== 'off';
 
-        // --- Evento de clic en el interruptor ---
-        function onClick(event) {
+        function toggleLight() {
+            lightOn = !lightOn;
+            mainLight.visible = lightOn;
+            localStorage.setItem('lightState', lightOn ? 'on' : 'off');
+            document.getElementById('light-status').innerText = lightOn ? '💡 Luz encendida' : '💡 Luz apagada';
+            indicatorLight.intensity = lightOn ? 0.8 : 2;
+        }
+
+        function handleInteraction(event) {
             const rect = renderer.domElement.getBoundingClientRect();
-            if (event.touches) {
-                mouse.x = ((event.touches[0].clientX - rect.left) / rect.width) * 2 - 1;
-                mouse.y = -((event.touches[0].clientY - rect.top) / rect.height) * 2 + 1;
-            } else {
-                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-            }
+            const x = event.touches ? event.touches[0].clientX : event.clientX;
+            const y = event.touches ? event.touches[0].clientY : event.clientY;
+            mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
-            if (switchMesh) {
-                const intersects = raycaster.intersectObject(switchMesh, true);
-                if (intersects.length > 0) {
-                    lightOn = !lightOn;
-                    mainLight.visible = lightOn;
-                    localStorage.setItem('lightState', lightOn ? 'on' : 'off');
-                    document.getElementById('light-status').innerText = lightOn ? '💡 Luz encendida' : '💡 Luz apagada';
-                    indicatorLight.intensity = lightOn ? 0.8 : 1.5;
-                }
+            if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
+                toggleLight();
             }
         }
 
-        renderer.domElement.addEventListener('click', onClick);
-        renderer.domElement.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            onClick(e);
-        });
+        renderer.domElement.addEventListener('click', handleInteraction);
+        renderer.domElement.addEventListener('touchstart', (e) => { e.preventDefault(); handleInteraction(e); }, {passive: false});
 
-        // --- Persistencia del estado de la luz ---
-        const savedLightState = localStorage.getItem('lightState');
-        if (savedLightState === 'off') {
-            lightOn = false;
-            mainLight.visible = false;
-            document.getElementById('light-status').innerText = '💡 Luz apagada';
-        } else {
-            lightOn = true;
-            mainLight.visible = true;
-            document.getElementById('light-status').innerText = '💡 Luz encendida';
-        }
-
-        // --- Configuración de calidad (modo humilde) - MEJORADA ---
-        function setupHighQuality() {
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
-            mainLight.shadow.mapSize.width = 2048;
-            mainLight.shadow.mapSize.height = 2048;
-            
-            // Forzar actualización de sombras en modelos existentes
-            scene.traverse((node) => {
-                if (node.isMesh) {
-                    node.castShadow = true;
-                    node.receiveShadow = true;
-                }
-            });
-            document.getElementById('quality-indicator').textContent = 'Calidad Alta';
-            console.log('Modo alta calidad activado');
-        }
-
-        function setupLowQuality() {
-            renderer.shadowMap.enabled = false;
-            renderer.setPixelRatio(1);
-            mainLight.shadow.mapSize.width = 512;
-            mainLight.shadow.mapSize.height = 512;
-            
-            // Desactivar sombras en todos los modelos
-            scene.traverse((node) => {
-                if (node.isMesh) {
-                    node.castShadow = false;
-                    node.receiveShadow = false;
-                }
-            });
-            document.getElementById('quality-indicator').textContent = 'Modo Humilde';
-            console.log('Modo humilde activado');
-        }
-
-        // Inicializar según dispositivo y localStorage (modo humilde por defecto en móviles)
-        const savedPerformanceMode = localStorage.getItem('performanceMode');
+        // --- Calidad / Modo Humilde ---
         const perfCheck = document.getElementById('performance-mode');
-        
-        if (deviceType !== 'desktop') {
-            if (savedPerformanceMode === null) {
-                perfCheck.checked = true;
-                setupLowQuality();
-            } else {
-                perfCheck.checked = savedPerformanceMode === 'true';
-                if (perfCheck.checked) setupLowQuality();
-                else setupHighQuality();
-            }
-        } else {
-            if (savedPerformanceMode === null) {
-                perfCheck.checked = false;
-                setupHighQuality();
-            } else {
-                perfCheck.checked = savedPerformanceMode === 'true';
-                if (perfCheck.checked) setupLowQuality();
-                else setupHighQuality();
-            }
+        function updateQuality() {
+            const isLow = perfCheck.checked;
+            renderer.shadowMap.enabled = !isLow;
+            renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
+            document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
+            scene.traverse(n => { if(n.isMesh) { n.castShadow = !isLow; n.receiveShadow = !isLow; }});
+            localStorage.setItem('performanceMode', isLow);
         }
 
-        // Evento para cambiar modo
-        perfCheck.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                setupLowQuality();
-            } else {
-                setupHighQuality();
-            }
-            localStorage.setItem('performanceMode', e.target.checked);
-        });
-
-        // --- Mostrar/ocultar panel de configuración ---
-        const settingsButton = document.getElementById('settings-button');
-        const settingsPanel = document.getElementById('settings-panel');
-        settingsButton.addEventListener('click', () => {
-            settingsPanel.classList.toggle('visible');
-        });
+        perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
+        perfCheck.addEventListener('change', updateQuality);
         
-        document.addEventListener('click', (e) => {
-            if (!settingsButton.contains(e.target) && !settingsPanel.contains(e.target)) {
-                settingsPanel.classList.remove('visible');
-            }
-        });
-
-        // --- Animación (sin hover) ---
+        // --- Animación ---
         function animate() {
             requestAnimationFrame(animate);
-            
-            if (useDynamicLimits) {
-                const distance = camera.position.length();
-                const nearDist = controls.minDistance;
-                const farDist = controls.maxDistance;
-                
-                let factor = (distance - nearDist) / (farDist - nearDist);
-                factor = Math.max(0, Math.min(1, factor));
-                
-                const minMultiplier = 0.4;
-                const maxMultiplier = 1.6;
-                
-                const currentMinAngle = baseMinAzimuth * (minMultiplier + factor * (maxMultiplier - minMultiplier));
-                const currentMaxAngle = baseMaxAzimuth * (minMultiplier + factor * (maxMultiplier - minMultiplier));
-                
-                controls.minAzimuthAngle = currentMinAngle;
-                controls.maxAzimuthAngle = currentMaxAngle;
-            }
-
             controls.update();
             renderer.render(scene, camera);
         }
         animate();
 
         // --- Resize ---
-        window.addEventListener('resize', onWindowResize, false);
-        
-        function onWindowResize() {
+        window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        }
+        });
 
-        // --- Prevenir scroll táctil ---
-        document.body.addEventListener('touchstart', (e) => {
-            if (e.target === renderer.domElement) {
-                e.preventDefault();
-            }
-        }, { passive: false });
-        
-        console.log('Página cargada. Modo anti-rayas extremo activado.');
+        // Configuración inicial de UI
+        if(!lightOn) { mainLight.visible = false; document.getElementById('light-status').innerText = '💡 Luz apagada'; }
+        updateQuality();
+        document.getElementById('settings-button').onclick = () => document.getElementById('settings-panel').classList.toggle('visible');
     </script>
 </body>
 </html>
