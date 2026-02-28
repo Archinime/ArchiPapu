@@ -143,9 +143,7 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050508); 
 
-        // --- Cámara optimizada (ARREGLO DE PROFUNDIDAD PARA CONTORNOS) ---
-        // Se cambió el near de 0.1 a 0.5 y far a 200 para dar muchísima más precisión 
-        // al Z-Buffer y evitar que las líneas negras se superpongan desde lejos.
+        // --- Cámara optimizada ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
         let camPosY = 10, camPosZ = 20, targetY = 2;
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
@@ -155,7 +153,6 @@
         const renderer = new THREE.WebGLRenderer({ 
             antialias: true, 
             powerPreference: "high-performance"
-            // Se eliminó logarithmicDepthBuffer: true porque causa conflictos graves con el OutlineEffect a lo lejos
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
         
@@ -168,12 +165,12 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
-        // --- EFECTO DE CONTORNO ANIME (OutlineEffect) ---
-        // Ajuste de defaultThickness ligeramente para compensar la nueva perspectiva
+        // --- EFECTO DE CONTORNO ANIME SUAVIZADO ---
+        // Se redujo el grosor, se ajustó el color a un gris muy oscuro y se añadió transparencia (alpha)
         const effect = new OutlineEffect(renderer, {
-            defaultThickness: 0.0015, 
-            defaultColor: [0, 0, 0], 
-            defaultAlpha: 1.0,
+            defaultThickness: 0.0008, 
+            defaultColor: [0.05, 0.05, 0.08], 
+            defaultAlpha: 0.85, 
             defaultKeepAlive: true
         });
 
