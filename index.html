@@ -176,7 +176,6 @@
         scene.background = new THREE.Color(0x111122);
 
         // --- Cámara según dispositivo ---
-        // FIX: Cambiamos 0.1 y 1000 por 0.5 y 200 para evitar el Z-Fighting y aumentar la precisión de profundidad
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
         
         // Valores por defecto (se sobrescribirán según dispositivo)
@@ -250,9 +249,10 @@
         mainLight.decay = 1;
         mainLight.distance = 100;
         
-        // FIX: Ajuste estricto del bias y normalBias para evitar las líneas (Acné de sombras) en las paredes
-        mainLight.shadow.bias = -0.0001; 
+        // FIX EXTREMO PARA LUCES:
+        mainLight.shadow.bias = -0.0005; 
         mainLight.shadow.normalBias = 0.05; 
+        mainLight.shadow.radius = 2; // Añade un ligero desenfoque a la sombra para matar artefactos
         
         scene.add(mainLight);
 
@@ -291,6 +291,20 @@
                         if (node.isMesh) {
                             node.castShadow = currentShadowState;
                             node.receiveShadow = currentShadowState;
+                            
+                            // --- FIX DEFINITIVO PARA RAYAS EN MATERIALES ---
+                            if (node.material) {
+                                // 1. Obliga a la sombra a proyectarse desde la cara trasera del polígono. 
+                                // Esto elimina casi el 100% del "Shadow Acne" (las rayas) en las paredes.
+                                node.material.shadowSide = THREE.BackSide;
+                                
+                                // 2. Si el modelo de Blender vino "DoubleSided" (doble cara), puede causar parpadeo (Z-fighting). 
+                                // Esto fuerza a renderizar solo la cara visible frontal.
+                                // NOTA: Si alguna cortina o póster desaparece por detrás, avísame para hacer una excepción.
+                                node.material.side = THREE.FrontSide;
+                                
+                                node.material.needsUpdate = true;
+                            }
                         }
                     });
                     
@@ -501,7 +515,7 @@
             }
         }, { passive: false });
         
-        console.log('Página cargada. Dispositivo:', deviceType, 'con modo humilde corregido y sombras limpias.');
+        console.log('Página cargada. Modo anti-rayas extremo activado.');
     </script>
 </body>
 </html>
