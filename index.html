@@ -78,6 +78,10 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122);
 
+        // --- Luz ambiental para suavizar sombras ---
+        const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
+        scene.add(ambientLight);
+
         // --- Cámara según dispositivo ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         
@@ -107,7 +111,7 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.shadowMap.type = THREE.PCFShadowMap; // Cambiado a PCF para mayor precisión
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
         document.body.appendChild(renderer.domElement);
 
@@ -146,7 +150,7 @@
             useDynamicLimits = true;
         }
 
-        // --- Luz principal: foco desde arriba (muy potente) ---
+        // --- Luz principal: foco desde arriba (ajustado para evitar sombras no deseadas) ---
         const mainLight = new THREE.SpotLight(0xffeedd, 4.5);
         mainLight.position.set(0, 25, 0);
         mainLight.target.position.set(0, 1, 0);
@@ -154,11 +158,11 @@
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.width = 2048;
         mainLight.shadow.mapSize.height = 2048;
-        mainLight.angle = 1.5;
-        mainLight.penumbra = 0.5;
+        mainLight.angle = 1.0;           // Ángulo reducido para concentrar la luz
+        mainLight.penumbra = 0.8;         // Mayor penumbra para bordes suaves
         mainLight.decay = 1;
         mainLight.distance = 100;
-        mainLight.shadow.bias = -0.0005;
+        mainLight.shadow.bias = 0.0005;    // Bias positivo para evitar sombras espurias
         scene.add(mainLight);
 
         // Estado de la luz
@@ -325,7 +329,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Dispositivo:', deviceType, 'con calidad máxima fijada y sin hover.');
+        console.log('Página cargada. Dispositivo:', deviceType, 'con calidad máxima y ajustes de sombra mejorados.');
     </script>
 </body>
 </html>
