@@ -78,28 +78,23 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122);
 
-        // --- Luz ambiental para suavizar sombras ---
-        const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
+        // --- Luz ambiental suave (para rellenar sin quitar protagonismo al foco) ---
+        const ambientLight = new THREE.AmbientLight(0x404060, 0.2);
         scene.add(ambientLight);
 
         // --- Cámara según dispositivo ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         
-        // Valores por defecto (se sobrescribirán según dispositivo)
         let camPosY = 10, camPosZ = 20, targetY = 2;
-        
         if (deviceType === 'mobile') {
-            // Móvil: más abajo (Y=7) y más lejos (Z=10)
             camPosY = 7;
             camPosZ = 10;
             targetY = 7;
         } else if (deviceType === 'tablet') {
-            // Tablet: intermedio
             camPosY = 9;
             camPosZ = 16;
             targetY = 2;
         } else {
-            // Escritorio
             camPosY = 10;
             camPosZ = 20;
             targetY = 2;
@@ -111,7 +106,7 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFShadowMap; // Cambiado a PCF para mayor precisión
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Sombreado suave original
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
         document.body.appendChild(renderer.domElement);
 
@@ -120,7 +115,7 @@
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
-        controls.maxPolarAngle = Math.PI / 2; // No bajar del suelo
+        controls.maxPolarAngle = Math.PI / 2;
         controls.minDistance = 4;
         controls.maxDistance = 50;
         controls.target.set(0, targetY, 0);
@@ -130,27 +125,24 @@
         let useDynamicLimits = false;
 
         if (deviceType === 'mobile') {
-            // Móvil: sin límites de giro (360°)
             controls.minAzimuthAngle = undefined;
             controls.maxAzimuthAngle = undefined;
             useDynamicLimits = false;
         } else if (deviceType === 'tablet') {
-            // Tablet: límites amplios (~±120°)
-            baseMinAzimuth = -Math.PI / 1.5; // -120°
-            baseMaxAzimuth = Math.PI / 1.5;  // +120°
+            baseMinAzimuth = -Math.PI / 1.5;
+            baseMaxAzimuth = Math.PI / 1.5;
             controls.minAzimuthAngle = baseMinAzimuth;
             controls.maxAzimuthAngle = baseMaxAzimuth;
             useDynamicLimits = true;
         } else {
-            // Escritorio: límites más cerrados (~±45°)
-            baseMinAzimuth = -Math.PI / 4; // -45°
-            baseMaxAzimuth = Math.PI / 4;  // +45°
+            baseMinAzimuth = -Math.PI / 4;
+            baseMaxAzimuth = Math.PI / 4;
             controls.minAzimuthAngle = baseMinAzimuth;
             controls.maxAzimuthAngle = baseMaxAzimuth;
             useDynamicLimits = true;
         }
 
-        // --- Luz principal: foco desde arriba (ajustado para evitar sombras no deseadas) ---
+        // --- LUZ PRINCIPAL: Foco desde arriba (configuración original potente) ---
         const mainLight = new THREE.SpotLight(0xffeedd, 4.5);
         mainLight.position.set(0, 25, 0);
         mainLight.target.position.set(0, 1, 0);
@@ -158,17 +150,17 @@
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.width = 2048;
         mainLight.shadow.mapSize.height = 2048;
-        mainLight.angle = 1.0;           // Ángulo reducido para concentrar la luz
-        mainLight.penumbra = 0.8;         // Mayor penumbra para bordes suaves
+        mainLight.angle = 1.5;           // Ángulo amplio original
+        mainLight.penumbra = 0.5;         // Penumbra original
         mainLight.decay = 1;
         mainLight.distance = 100;
-        mainLight.shadow.bias = 0.0005;    // Bias positivo para evitar sombras espurias
+        mainLight.shadow.bias = 0.0002;    // Bias positivo pequeño para evitar sombras falsas
         scene.add(mainLight);
 
         // Estado de la luz
         let lightOn = true;
         
-        // Luz de señalización para el interruptor (solo para indicar posición, sin hover)
+        // Luz de señalización para el interruptor
         const indicatorLight = new THREE.PointLight(0xffaa00, 0.8, 5);
         indicatorLight.position.set(0, 0, 0);
         scene.add(indicatorLight);
@@ -180,7 +172,7 @@
         // --- Cargador de modelos ---
         const loader = new GLTFLoader();
         let modelsLoaded = 0;
-        const totalModels = 20; // Ajusta según tu lista
+        const totalModels = 20;
 
         function updateLoading() {
             document.getElementById('loading').innerText = `Cargando modelos: ${modelsLoaded}/${totalModels}`;
@@ -194,15 +186,12 @@
                 path,
                 (gltf) => {
                     const model = gltf.scene;
-                    
-                    // Siempre con sombras activadas
                     model.traverse((node) => {
                         if (node.isMesh) {
                             node.castShadow = true;
                             node.receiveShadow = true;
                         }
                     });
-                    
                     scene.add(model);
                     
                     if (path.includes('interruptor.glb')) {
@@ -239,11 +228,10 @@
 
         modelos.forEach(modelo => loadModel(modelo));
 
-        // --- Variables para raycasting (solo clic) ---
+        // --- Raycasting para el interruptor ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        // --- Evento de clic en el interruptor ---
         function onClick(event) {
             const rect = renderer.domElement.getBoundingClientRect();
             if (event.touches) {
@@ -286,25 +274,20 @@
             document.getElementById('light-status').innerText = '💡 Luz encendida';
         }
 
-        // --- Animación (sin hover) ---
+        // --- Animación ---
         function animate() {
             requestAnimationFrame(animate);
 
             if (useDynamicLimits) {
-                // Calcular factor basado en la distancia de la cámara al origen
                 const distance = camera.position.length();
                 const nearDist = controls.minDistance;
                 const farDist = controls.maxDistance;
-                
                 let factor = (distance - nearDist) / (farDist - nearDist);
                 factor = Math.max(0, Math.min(1, factor));
-                
                 const minMultiplier = 0.4;
                 const maxMultiplier = 1.6;
-                
                 const currentMinAngle = baseMinAzimuth * (minMultiplier + factor * (maxMultiplier - minMultiplier));
                 const currentMaxAngle = baseMaxAzimuth * (minMultiplier + factor * (maxMultiplier - minMultiplier));
-                
                 controls.minAzimuthAngle = currentMinAngle;
                 controls.maxAzimuthAngle = currentMaxAngle;
             }
@@ -329,7 +312,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Dispositivo:', deviceType, 'con calidad máxima y ajustes de sombra mejorados.');
+        console.log('Página cargada. Dispositivo:', deviceType, 'con foco restaurado y sombras corregidas.');
     </script>
 </body>
 </html>
