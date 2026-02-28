@@ -182,10 +182,10 @@
         let camPosY = 10, camPosZ = 20, targetY = 2;
         
         if (deviceType === 'mobile') {
-            // Móvil: más abajo (Y=7) y un poco más lejos (Z=7) para no estar tan cerca
-            camPosY = 7;          // Bajada
-            camPosZ = 7;           // Zoom moderado
-            targetY = 7;           // Para que mire horizontal
+            // Móvil: más abajo (Y=7), sigue mirando al frente, un poco más lejos (Z=6)
+            camPosY = 7;
+            camPosZ = 6;          // Un poco más lejos (antes 4)
+            targetY = 7;
         } else if (deviceType === 'tablet') {
             // Tablet: intermedio
             camPosY = 9;
@@ -216,7 +216,7 @@
         controls.maxPolarAngle = Math.PI / 2; // No bajar del suelo
         controls.minDistance = 4;
         controls.maxDistance = 50;
-        controls.target.set(0, targetY, 0);  // Importante: usar el targetY calculado
+        controls.target.set(0, targetY, 0);
 
         // --- Límites de rotación según dispositivo ---
         let baseMinAzimuth, baseMaxAzimuth;
@@ -272,6 +272,7 @@
 
         // --- Para hover effect ---
         let hovered = false;
+        // Guardar materiales originales para restaurar después (no es necesario si solo cambiamos emissive)
 
         // --- Cargador de modelos ---
         const loader = new GLTFLoader();
@@ -553,7 +554,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Dispositivo:', deviceType, 'con hover en interruptor y móvil más alejado (Z=7).');
+        console.log('Página cargada. Dispositivo:', deviceType, 'con hover en interruptor y vista ligeramente más lejana (Z=6)');
     </script>
 </body>
 </html>
