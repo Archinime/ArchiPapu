@@ -255,9 +255,9 @@
         mainLight.penumbra = 0.5;
         mainLight.decay = 1;
         mainLight.distance = 100;
-        mainLight.shadow.bias = -0.0005;
-        // --- FIX: Añadimos normalBias para eliminar el acné de sombras en las paredes ---
-        mainLight.shadow.normalBias = 0.02;
+        // Ajustes para eliminar el shadow acne (líneas en las paredes)
+        mainLight.shadow.bias = 0.001;
+        mainLight.shadow.normalBias = 0.15;
         scene.add(mainLight);
 
         // Estado de la luz
@@ -388,6 +388,9 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
             mainLight.shadow.mapSize.width = 2048;
             mainLight.shadow.mapSize.height = 2048;
+            // Reaplicar bias para asegurar que se usan los valores correctos
+            mainLight.shadow.bias = 0.001;
+            mainLight.shadow.normalBias = 0.15;
             // Forzar actualización de sombras en modelos existentes
             scene.traverse((node) => {
                 if (node.isMesh) {
@@ -402,15 +405,7 @@
         function setupLowQuality() {
             renderer.shadowMap.enabled = false;
             renderer.setPixelRatio(1);
-            mainLight.shadow.mapSize.width = 512;
-            mainLight.shadow.mapSize.height = 512;
-            // Desactivar sombras en todos los modelos
-            scene.traverse((node) => {
-                if (node.isMesh) {
-                    node.castShadow = false;
-                    node.receiveShadow = false;
-                }
-            });
+            // No es necesario ajustar bias porque las sombras están desactivadas
             document.getElementById('quality-indicator').textContent = 'Modo Humilde';
             console.log('Modo humilde activado');
         }
