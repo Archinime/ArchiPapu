@@ -147,11 +147,10 @@
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
         camera.position.set(0, camPosY, camPosZ);
 
-        // --- RENDERIZADOR PRO (CORREGIDO) ---
+        // --- RENDERIZADOR PRO ---
         const renderer = new THREE.WebGLRenderer({ 
             antialias: true, 
             powerPreference: "high-performance",
-            // IMPORTANTE: Se desactiva el buffer logarítmico para evitar z-fighting en el OutlineEffect
             logarithmicDepthBuffer: false 
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -167,7 +166,7 @@
 
         // --- EFECTO DE CONTORNO ANIME (OutlineEffect) ---
         const effect = new OutlineEffect(renderer, {
-            defaultThickness: 0.0015, // Ajuste base un poco más grueso
+            defaultThickness: 0.0015,
             defaultColor: [0, 0, 0], 
             defaultAlpha: 1.0,
             defaultKeepAlive: true
@@ -236,7 +235,7 @@
                         }
                     }
                 });
-                
+                 
                 scene.add(model);
                 
                 if (path.includes('interruptor.glb')) {
@@ -305,6 +304,7 @@
             renderer.shadowMap.enabled = !isLow;
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
+            
             scene.traverse(n => { 
                 if(n.isMesh) { 
                     n.castShadow = !isLow; 
@@ -319,20 +319,20 @@
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
         perfCheck.addEventListener('change', updateQuality);
 
-        // --- Animación (CORREGIDA) ---
+        // --- Animación (CORREGIDA PARA CONTORNO DINÁMICO) ---
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
             
             const currentDist = camera.position.distanceTo(controls.target);
             
-            // Suavizamos el cálculo dinámico para que no cambie tan bruscamente
-            let dynamicThickness = 0.003 / currentDist; 
+            // Calculamos el grosor basándonos en la distancia.
+            // Al dividir entre currentDist, si te alejas (mayor distancia), el valor disminuye.
+            let dynamicThickness = 0.02 / currentDist;
             
-            // Subimos el grosor mínimo absoluto para evitar los puntos ciegos (línea sólida)
-            const minThickness = 0.0012; 
-            
-            effect.defaultThickness = Math.max(minThickness, dynamicThickness);
+            // Usamos clamp para ponerle un límite muy finito cuando estás lejos (0.0003) 
+            // y un límite máximo razonable para cuando haces mucho zoom (0.0025)
+            effect.defaultThickness = THREE.MathUtils.clamp(dynamicThickness, 0.0003, 0.0025);
             
             // Renderizamos con el efecto
             effect.render(scene, camera);
