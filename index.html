@@ -143,7 +143,7 @@
         // --- Cámara optimizada ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
         let camPosY = 10, camPosZ = 20, targetY = 2;
-        if (deviceType === 'mobile') { camPosY = 8; camPosZ = 12; targetY = 5; }
+        if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
         camera.position.set(0, camPosY, camPosZ);
 
         // --- RENDERIZADOR PRO (Mejorado para fotorealismo) ---
