@@ -182,9 +182,9 @@
         let camPosY = 10, camPosZ = 20, targetY = 2;
         
         if (deviceType === 'mobile') {
-            // Móvil: más abajo (Y=7) y un poco más lejos (Z=7) para no estar tan cerca
+            // Móvil: más abajo (Y=7) y más lejos (Z=10)
             camPosY = 7;          // Bajada
-            camPosZ = 7;           // Zoom moderado
+            camPosZ = 10;          // Más lejos
             targetY = 7;           // Para que mire horizontal
         } else if (deviceType === 'tablet') {
             // Tablet: intermedio
@@ -553,7 +553,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Dispositivo:', deviceType, 'con hover en interruptor y móvil más alejado (Z=7).');
+        console.log('Página cargada. Dispositivo:', deviceType, 'con hover en interruptor y móvil más lejos (Z=10).');
     </script>
 </body>
 </html>
