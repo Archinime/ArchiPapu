@@ -185,6 +185,7 @@
         hemiLight.position.set(0, 20, 0);
         scene.add(hemiLight);
 
+        // Luz Principal (Inicialmente en una posición por defecto, luego se moverá al foco)
         const mainLight = new THREE.SpotLight(0xffeedd, 6);
         mainLight.position.set(2, 22, 2); 
         mainLight.angle = Math.PI / 3;
@@ -206,6 +207,9 @@
         const indicatorLight = new THREE.PointLight(0xffaa00, 0.8, 5);
         scene.add(indicatorLight);
 
+        // Estado inicial de la luz
+        let lightOn = localStorage.getItem('lightState') !== 'off';
+
         // --- Carga de Modelos ---
         const loader = new GLTFLoader();
         let modelsLoaded = 0;
@@ -213,30 +217,63 @@
             'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb',
             'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb',
             'decoracion_escritorio.glb', 'decoracion_mueble_1.glb', 'decoracion_mueble_2.glb',
-	    'decoracion_2_mueble_1.glb', 'decoracion_3_mueble_1.glb', 'decoracion_4_mueble_1.glb',
-	    'decoracion_5_mueble_1.glb', 'decoracion_2_mueble_2.glb', 'decoracion_piso.glb',
+            'decoracion_2_mueble_1.glb', 'decoracion_3_mueble_1.glb', 'decoracion_4_mueble_1.glb',
+            'decoracion_5_mueble_1.glb', 'decoracion_2_mueble_2.glb', 'decoracion_piso.glb',
             'poster_1.glb', 'poster_2.glb', 'poster_3.glb', 'poster_4.glb',
-            'interruptor.glb', 'maouse_pad.glb', 'lunari2.glb'
+            'interruptor.glb', 'maouse_pad.glb', 'lunari2.glb', 
+            'foco.glb' // <-- Añadido el foco aquí
         ];
+        
         let switchMesh = null;
+        let focoMesh = null; // Variable para controlar el objeto del foco
 
         modelos.forEach(path => {
             loader.load(path, (gltf) => {
                 const model = gltf.scene;
-                model.traverse((node) => {
-                    if (node.isMesh) {
-                        node.castShadow = true;
-                        node.receiveShadow = true;
-                        
-                        if(node.material) {
-                            node.material.shadowSide = THREE.FrontSide;
-                            if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
-                                node.material.shadowSide = THREE.BackSide;
+                
+                // Configuración especial si es el foco
+                if (path.includes('foco.glb')) {
+                    focoMesh = model;
+                    
+                    // Obtener la posición central del foco
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = new THREE.Vector3();
+                    box.getCenter(center);
+                    
+                    // Mover la luz principal exactamente al foco
+                    mainLight.position.copy(center);
+                    // Bajar la luz un poquito (0.2) para que el propio cascarón del foco no tape la luz y proyecte sombra en toda la sala
+                    mainLight.position.y -= 0.2; 
+                    
+                    model.traverse((node) => {
+                        if (node.isMesh) {
+                            node.castShadow = false; // El foco no debe proyectar sombra para no tapar su propia luz
+                            node.receiveShadow = false;
+                            
+                            if (node.material) {
+                                // Hacer que el material "brille" (emita luz visualmente)
+                                node.material.emissive = new THREE.Color(0xffeedd);
+                                node.material.emissiveIntensity = lightOn ? 1.5 : 0;
                             }
-                            node.material.side = THREE.DoubleSide;
                         }
-                    }
-                });
+                    });
+                } else {
+                    // Lógica para el resto de los modelos
+                    model.traverse((node) => {
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                            
+                            if(node.material) {
+                                node.material.shadowSide = THREE.FrontSide;
+                                if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
+                                    node.material.shadowSide = THREE.BackSide;
+                                }
+                                node.material.side = THREE.DoubleSide;
+                            }
+                        }
+                    });
+                }
                  
                 scene.add(model);
                 
@@ -254,7 +291,6 @@
 
         // --- SISTEMA DE ILUMINACIÓN CENTRALIZADO ---
         const perfCheck = document.getElementById('performance-mode');
-        let lightOn = localStorage.getItem('lightState') !== 'off';
 
         function updateLighting() {
             const isLow = perfCheck.checked;
@@ -264,12 +300,30 @@
                 hemiLight.intensity = isLow ? 0.8 : 0.4;
                 indicatorLight.intensity = 0.8;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
+                
+                // Hacer que el foco visualmente brille
+                if (focoMesh) {
+                    focoMesh.traverse((node) => {
+                        if (node.isMesh && node.material) {
+                            node.material.emissiveIntensity = 1.5;
+                        }
+                    });
+                }
             } else {
                 mainLight.visible = false;
                 ambient.intensity = 0.02;
                 hemiLight.intensity = 0.05; 
                 indicatorLight.intensity = 2;
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
+                
+                // Apagar el brillo visual del foco
+                if (focoMesh) {
+                    focoMesh.traverse((node) => {
+                        if (node.isMesh && node.material) {
+                            node.material.emissiveIntensity = 0;
+                        }
+                    });
+                }
             }
         }
 
@@ -309,6 +363,9 @@
             
             scene.traverse(n => { 
                 if(n.isMesh) { 
+                    // Evitamos reactivar las sombras en el foco
+                    if (focoMesh && (n === focoMesh || focoMesh.children.includes(n))) return;
+                    
                     n.castShadow = !isLow; 
                     n.receiveShadow = !isLow; 
                     if(n.material) n.material.needsUpdate = true; 
@@ -321,22 +378,15 @@
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
         perfCheck.addEventListener('change', updateQuality);
 
-        // --- Animación (CORREGIDA PARA CONTORNO DINÁMICO) ---
+        // --- Animación ---
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
             
             const currentDist = camera.position.distanceTo(controls.target);
-            
-            // Calculamos el grosor basándonos en la distancia.
-            // Al dividir entre currentDist, si te alejas (mayor distancia), el valor disminuye.
             let dynamicThickness = 0.02 / currentDist;
-            
-            // Usamos clamp para ponerle un límite muy finito cuando estás lejos (0.0003) 
-            // y un límite máximo razonable para cuando haces mucho zoom (0.0025)
             effect.defaultThickness = THREE.MathUtils.clamp(dynamicThickness, 0.0003, 0.0025);
             
-            // Renderizamos con el efecto
             effect.render(scene, camera);
         }
         animate();
