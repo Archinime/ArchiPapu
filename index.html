@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Habitación 3D - Foco desde arriba</title>
+    <title>Habitación 3D - Configuración de Calidad</title>
     <style>
         body {
             margin: 0;
@@ -12,65 +12,47 @@
             position: fixed;
             width: 100%;
             height: 100%;
-            background-color: #111;
         }
-        #settings-button {
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0,0,0,0.6);
+            padding: 8px 15px;
+            border-radius: 20px;
+            pointer-events: none;
+            z-index: 100;
+            font-size: 14px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        #settings {
             position: absolute;
             top: 20px;
             right: 20px;
-            width: 44px;
-            height: 44px;
             background: rgba(30,30,40,0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 300;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
-            user-select: none;
-        }
-        #settings-button:hover {
-            transform: scale(1.1);
-        }
-        #settings-button:active {
-            transform: scale(0.95);
-        }
-        #settings-panel {
-            position: absolute;
-            top: 70px;
-            right: 20px;
-            background: rgba(30,30,40,0.95);
             backdrop-filter: blur(10px);
             color: white;
             padding: 15px 20px;
-            border-radius: 20px;
+            border-radius: 30px;
             border: 1px solid rgba(255,255,255,0.2);
-            z-index: 250;
+            z-index: 200;
             font-size: 14px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            pointer-events: auto;
-            display: none;
-            min-width: 200px;
-        }
-        #settings-panel.visible {
-            display: block;
-        }
-        #settings-panel label {
             display: flex;
             align-items: center;
-            justify-content: space-between;
             gap: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            pointer-events: auto;
+        }
+        #settings label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             cursor: pointer;
             user-select: none;
-            margin-bottom: 10px;
         }
-        #settings-panel input[type="checkbox"] {
+        #settings input[type="checkbox"] {
             width: 18px;
             height: 18px;
             cursor: pointer;
@@ -84,24 +66,10 @@
             font-size: 12px;
             font-weight: bold;
             letter-spacing: 0.5px;
-            text-align: center;
-            margin-bottom: 10px;
         }
         @media (max-width: 600px) {
-            #settings-button {
-                top: 10px;
-                right: 10px;
-                width: 40px;
-                height: 40px;
-                font-size: 22px;
-            }
-            #settings-panel {
-                top: 60px;
-                right: 10px;
-                padding: 12px 15px;
-                font-size: 13px;
-                min-width: 180px;
-            }
+            #info { font-size: 12px; top: 10px; left: 10px; padding: 5px 10px; }
+            #settings { padding: 10px 15px; font-size: 12px; gap: 10px; }
         }
         #loading {
             position: absolute;
@@ -116,33 +84,20 @@
             pointer-events: none;
             backdrop-filter: blur(4px);
         }
-        #light-status {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            color: white;
-            background: rgba(0,0,0,0.5);
-            padding: 5px 10px;
-            border-radius: 10px;
-            font-size: 12px;
-            z-index: 100;
-            pointer-events: none;
-            backdrop-filter: blur(4px);
-        }
     </style>
 </head>
 <body>
-    <div id="settings-button">⚙️</div>
-    <div id="settings-panel">
-        <div id="quality-indicator">Calidad Alta</div>
+    <div id="info">🏠 Habitación interactiva (ajusta calidad según dispositivo)</div>
+    <div id="settings">
+        <span id="quality-indicator">Calidad Alta</span>
         <label>
-            <span>Modo humilde</span>
+            <span>Modo rendimiento</span>
             <input type="checkbox" id="performance-mode">
         </label>
     </div>
     <div id="loading">Cargando modelos...</div>
-    <div id="light-status">💡 Luz encendida</div>
 
+    <!-- Importamos Three.js y OrbitControls desde CDN -->
     <script type="importmap">
         {
             "imports": {
@@ -175,27 +130,9 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122);
 
-        // --- Cámara según dispositivo ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        
-        let camPosY = 10, camPosZ = 20, targetY = 2;
-        
-        if (deviceType === 'mobile') {
-            camPosY = 7;          // Altura
-            camPosZ = 10;          // Distancia
-            targetY = 7;           // Mira al frente
-        } else if (deviceType === 'tablet') {
-            camPosY = 9;
-            camPosZ = 16;
-            targetY = 2;
-        } else {
-            camPosY = 10;
-            camPosZ = 20;
-            targetY = 2;
-        }
-        
-        camera.position.set(0, camPosY, camPosZ);
-        camera.lookAt(0, targetY, 0);
+        camera.position.set(0, 8, 18);
+        camera.lookAt(0, 2, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -204,198 +141,152 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // --- Controles base ---
+        // Controles (se configurarán después según el modo)
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.screenSpacePanning = true;
         controls.maxPolarAngle = Math.PI / 2;
+        controls.minAzimuthAngle = -Math.PI / 6;
+        controls.maxAzimuthAngle = Math.PI / 6;
         controls.minDistance = 4;
-        controls.maxDistance = 50;
-        controls.target.set(0, targetY, 0);
+        controls.maxDistance = 30;
+        controls.target.set(0, 2, 0);
 
-        // --- Límites de rotación según dispositivo ---
-        let baseMinAzimuth, baseMaxAzimuth;
-        let useDynamicLimits = false;
+        // Contenedores para las luces (para poder eliminarlas al cambiar de modo)
+        let currentLights = [];
 
-        if (deviceType === 'mobile') {
-            controls.minAzimuthAngle = undefined;
-            controls.maxAzimuthAngle = undefined;
-            useDynamicLimits = false;
-        } else if (deviceType === 'tablet') {
-            baseMinAzimuth = -Math.PI / 1.5;
-            baseMaxAzimuth = Math.PI / 1.5;
-            controls.minAzimuthAngle = baseMinAzimuth;
-            controls.maxAzimuthAngle = baseMaxAzimuth;
-            useDynamicLimits = true;
-        } else {
-            baseMinAzimuth = -Math.PI / 4;
-            baseMaxAzimuth = Math.PI / 4;
-            controls.minAzimuthAngle = baseMinAzimuth;
-            controls.maxAzimuthAngle = baseMaxAzimuth;
-            useDynamicLimits = true;
-        }
-
-        // --- Luz principal: foco desde arriba ---
-        const mainLight = new THREE.SpotLight(0xffeedd, 4.5);
-        mainLight.position.set(0, 25, 0);
-        mainLight.target.position.set(0, 1, 0);
-        scene.add(mainLight.target);
-        mainLight.castShadow = true;
-        mainLight.shadow.mapSize.width = 2048;
-        mainLight.shadow.mapSize.height = 2048;
-        mainLight.angle = 1.5;
-        mainLight.penumbra = 0.5;
-        mainLight.decay = 1;
-        mainLight.distance = 100;
-        mainLight.shadow.bias = -0.0005;
-        scene.add(mainLight);
-
-        // Estado de la luz
-        let lightOn = true;
-        
-        // Luz de señalización para el interruptor
-        const indicatorLight = new THREE.PointLight(0xffaa00, 0.8, 5);
-        indicatorLight.position.set(0, 0, 0);
-        scene.add(indicatorLight);
-
-        // Variables para el interruptor
-        let switchMesh = null;
-        const switchPosition = new THREE.Vector3();
-
-        // --- Cargador de modelos ---
-        const loader = new GLTFLoader();
-        let modelsLoaded = 0;
-        const totalModels = 20;
-
-        function updateLoading() {
-            document.getElementById('loading').innerText = `Cargando modelos: ${modelsLoaded}/${totalModels}`;
-            if (modelsLoaded === totalModels) {
-                document.getElementById('loading').style.display = 'none';
-            }
-        }
-
-        function loadModel(path) {
-            loader.load(
-                path,
-                (gltf) => {
-                    const model = gltf.scene;
-                    
-                    // Configurar sombras iniciales (todas activas)
-                    model.traverse((node) => {
-                        if (node.isMesh) {
-                            node.castShadow = true;
-                            node.receiveShadow = true;
-                        }
-                    });
-                    
-                    scene.add(model);
-                    
-                    if (path.includes('interruptor.glb')) {
-                        switchMesh = model;
-                        model.traverse((node) => {
-                            if (node.isMesh) {
-                                node.getWorldPosition(switchPosition);
-                                indicatorLight.position.copy(switchPosition);
-                            }
-                        });
-                        console.log('Interruptor cargado en:', switchPosition);
-                    }
-                    
-                    modelsLoaded++;
-                    updateLoading();
-                    console.log(`✅ Modelo cargado: ${path}`);
-                },
-                (xhr) => {},
-                (error) => {
-                    console.error(`❌ Error al cargar ${path}:`, error);
-                    modelsLoaded++;
-                    updateLoading();
-                }
-            );
-        }
-
-        const modelos = [
-            'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb',
-            'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb',
-            'decoracion_escritorio.glb', 'decoracion_mueble_1.glb', 'decoracion_mueble_2.glb',
-            'poster_1.glb', 'poster_2.glb', 'poster_3.glb', 'poster_4.glb',
-            'interruptor.glb', 'maouse_pad.glb', 'lunari2.glb'
-        ];
-
-        modelos.forEach(modelo => loadModel(modelo));
-
-        // --- Raycaster para detectar clic en el interruptor ---
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-
-        function onClick(event) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            if (event.touches) {
-                mouse.x = ((event.touches[0].clientX - rect.left) / rect.width) * 2 - 1;
-                mouse.y = -((event.touches[0].clientY - rect.top) / rect.height) * 2 + 1;
-            } else {
-                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-            }
-
-            raycaster.setFromCamera(mouse, camera);
-
-            if (switchMesh) {
-                const intersects = raycaster.intersectObject(switchMesh, true);
-                if (intersects.length > 0) {
-                    lightOn = !lightOn;
-                    mainLight.visible = lightOn;
-                    localStorage.setItem('lightState', lightOn ? 'on' : 'off');
-                    document.getElementById('light-status').innerText = lightOn ? '💡 Luz encendida' : '💡 Luz apagada';
-                    indicatorLight.intensity = lightOn ? 0.8 : 1.5;
-                }
-            }
-        }
-
-        renderer.domElement.addEventListener('click', onClick);
-        renderer.domElement.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            onClick(e);
-        });
-
-        // --- Persistencia del estado de la luz ---
-        const savedLightState = localStorage.getItem('lightState');
-        if (savedLightState === 'off') {
-            lightOn = false;
-            mainLight.visible = false;
-            document.getElementById('light-status').innerText = '💡 Luz apagada';
-        } else {
-            lightOn = true;
-            mainLight.visible = true;
-            document.getElementById('light-status').innerText = '💡 Luz encendida';
-        }
-
-        // --- Configuración de calidad (modo humilde) - VERSIÓN SIMPLIFICADA ---
+        // --- Funciones de configuración de calidad ---
         function setupHighQuality() {
+            // Eliminar luces anteriores
+            currentLights.forEach(light => {
+                if (light.target) scene.remove(light.target);
+                scene.remove(light);
+            });
+            currentLights = [];
+
+            // Renderer
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
-            mainLight.shadow.mapSize.width = 2048;
-            mainLight.shadow.mapSize.height = 2048;
-            // Forzar actualización de la matriz de sombra
-            mainLight.shadow.camera.updateProjectionMatrix();
+
+            // Controles
+            controls.enableDamping = true;
+            controls.maxDistance = 30;
+
+            // --- Luces de alta calidad (con sombras) ---
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+            scene.add(ambientLight);
+            currentLights.push(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xfff5e6, 2.0);
+            directionalLight.position.set(5, 15, 7);
+            directionalLight.castShadow = true;
+            directionalLight.receiveShadow = true;
+            directionalLight.shadow.mapSize.width = 1024;
+            directionalLight.shadow.mapSize.height = 1024;
+            const d = 10;
+            directionalLight.shadow.camera.left = -d;
+            directionalLight.shadow.camera.right = d;
+            directionalLight.shadow.camera.top = d;
+            directionalLight.shadow.camera.bottom = -d;
+            directionalLight.shadow.camera.near = 2;
+            directionalLight.shadow.camera.far = 20;
+            directionalLight.shadow.bias = -0.0005;
+            scene.add(directionalLight);
+            currentLights.push(directionalLight);
+
+            const backLight = new THREE.PointLight(0x4466ff, 1.0);
+            backLight.position.set(-3, 6, -3);
+            backLight.distance = 30;
+            scene.add(backLight);
+            currentLights.push(backLight);
+
+            const pointLight = new THREE.PointLight(0xffaa66, 1.5);
+            pointLight.position.set(2, 6, 2);
+            pointLight.distance = 25;
+            scene.add(pointLight);
+            currentLights.push(pointLight);
+
+            const spotLight = new THREE.SpotLight(0xffffff, 1.8);
+            spotLight.position.set(0, 10, 0);
+            spotLight.target.position.set(0, 1, 0);
+            scene.add(spotLight.target);
+            spotLight.castShadow = true;
+            spotLight.shadow.mapSize.width = 1024;
+            spotLight.shadow.mapSize.height = 1024;
+            spotLight.angle = 1.0;
+            spotLight.penumbra = 0.5;
+            spotLight.decay = 1;
+            spotLight.distance = 30;
+            scene.add(spotLight);
+            currentLights.push(spotLight);
+            currentLights.push(spotLight.target); // para eliminar target después
+
+            const sillaLight = new THREE.PointLight(0xffcc88, 1.2);
+            sillaLight.position.set(1.5, 4, 1.5);
+            sillaLight.distance = 15;
+            scene.add(sillaLight);
+            currentLights.push(sillaLight);
+
+            // Actualizar sombras en modelos (si ya están cargados)
+            scene.traverse(node => {
+                if (node.isMesh) {
+                    node.castShadow = true;
+                    node.receiveShadow = true;
+                }
+            });
+
             document.getElementById('quality-indicator').textContent = 'Calidad Alta';
-            console.log('Modo alta calidad activado');
         }
 
         function setupLowQuality() {
+            // Eliminar luces anteriores
+            currentLights.forEach(light => {
+                if (light.target) scene.remove(light.target);
+                scene.remove(light);
+            });
+            currentLights = [];
+
+            // Renderer: sin sombras, pixel ratio bajo
             renderer.shadowMap.enabled = false;
             renderer.setPixelRatio(1);
-            // No es necesario cambiar mapSize porque shadowMap está desactivado
-            document.getElementById('quality-indicator').textContent = 'Modo Humilde';
-            console.log('Modo humilde activado');
+
+            // Controles: sin damping, menor distancia máxima
+            controls.enableDamping = false;
+            controls.maxDistance = 18;
+
+            // --- Luces de baja calidad (mínimas, sin sombras) ---
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
+            scene.add(ambientLight);
+            currentLights.push(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
+            dirLight.position.set(5, 10, 7);
+            scene.add(dirLight);
+            currentLights.push(dirLight);
+
+            const fillLight = new THREE.PointLight(0x4466aa, 0.6);
+            fillLight.position.set(-2, 3, 2);
+            scene.add(fillLight);
+            currentLights.push(fillLight);
+
+            // Desactivar sombras en modelos
+            scene.traverse(node => {
+                if (node.isMesh) {
+                    node.castShadow = false;
+                    node.receiveShadow = false;
+                }
+            });
+
+            document.getElementById('quality-indicator').textContent = 'Modo Rendimiento';
         }
 
-        // Inicializar según dispositivo y localStorage
+        // --- Inicializar según dispositivo y localStorage ---
         const savedPerformanceMode = localStorage.getItem('performanceMode');
         const perfCheck = document.getElementById('performance-mode');
         
+        // Por defecto, en móvil/tablet activamos modo rendimiento, en desktop no
         if (deviceType !== 'desktop') {
             if (savedPerformanceMode === null) {
                 perfCheck.checked = true;
@@ -416,6 +307,7 @@
             }
         }
 
+        // --- Evento del checkbox ---
         perfCheck.addEventListener('change', (e) => {
             if (e.target.checked) {
                 setupLowQuality();
@@ -425,42 +317,60 @@
             localStorage.setItem('performanceMode', e.target.checked);
         });
 
-        // --- Mostrar/ocultar panel de configuración ---
-        const settingsButton = document.getElementById('settings-button');
-        const settingsPanel = document.getElementById('settings-panel');
-        settingsButton.addEventListener('click', () => {
-            settingsPanel.classList.toggle('visible');
-        });
+        // --- Cargador de modelos ---
+        const loader = new GLTFLoader();
+        let modelsLoaded = 0;
+        const totalModels = 20; // Ajusta según tu lista
 
-        document.addEventListener('click', (e) => {
-            if (!settingsButton.contains(e.target) && !settingsPanel.contains(e.target)) {
-                settingsPanel.classList.remove('visible');
+        function updateLoading() {
+            document.getElementById('loading').innerText = `Cargando modelos: ${modelsLoaded}/${totalModels}`;
+            if (modelsLoaded === totalModels) {
+                document.getElementById('loading').style.display = 'none';
             }
-        });
+        }
 
-        // --- Animación con control dinámico del azimuth (solo tablet/escritorio) ---
+        function loadModel(path) {
+            loader.load(
+                path,
+                (gltf) => {
+                    const model = gltf.scene;
+                    // Las sombras se activan/desactivan según el modo actual
+                    const currentShadowState = renderer.shadowMap.enabled;
+                    model.traverse((node) => {
+                        if (node.isMesh) {
+                            node.castShadow = currentShadowState;
+                            node.receiveShadow = currentShadowState;
+                        }
+                    });
+                    scene.add(model);
+                    modelsLoaded++;
+                    updateLoading();
+                    console.log(`✅ Modelo cargado: ${path}`);
+                },
+                (xhr) => {},
+                (error) => {
+                    console.error(`❌ Error al cargar ${path}:`, error);
+                    modelsLoaded++;
+                    updateLoading();
+                }
+            );
+        }
+
+        // Lista de modelos
+        const modelos = [
+            'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb',
+            'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb',
+            'decoracion_escritorio.glb', 'decoracion_mueble_1.glb', 'decoracion_mueble_2.glb',
+            'poster_1.glb', 'poster_2.glb', 'poster_3.glb', 'poster_4.glb',
+            'interruptor.glb', 'maouse_pad.glb', 'lunari2.glb'
+        ];
+
+        modelos.forEach(modelo => loadModel(modelo));
+
+        // --- Animación ---
         function animate() {
             requestAnimationFrame(animate);
-
-            if (useDynamicLimits) {
-                const distance = camera.position.length();
-                const nearDist = controls.minDistance;
-                const farDist = controls.maxDistance;
-                
-                let factor = (distance - nearDist) / (farDist - nearDist);
-                factor = Math.max(0, Math.min(1, factor));
-                
-                const minMultiplier = 0.4;
-                const maxMultiplier = 1.6;
-                
-                const currentMinAngle = baseMinAzimuth * (minMultiplier + factor * (maxMultiplier - minMultiplier));
-                const currentMaxAngle = baseMaxAzimuth * (minMultiplier + factor * (maxMultiplier - minMultiplier));
-                
-                controls.minAzimuthAngle = currentMinAngle;
-                controls.maxAzimuthAngle = currentMaxAngle;
-            }
-
-            controls.update();
+            controls.update(); // Solo hace algo si damping está activado
             renderer.render(scene, camera);
         }
         animate();
@@ -480,7 +390,7 @@
             }
         }, { passive: false });
 
-        console.log('Página cargada. Modo humilde simplificado y corregido.');
+        console.log('Página cargada. Dispositivo:', deviceType, 'Usa el interruptor para cambiar calidad.');
     </script>
 </body>
 </html>
