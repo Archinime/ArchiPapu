@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Habitación 3D - Pro con Contorno</title>
+    <title>Habitación 3D - Pro con Contorno y Colisiones</title>
     <style>
         body {
             margin: 0;
@@ -143,8 +143,9 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050508); 
 
-        // --- Cámara optimizada ---
+        // --- Cámara optimizada y Cámara Fantasma (para colisiones) ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
+        const dummyCamera = camera.clone(); // Esta cámara recibe los controles invisibles
         
         // Ajuste: Cámara más cerca y centrada para PC
         let camPosY = 6, camPosZ = 14, targetY = 6; 
@@ -152,7 +153,8 @@
         // Se mantiene igual para móvil
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
         
-        camera.position.set(0, camPosY, camPosZ);
+        dummyCamera.position.set(0, camPosY, camPosZ);
+        camera.position.copy(dummyCamera.position);
 
         // --- RENDERIZADOR PRO ---
         const renderer = new THREE.WebGLRenderer({ 
@@ -178,21 +180,20 @@
             defaultKeepAlive: true
         });
 
-        // --- Controles y "Colisiones" ---
-        const controls = new OrbitControls(camera, renderer.domElement);
+        // --- Controles acoplados a la cámara fantasma ---
+        const controls = new OrbitControls(dummyCamera, renderer.domElement);
         controls.enableDamping = true;
         controls.target.set(0, targetY, 0);
 
-        // LÍMITES DE LA CÁMARA (Anti-traspaso)
-        // 1. Evita que la cámara pase por debajo del piso
+        // Evitar que la cámara pase por debajo del piso
         controls.maxPolarAngle = Math.PI / 2 - 0.05; 
-        
-        // 2. Limita el Zoom para no atravesar muebles por delante ni paredes por detrás
-        controls.minDistance = 2.5; // Distancia mínima al centro
-        controls.maxDistance = 16;  // Distancia máxima (ajusta si la habitación es muy grande)
-        
-        // 3. Desactiva el paneo (arrastre lateral con clic derecho) para que la cámara no salga del cuarto
+        controls.minDistance = 2.5; 
+        controls.maxDistance = 16;  
         controls.enablePan = false;
+
+        // --- Sistema de Colisiones de Cámara ---
+        const collidableObjects = []; // Aquí guardaremos los objetos sólidos (paredes, techo, etc)
+        const cameraRaycaster = new THREE.Raycaster();
 
         // --- LUCES ---
         const ambient = new THREE.AmbientLight(0xffffff, 0.3);
@@ -272,12 +273,17 @@
                             node.castShadow = true;
                             node.receiveShadow = true;
                             
+                            // Añadir a lista de colisiones (menos luces y botones para que la cámara no salte por ellos)
+                            if (!path.includes('interruptor.glb')) {
+                                collidableObjects.push(node);
+                            }
+
                             if(node.material) {
                                 node.material.shadowSide = THREE.FrontSide;
-                                if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
+                                if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo')) {
                                     node.material.shadowSide = THREE.BackSide;
                                 }
-                                node.material.side = THREE.DoubleSide;
+                                node.material.side = THREE.DoubleSide; // Clave para que los rayos no atraviesen caras traseras
                             }
                         }
                     });
@@ -331,7 +337,7 @@
         }
 
         // --- Interacción Interruptor ---
-        const raycaster = new THREE.Raycaster();
+        const mouseRaycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
         function toggleLight() {
@@ -348,9 +354,10 @@
             mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
 
-            raycaster.setFromCamera(mouse, camera);
+            // Usamos la cámara real visual para interactuar con la escena
+            mouseRaycaster.setFromCamera(mouse, camera);
 
-            if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
+            if (switchMesh && mouseRaycaster.intersectObject(switchMesh, true).length > 0) {
                 toggleLight();
             }
         }
@@ -382,18 +389,48 @@
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
         perfCheck.addEventListener('change', updateQuality);
 
-        // --- Animación ---
+        // --- Animación y Cálculo de Colisiones ---
         function animate() {
             requestAnimationFrame(animate);
-            controls.update();
+            controls.update(); // Mueve la dummyCamera basándose en el input del usuario
+
+            // Lógica de colisión (Spring Arm)
+            const target = controls.target;
+            const dir = new THREE.Vector3().subVectors(dummyCamera.position, target);
+            const distance = dir.length();
+            dir.normalize();
+
+            // Lanzamos un rayo desde el centro (target) hacia la cámara fantasma
+            cameraRaycaster.set(target, dir);
+            cameraRaycaster.far = distance; // Solo buscar impactos antes de llegar a la posición fantasma
+
+            // Detectamos choques contra nuestra lista de objetos
+            const intersects = cameraRaycaster.intersectObjects(collidableObjects, false);
+
+            if (intersects.length > 0) {
+                // Si la cámara chocó con la pared o el techo, restamos 0.3 para no quedar viendo el interior del modelo
+                const hitDistance = Math.max(0.5, intersects[0].distance - 0.3);
+                camera.position.copy(target).add(dir.multiplyScalar(hitDistance));
+            } else {
+                // Si el camino está libre, la cámara real toma la posición de la fantasma
+                camera.position.copy(dummyCamera.position);
+            }
+            
+            // Sincronizamos a dónde mira la cámara
+            camera.quaternion.copy(dummyCamera.quaternion);
+
             effect.render(scene, camera);
         }
         animate();
 
         // --- Resize ---
         window.addEventListener('resize', () => {
+            dummyCamera.aspect = window.innerWidth / window.innerHeight;
+            dummyCamera.updateProjectionMatrix();
+
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
+
             renderer.setSize(window.innerWidth, window.innerHeight);
             effect.setSize(window.innerWidth, window.innerHeight); 
         });
