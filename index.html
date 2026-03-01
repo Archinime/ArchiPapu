@@ -1,106 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Habitación 3D - Pro con Contorno</title>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            font-family: Arial, Helvetica, sans-serif;
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            background-color: #111;
-        }
-        #settings-button {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 44px;
-            height: 44px;
-            background: rgba(30,30,40,0.85);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 300;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
-            user-select: none;
-        }
+        body { margin: 0; overflow: hidden; font-family: Arial, Helvetica, sans-serif; position: fixed; width: 100%; height: 100%; background-color: #111; }
+        #settings-button { position: absolute; top: 20px; right: 20px; width: 44px; height: 44px; background: rgba(30,30,40,0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; cursor: pointer; z-index: 300; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: transform 0.2s; user-select: none; }
         #settings-button:hover { transform: scale(1.1); }
         #settings-button:active { transform: scale(0.95); }
-        
-        #settings-panel {
-            position: absolute;
-            top: 70px;
-            right: 20px;
-            background: rgba(30,30,40,0.95);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.2);
-            z-index: 250;
-            font-size: 14px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            pointer-events: auto;
-            display: none;
-            min-width: 200px;
-        }
+        #settings-panel { position: absolute; top: 70px; right: 20px; background: rgba(30,30,40,0.95); backdrop-filter: blur(10px); color: white; padding: 15px 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); z-index: 250; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); pointer-events: auto; display: none; min-width: 200px; }
         #settings-panel.visible { display: block; }
-        
-        #settings-panel label {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-            cursor: pointer;
-            user-select: none;
-            margin-bottom: 10px;
-        }
-        #settings-panel input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            accent-color: #4CAF50;
-        }
-        #quality-indicator {
-            background: #4CAF50;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 50px;
-            font-size: 12px;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        @media (max-width: 600px) {
-            #settings-button { top: 10px; right: 10px; width: 40px; height: 40px; font-size: 22px; }
-            #settings-panel { top: 60px; right: 10px; padding: 12px 15px; font-size: 13px; min-width: 180px; }
-        }
-        #loading, #light-status {
-            position: absolute;
-            bottom: 20px;
-            color: white;
-            background: rgba(0,0,0,0.5); 
-            padding: 5px 10px; 
-            border-radius: 10px;
-            font-size: 12px; 
-            z-index: 100; 
-            pointer-events: none;
-            backdrop-filter: blur(4px);
-        }
-        #loading { right: 20px; }
-        #light-status { left: 20px; }
+        #settings-panel label { display: flex; align-items: center; justify-content: space-between; gap: 15px; cursor: pointer; user-select: none; margin-bottom: 10px; }
+        #settings-panel input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: #4CAF50; }
+        #quality-indicator { background: #4CAF50; color: white; padding: 4px 10px; border-radius: 50px; font-size: 12px; font-weight: bold; letter-spacing: 0.5px; text-align: center; margin-bottom: 10px; }
+        @media (max-width: 600px) { #settings-button { top: 10px; right: 10px; width: 40px; height: 40px; font-size: 22px; } #settings-panel { top: 60px; right: 10px; padding: 12px 15px; font-size: 13px; min-width: 180px; } }
+        #loading, #light-status { position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 10px; font-size: 12px; z-index: 100; pointer-events: none; backdrop-filter: blur(4px); }
+        #loading { right: 20px; } #light-status { left: 20px; }
     </style>
 </head>
 <body>
@@ -130,101 +46,77 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
 
-        // --- Detección de dispositivo ---
+        // --- Detección dispositivo ---
         const ua = navigator.userAgent;
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
         const width = window.innerWidth;
-        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ?
-                         'mobile' : 
-                         (width >= 768 && width <= 1024) ?
-                         'tablet' : 'desktop';
+        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
 
         // --- Escena ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050508); 
+        scene.background = new THREE.Color(0x050508);
 
-        // --- Cámara optimizada ---
+        // --- Cámara ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
-        
-        // Ajuste: Cámara más cerca y centrada para PC
-        let camPosY = 6, camPosZ = 14, targetY = 6; 
-        
-        // Se mantiene igual para móvil
+        let camPosY = 6, camPosZ = 14, targetY = 6;
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
-        
         camera.position.set(0, camPosY, camPosZ);
 
-        // --- RENDERIZADOR PRO ---
-        const renderer = new THREE.WebGLRenderer({ 
-            antialias: true, 
-            powerPreference: "high-performance"
-        });
+        // --- Renderer ---
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        
-        // Mejoras de realismo en renderizado
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.outputEncoding = THREE.sRGBEncoding;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping; 
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.0;
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
-        // --- EFECTO DE CONTORNO ANIME SUAVIZADO ---
+        // --- Outline effect ---
         const effect = new OutlineEffect(renderer, {
-            defaultThickness: 0.0008, 
-            defaultColor: [0.05, 0.05, 0.08], 
-            defaultAlpha: 0.85, 
+            defaultThickness: 0.0008,
+            defaultColor: [0.05, 0.05, 0.08],
+            defaultAlpha: 0.85,
             defaultKeepAlive: true
         });
 
-        // --- Controles y "Colisiones" ---
+        // --- Controls ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.target.set(0, targetY, 0);
-
-        // LÍMITES DE LA CÁMARA (Anti-traspaso)
-        // 1. Evita que la cámara pase por debajo del piso
-        controls.maxPolarAngle = Math.PI / 2 - 0.05; 
-        
-        // 2. Limita el Zoom para no atravesar muebles por delante ni paredes por detrás
-        controls.minDistance = 2.5; // Distancia mínima al centro
-        controls.maxDistance = 16;  // Distancia máxima (ajusta si la habitación es muy grande)
-        
-        // 3. Desactiva el paneo (arrastre lateral con clic derecho) para que la cámara no salga del cuarto
+        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+        controls.minDistance = 2.5;
+        controls.maxDistance = 16;
         controls.enablePan = false;
 
-        // --- LUCES ---
+        // --- Luces ---
         const ambient = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambient);
-
         const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
         hemiLight.position.set(0, 20, 0);
         scene.add(hemiLight);
 
-        // Luz Principal
         const mainLight = new THREE.SpotLight(0xffeedd, 6);
         mainLight.position.set(2, 22, 2);
         mainLight.angle = Math.PI / 3;
-        mainLight.penumbra = 0.8; 
-        mainLight.decay = 2; 
+        mainLight.penumbra = 0.8;
+        mainLight.decay = 2;
         mainLight.distance = 60;
-        
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.set(2048, 2048);
         mainLight.shadow.camera.near = 0.5;
         mainLight.shadow.camera.far = 40;
         mainLight.shadow.bias = -0.0001;
         mainLight.shadow.normalBias = 0.02;
-        mainLight.shadow.radius = 4; 
-        
+        mainLight.shadow.radius = 4;
         scene.add(mainLight);
         scene.add(mainLight.target);
 
-        // Estado inicial de la luz
+        // Estado inicial luz
         let lightOn = localStorage.getItem('lightState') !== 'off';
 
-        // --- Carga de Modelos ---
+        // --- Carga modelos ---
         const loader = new GLTFLoader();
         let modelsLoaded = 0;
         const modelos = [
@@ -234,25 +126,24 @@
             'decoracion_2_mueble_1.glb', 'decoracion_3_mueble_1.glb', 'decoracion_4_mueble_1.glb',
             'decoracion_5_mueble_1.glb', 'decoracion_2_mueble_2.glb', 'decoracion_piso.glb',
             'poster_1.glb', 'poster_2.glb', 'poster_3.glb', 'poster_4.glb', 'puerta.glb',
-            'interruptor.glb', 'maouse_pad.glb', 'techo.glb', 'base_foco.glb', 'lunari2.glb', 
+            'interruptor.glb', 'maouse_pad.glb', 'techo.glb', 'base_foco.glb', 'lunari2.glb',
             'foco.glb'
         ];
 
         let switchMesh = null;
         let focoMesh = null;
 
-        // --- NUEVO: manejo específico para lunari2.glb ---
-        const lunariMeshes = []; // nodos que pertenecen a lunari2
-        const lunariMaterialData = new Map(); // key: material.uuid -> data { originalMaterial, replacementMaterial?, originalProps }
+        // --- Manejo específico de lunari ---
+        const lunariMeshes = [];
+        const lunariMaterialData = new Map(); // key: originalMaterial.uuid -> { originalMaterial, originalProps, replacementMaterial?, replacedBasic }
 
         function cloneMaterialProps(mat) {
-            // guarda los atributos que vamos a restaurar
             return {
                 color: mat.color ? mat.color.clone() : null,
-                emissive: mat.emissive ? mat.emissive.clone() : null,
+                emissive: mat.emissive ? mat.emissive.clone() : new THREE.Color(0x000000),
                 emissiveIntensity: (typeof mat.emissiveIntensity !== 'undefined') ? mat.emissiveIntensity : 0,
-                metalness: (typeof mat.metalness !== 'undefined') ? mat.metalness : null,
-                roughness: (typeof mat.roughness !== 'undefined') ? mat.roughness : null,
+                metalness: (typeof mat.metalness !== 'undefined') ? mat.metalness : 0,
+                roughness: (typeof mat.roughness !== 'undefined') ? mat.roughness : 1,
                 type: mat.type || '',
                 opacity: (typeof mat.opacity !== 'undefined') ? mat.opacity : 1,
                 transparent: (typeof mat.transparent !== 'undefined') ? mat.transparent : false,
@@ -260,81 +151,139 @@
                 normalMap: mat.normalMap || null,
                 aoMap: mat.aoMap || null,
                 envMap: mat.envMap || null,
-                envMapIntensity: (typeof mat.envMapIntensity !== 'undefined') ? mat.envMapIntensity : 1
+                envMapIntensity: (typeof mat.envMapIntensity !== 'undefined') ? mat.envMapIntensity : 1,
+                emissiveMap: mat.emissiveMap || null
             };
         }
 
-        function createStandardFromBasic(basicMatProps) {
-            // crea un MeshStandardMaterial usando mapas y color del basic, para que responda a la iluminación
+        function createStandardFromBasic(basicProps) {
             const m = new THREE.MeshStandardMaterial({
-                map: basicMatProps.map || null,
-                normalMap: basicMatProps.normalMap || null,
-                aoMap: basicMatProps.aoMap || null,
-                envMap: basicMatProps.envMap || null,
-                envMapIntensity: basicMatProps.envMapIntensity || 1,
-                color: basicMatProps.color ? basicMatProps.color.clone() : new THREE.Color(0xffffff),
-                metalness: (basicMatProps.metalness !== null) ? basicMatProps.metalness : 0.0,
-                roughness: (basicMatProps.roughness !== null) ? basicMatProps.roughness : 1.0,
-                transparent: basicMatProps.transparent,
-                opacity: basicMatProps.opacity
+                map: basicProps.map || null,
+                normalMap: basicProps.normalMap || null,
+                aoMap: basicProps.aoMap || null,
+                envMap: basicProps.envMap || null,
+                envMapIntensity: basicProps.envMapIntensity || 1,
+                color: basicProps.color ? basicProps.color.clone() : new THREE.Color(0xffffff),
+                metalness: (basicProps.metalness !== null) ? basicProps.metalness : 0.0,
+                roughness: (basicProps.roughness !== null) ? basicProps.roughness : 1.0,
+                transparent: basicProps.transparent,
+                opacity: basicProps.opacity
             });
+            // ensure emissive exists so we can modulate it later
+            m.emissive = new THREE.Color(0x000000);
+            m.emissiveIntensity = 0;
             return m;
         }
 
-        loader.load = loader.load.bind(loader); // mantener contexto (no obligatorio, pero seguro)
+        // --- Transiciones de materiales (animadas) ---
+        const materialTransitions = []; // { matRef, start, end, startTime, duration }
 
+        function scheduleMaterialTransition(matRef, propsStart, propsEnd, duration = 600) {
+            materialTransitions.push({
+                mat: matRef,
+                start: propsStart,
+                end: propsEnd,
+                startTime: performance.now(),
+                duration
+            });
+        }
+
+        function updateMaterialTransitions(now) {
+            if (materialTransitions.length === 0) return;
+            for (let i = materialTransitions.length - 1; i >= 0; i--) {
+                const t = materialTransitions[i];
+                const elapsed = now - t.startTime;
+                const f = Math.min(1, Math.max(0, elapsed / t.duration));
+                // smoothstep for nicer easing
+                const ease = f * f * (3 - 2 * f);
+
+                // color
+                if (t.start.color && t.end.color && t.mat.color) {
+                    t.mat.color.r = THREE.MathUtils.lerp(t.start.color.r, t.end.color.r, ease);
+                    t.mat.color.g = THREE.MathUtils.lerp(t.start.color.g, t.end.color.g, ease);
+                    t.mat.color.b = THREE.MathUtils.lerp(t.start.color.b, t.end.color.b, ease);
+                }
+                // emissive color
+                if (t.start.emissive && t.end.emissive && t.mat.emissive) {
+                    t.mat.emissive.r = THREE.MathUtils.lerp(t.start.emissive.r, t.end.emissive.r, ease);
+                    t.mat.emissive.g = THREE.MathUtils.lerp(t.start.emissive.g, t.end.emissive.g, ease);
+                    t.mat.emissive.b = THREE.MathUtils.lerp(t.start.emissive.b, t.end.emissive.b, ease);
+                }
+                // emissiveIntensity
+                if (typeof t.start.emissiveIntensity !== 'undefined' && typeof t.end.emissiveIntensity !== 'undefined' && typeof t.mat.emissiveIntensity !== 'undefined') {
+                    t.mat.emissiveIntensity = THREE.MathUtils.lerp(t.start.emissiveIntensity, t.end.emissiveIntensity, ease);
+                }
+                // envMapIntensity
+                if (typeof t.start.envMapIntensity !== 'undefined' && typeof t.end.envMapIntensity !== 'undefined' && typeof t.mat.envMapIntensity !== 'undefined') {
+                    t.mat.envMapIntensity = THREE.MathUtils.lerp(t.start.envMapIntensity, t.end.envMapIntensity, ease);
+                }
+                // roughness
+                if (typeof t.start.roughness !== 'undefined' && typeof t.end.roughness !== 'undefined' && typeof t.mat.roughness !== 'undefined') {
+                    t.mat.roughness = THREE.MathUtils.lerp(t.start.roughness, t.end.roughness, ease);
+                }
+                // metalness
+                if (typeof t.start.metalness !== 'undefined' && typeof t.end.metalness !== 'undefined' && typeof t.mat.metalness !== 'undefined') {
+                    t.mat.metalness = THREE.MathUtils.lerp(t.start.metalness, t.end.metalness, ease);
+                }
+                // opacity
+                if (typeof t.start.opacity !== 'undefined' && typeof t.end.opacity !== 'undefined' && typeof t.mat.opacity !== 'undefined') {
+                    t.mat.opacity = THREE.MathUtils.lerp(t.start.opacity, t.end.opacity, ease);
+                }
+
+                t.mat.needsUpdate = true;
+
+                if (f >= 1) {
+                    // remove completed transition
+                    materialTransitions.splice(i, 1);
+                }
+            }
+        }
+
+        // --- Load models ---
         modelos.forEach(path => {
             loader.load(path, (gltf) => {
                 const model = gltf.scene;
-                
+
                 if (path.includes('foco.glb')) {
                     focoMesh = model;
-                    
                     const box = new THREE.Box3().setFromObject(model);
                     const center = new THREE.Vector3();
                     box.getCenter(center);
-            
                     mainLight.position.copy(center);
-                    mainLight.position.y -= 0.2; 
-                    
+                    mainLight.position.y -= 0.2;
                     model.traverse((node) => {
                         if (node.isMesh) {
                             node.castShadow = false;
                             node.receiveShadow = false;
-                            
                             if (node.material) {
-                                node.material.emissive = new THREE.Color(0xffeedd);
-                                node.material.emissiveIntensity = lightOn ? 1.5 : 0;
+                                // set a reasonable default emissive for the lamp mesh
+                                if (!node.material.emissive) node.material.emissive = new THREE.Color(0xffeedd);
+                                node.material.emissiveIntensity = lightOn ? 1.5 : 0.0;
                             }
                         }
                     });
                 } else {
-                    // Si es lunari2, aplicamos el tratamiento especial
                     if (path.includes('lunari2.glb')) {
                         model.traverse((node) => {
                             if (node.isMesh) {
-                                // guardar referencia global del mesh
                                 lunariMeshes.push(node);
-
-                                // several meshes could share same material object; guardamos por material.uuid
-                                let mats = Array.isArray(node.material) ? node.material : [node.material];
+                                const mats = Array.isArray(node.material) ? node.material : [node.material];
                                 mats.forEach(mat => {
                                     if (!mat) return;
                                     if (!lunariMaterialData.has(mat.uuid)) {
                                         const originalProps = cloneMaterialProps(mat);
                                         let replacement = null;
                                         let replacedBasic = false;
-                                        // Si es MeshBasicMaterial (no responde a la luz), crear sustituto MeshStandardMaterial
                                         if (mat.type === 'MeshBasicMaterial' || mat.isMeshBasicMaterial) {
                                             replacement = createStandardFromBasic(originalProps);
-                                            replacement.emissive = new THREE.Color(0x000000);
-                                            replacement.emissiveIntensity = 0;
+                                            // set emission so replacement can mimic "on" look
+                                            replacement.emissive = originalProps.emissive ? originalProps.emissive.clone() : new THREE.Color(0x000000);
+                                            replacement.emissiveIntensity = originalProps.emissiveIntensity || 0;
                                             replacedBasic = true;
                                         } else {
-                                            // asegurarnos de que exista emissive para controlarlo
+                                            // ensure emissive exists for modulation
                                             if (!mat.emissive) mat.emissive = new THREE.Color(0x000000);
                                         }
-
                                         lunariMaterialData.set(mat.uuid, {
                                             originalMaterial: mat,
                                             originalProps,
@@ -343,8 +292,7 @@
                                         });
                                     }
                                 });
-
-                                // Si se creó replacement para algún material, lo aplicamos (por ejemplo para Basic -> Standard)
+                                // replace material on mesh if needed
                                 if (Array.isArray(node.material)) {
                                     node.material = node.material.map(m => {
                                         const info = m ? lunariMaterialData.get(m.uuid) : null;
@@ -354,8 +302,6 @@
                                     const info = lunariMaterialData.get(node.material.uuid);
                                     if (info && info.replacementMaterial) node.material = info.replacementMaterial;
                                 }
-
-                                // Configuraciones de sombras para lunari
                                 node.castShadow = true;
                                 node.receiveShadow = true;
                             }
@@ -365,10 +311,9 @@
                             if (node.isMesh) {
                                 node.castShadow = true;
                                 node.receiveShadow = true;
-                                
-                                if(node.material) {
+                                if (node.material) {
                                     node.material.shadowSide = THREE.FrontSide;
-                                    if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
+                                    if (node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
                                         node.material.shadowSide = THREE.BackSide;
                                     }
                                     node.material.side = THREE.DoubleSide;
@@ -377,151 +322,197 @@
                         });
                     }
                 }
-                 
+
                 scene.add(model);
 
                 if (path.includes('interruptor.glb')) {
                     switchMesh = model;
                 }
-                
+
                 modelsLoaded++;
                 document.getElementById('loading').innerText = `Cargando: ${modelsLoaded}/${modelos.length}`;
                 if (modelsLoaded === modelos.length) document.getElementById('loading').style.display = 'none';
 
-                // una vez cargado lunari (o su material de reemplazo), aplicar estado inicial de luz
                 if (path.includes('lunari2.glb')) {
-                    // aplicar estado de luz actual a lunari inmediatamente
-                    applyLightToLunari(lightOn, /*instant=*/true);
+                    // apply initial state smoothly
+                    applyLightToLunari(lightOn, /*instant=*/false);
                 }
             });
         });
 
-        // --- Aplica luz/oscurecimiento solo a lunari ---
+        // --- Aplicar luz/oscurecimiento a lunari (con transición) ---
+        // Ajustes para apariencia "oscura pero realista"
+        const DARK_TINT = new THREE.Color(0x0b0b0d); // tono hacia el que lerpeamos
+        const DARKNESS_FACTOR = 0.78; // cuánto nos acercamos al tint (0..1) — 0.78 = bastante oscuro pero no negro
+        const EMISSIVE_OFF_FACTOR = 0.12; // cuánto conservar de la emisión cuando está apagado (12%)
+        const ENVMAP_OFF = 0.06;
+        const ROUGHNESS_INC = 0.28; // aumenta roughness al apagar (reduce brillo)
+        const METALNESS_DEC = 0.25; // reduce metalness al apagar
+
+        function computeDarkColor(originalColor) {
+            if (!originalColor) return DARK_TINT.clone();
+            // target = originalColor lerp DARK_TINT by DARKNESS_FACTOR
+            return originalColor.clone().lerp(DARK_TINT, DARKNESS_FACTOR);
+        }
+
         function applyLightToLunari(turnOn, instant = false) {
-            // turnOn = true -> restaurar original y permitir emissive
-            // turnOn = false -> forzar oscuro (emissive 0, colores más oscuros)
+            // turnOn true => volver a original
+            // instant true => sin animación (aplicar valores finales inmediatamente)
             lunariMeshes.forEach(mesh => {
                 const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
                 mats.forEach(mat => {
                     if (!mat) return;
-                    // podemos encontrar que mat es replacement o el original. Buscamos por uuid en lunariMaterialData:
-                    // en el Map guardamos info con key originalMaterial.uuid, pero mat.uuid podría ser replacement.uuid.
-                    // Por eso buscamos por equivalencia buscando la entry que tenga replacementMaterial === mat o originalMaterial === mat.
+                    // encontrar entry que tenga originalMaterial uuid (o replacement===mat)
                     let entry = null;
-                    for (const [k, v] of lunariMaterialData.entries()) {
-                        if (v.originalMaterial === mat || v.replacementMaterial === mat) {
-                            entry = v;
-                            break;
-                        }
+                    for (const v of lunariMaterialData.values()) {
+                        if (v.originalMaterial === mat || v.replacementMaterial === mat) { entry = v; break; }
                     }
-
+                    // Si no hay entry, hacemos una aproximación ligera
                     if (!entry) {
-                        // fallback: si no hay entry (material no procesado), intentamos simplemente ajustar emissive
-                        if (mat.emissive) {
-                            if (turnOn) {
-                                mat.emissiveIntensity = (mat.emissiveIntensity !== undefined) ? mat.emissiveIntensity : 1;
-                            } else {
-                                mat.emissive.setHex(0x000000);
-                                mat.emissiveIntensity = 0;
-                            }
+                        // fallback: simplemente lerpear color y emissive small
+                        const start = {
+                            color: mat.color ? mat.color.clone() : new THREE.Color(0x111111),
+                            emissive: mat.emissive ? mat.emissive.clone() : new THREE.Color(0x000000),
+                            emissiveIntensity: mat.emissiveIntensity || 0,
+                            envMapIntensity: typeof mat.envMapIntensity !== 'undefined' ? mat.envMapIntensity : 1,
+                            roughness: typeof mat.roughness !== 'undefined' ? mat.roughness : 1,
+                            metalness: typeof mat.metalness !== 'undefined' ? mat.metalness : 0,
+                            opacity: typeof mat.opacity !== 'undefined' ? mat.opacity : 1
+                        };
+                        const darkColor = computeDarkColor(start.color);
+                        const end = turnOn ? {
+                            color: start.color.clone(),
+                            emissive: start.emissive.clone(),
+                            emissiveIntensity: start.emissiveIntensity,
+                            envMapIntensity: start.envMapIntensity,
+                            roughness: start.roughness,
+                            metalness: start.metalness,
+                            opacity: start.opacity
+                        } : {
+                            color: darkColor,
+                            emissive: start.emissive.clone().multiplyScalar(EMISSIVE_OFF_FACTOR),
+                            emissiveIntensity: (start.emissiveIntensity || 0) * EMISSIVE_OFF_FACTOR,
+                            envMapIntensity: ENVMAP_OFF,
+                            roughness: Math.min(1, start.roughness + ROUGHNESS_INC),
+                            metalness: Math.max(0, start.metalness - METALNESS_DEC),
+                            opacity: start.opacity
+                        };
+                        if (instant) {
+                            // set immediately
+                            mat.color.copy(end.color);
+                            if (mat.emissive) mat.emissive.copy(end.emissive);
+                            if (typeof mat.emissiveIntensity !== 'undefined') mat.emissiveIntensity = end.emissiveIntensity;
+                            if (typeof mat.envMapIntensity !== 'undefined') mat.envMapIntensity = end.envMapIntensity;
+                            if (typeof mat.roughness !== 'undefined') mat.roughness = end.roughness;
+                            if (typeof mat.metalness !== 'undefined') mat.metalness = end.metalness;
+                            if (typeof mat.opacity !== 'undefined') mat.opacity = end.opacity;
+                            mat.needsUpdate = true;
                         } else {
-                            if (!turnOn) {
-                                if (mat.color) mat.color.multiplyScalar(0.08);
-                            }
+                            scheduleMaterialTransition(mat, start, end, 600);
                         }
-                        mat.needsUpdate = true;
                         return;
                     }
 
                     const orig = entry.originalProps;
-                    // Si la material fue reemplazado desde Basic a Standard, trabajamos sobre replacement
                     const targetMat = entry.replacementMaterial ? entry.replacementMaterial : entry.originalMaterial;
 
-                    if (turnOn) {
-                        // Restaurar color y emissive
-                        if (orig.color && targetMat.color) targetMat.color.copy(orig.color);
-                        if (orig.emissive && targetMat.emissive) targetMat.emissive.copy(orig.emissive);
-                        if (typeof orig.emissiveIntensity !== 'undefined' && targetMat.hasOwnProperty('emissiveIntensity')) {
-                            targetMat.emissiveIntensity = orig.emissiveIntensity;
-                        } else if (targetMat.hasOwnProperty('emissiveIntensity')) {
-                            targetMat.emissiveIntensity = 1;
-                        }
-                        // restablecer envMapIntensity si existe
-                        if (typeof orig.envMapIntensity !== 'undefined' && typeof targetMat.envMapIntensity !== 'undefined') {
-                            targetMat.envMapIntensity = orig.envMapIntensity;
-                        }
-                        // si era Basic y lo reemplazamos, mantener la apariencia de encendido (emissive si corresponde)
-                        targetMat.transparent = entry.originalProps.transparent;
-                        targetMat.opacity = entry.originalProps.opacity;
-                    } else {
-                        // Oscurecer: quitar emissive y bajar color mucho
-                        if (targetMat.emissive) {
-                            targetMat.emissive.setHex(0x000000);
-                        }
-                        if (targetMat.hasOwnProperty('emissiveIntensity')) {
-                            targetMat.emissiveIntensity = 0;
-                        }
-                        // Hacer color muy oscuro (mantener textura pero oscurecerla)
-                        if (targetMat.color) {
-                            // multiplicamos por factor pequeño para oscurecer sin perder textura
-                            targetMat.color.multiplyScalar(0.06);
-                        }
-                        // reducir envMap reflectividad para que no parezca brillante
-                        if (typeof targetMat.envMapIntensity !== 'undefined') {
-                            targetMat.envMapIntensity = 0.02;
-                        }
-                        // si tenía transparencia, conservarla pero reducir impacto
-                        targetMat.transparent = entry.originalProps.transparent;
-                        targetMat.opacity = entry.originalProps.opacity;
-                    }
+                    // start values from current material state (so multiple toggles look smooth)
+                    const start = {
+                        color: targetMat.color ? targetMat.color.clone() : (orig.color ? orig.color.clone() : new THREE.Color(0x111111)),
+                        emissive: targetMat.emissive ? targetMat.emissive.clone() : (orig.emissive ? orig.emissive.clone() : new THREE.Color(0x000000)),
+                        emissiveIntensity: (typeof targetMat.emissiveIntensity !== 'undefined') ? targetMat.emissiveIntensity : (orig.emissiveIntensity || 0),
+                        envMapIntensity: (typeof targetMat.envMapIntensity !== 'undefined') ? targetMat.envMapIntensity : (orig.envMapIntensity || 1),
+                        roughness: (typeof targetMat.roughness !== 'undefined') ? targetMat.roughness : (orig.roughness || 1),
+                        metalness: (typeof targetMat.metalness !== 'undefined') ? targetMat.metalness : (orig.metalness || 0),
+                        opacity: (typeof targetMat.opacity !== 'undefined') ? targetMat.opacity : (orig.opacity || 1)
+                    };
 
-                    targetMat.needsUpdate = true;
+                    if (turnOn) {
+                        const end = {
+                            color: orig.color ? orig.color.clone() : start.color.clone(),
+                            emissive: orig.emissive ? orig.emissive.clone() : new THREE.Color(0x000000),
+                            emissiveIntensity: (typeof orig.emissiveIntensity !== 'undefined') ? orig.emissiveIntensity : start.emissiveIntensity,
+                            envMapIntensity: (typeof orig.envMapIntensity !== 'undefined') ? orig.envMapIntensity : start.envMapIntensity,
+                            roughness: (typeof orig.roughness !== 'undefined') ? orig.roughness : start.roughness,
+                            metalness: (typeof orig.metalness !== 'undefined') ? orig.metalness : start.metalness,
+                            opacity: (typeof orig.opacity !== 'undefined') ? orig.opacity : start.opacity
+                        };
+                        if (instant) {
+                            if (targetMat.color) targetMat.color.copy(end.color);
+                            if (targetMat.emissive) targetMat.emissive.copy(end.emissive);
+                            if (typeof targetMat.emissiveIntensity !== 'undefined') targetMat.emissiveIntensity = end.emissiveIntensity;
+                            if (typeof targetMat.envMapIntensity !== 'undefined') targetMat.envMapIntensity = end.envMapIntensity;
+                            if (typeof targetMat.roughness !== 'undefined') targetMat.roughness = end.roughness;
+                            if (typeof targetMat.metalness !== 'undefined') targetMat.metalness = end.metalness;
+                            if (typeof targetMat.opacity !== 'undefined') targetMat.opacity = end.opacity;
+                            targetMat.needsUpdate = true;
+                        } else {
+                            scheduleMaterialTransition(targetMat, start, end, 600);
+                        }
+                    } else {
+                        // compute dark end
+                        const darkColor = computeDarkColor(orig.color || start.color);
+                        const end = {
+                            color: darkColor,
+                            emissive: (orig.emissive ? orig.emissive.clone().multiplyScalar(EMISSIVE_OFF_FACTOR) : (start.emissive ? start.emissive.clone().multiplyScalar(EMISSIVE_OFF_FACTOR) : new THREE.Color(0x000000))),
+                            emissiveIntensity: (orig.emissiveIntensity || start.emissiveIntensity || 0) * EMISSIVE_OFF_FACTOR,
+                            envMapIntensity: ENVMAP_OFF,
+                            roughness: Math.min(1, (orig.roughness || start.roughness) + ROUGHNESS_INC),
+                            metalness: Math.max(0, (orig.metalness || start.metalness) - METALNESS_DEC),
+                            opacity: start.opacity
+                        };
+                        if (instant) {
+                            if (targetMat.color) targetMat.color.copy(end.color);
+                            if (targetMat.emissive) targetMat.emissive.copy(end.emissive);
+                            if (typeof targetMat.emissiveIntensity !== 'undefined') targetMat.emissiveIntensity = end.emissiveIntensity;
+                            if (typeof targetMat.envMapIntensity !== 'undefined') targetMat.envMapIntensity = end.envMapIntensity;
+                            if (typeof targetMat.roughness !== 'undefined') targetMat.roughness = end.roughness;
+                            if (typeof targetMat.metalness !== 'undefined') targetMat.metalness = end.metalness;
+                            if (typeof targetMat.opacity !== 'undefined') targetMat.opacity = end.opacity;
+                            targetMat.needsUpdate = true;
+                        } else {
+                            scheduleMaterialTransition(targetMat, start, end, 600);
+                        }
+                    }
                 });
             });
         }
 
-        // --- SISTEMA DE ILUMINACIÓN CENTRALIZADO ---
+        // --- Lighting control & UI update ---
         const perfCheck = document.getElementById('performance-mode');
 
         function updateLighting() {
             const isLow = perfCheck.checked;
-
             if (lightOn) {
                 mainLight.visible = true;
                 ambient.intensity = isLow ? 0.8 : 0.3;
                 hemiLight.intensity = isLow ? 0.8 : 0.4;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
-
                 if (focoMesh) {
                     focoMesh.traverse((node) => {
                         if (node.isMesh && node.material) {
-                            node.material.emissiveIntensity = 1.5;
+                            if (typeof node.material.emissiveIntensity !== 'undefined') node.material.emissiveIntensity = 1.5;
                         }
                     });
                 }
-
-                // restaurar apariencia de lunari
-                applyLightToLunari(true);
+                applyLightToLunari(true, false);
             } else {
                 mainLight.visible = false;
                 ambient.intensity = 0.02;
-                hemiLight.intensity = 0.05; 
+                hemiLight.intensity = 0.05;
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
-
                 if (focoMesh) {
                     focoMesh.traverse((node) => {
                         if (node.isMesh && node.material) {
-                            node.material.emissiveIntensity = 0;
+                            if (typeof node.material.emissiveIntensity !== 'undefined') node.material.emissiveIntensity = 0;
                         }
                     });
                 }
-
-                // oscurecer lunari
-                applyLightToLunari(false);
+                applyLightToLunari(false, false);
             }
         }
 
-        // --- Interacción Interruptor ---
+        // --- Interruptor (raycast) ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
@@ -535,10 +526,8 @@
             const rect = renderer.domElement.getBoundingClientRect();
             const x = event.touches ? event.touches[0].clientX : event.clientX;
             const y = event.touches ? event.touches[0].clientY : event.clientY;
-
             mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
-
             raycaster.setFromCamera(mouse, camera);
 
             if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
@@ -547,36 +536,37 @@
         }
 
         renderer.domElement.addEventListener('click', handleInteraction);
-        renderer.domElement.addEventListener('touchstart', (e) => { e.preventDefault(); handleInteraction(e); }, {passive: false});
+        renderer.domElement.addEventListener('touchstart', (e) => { e.preventDefault(); handleInteraction(e); }, { passive: false });
 
-        // --- Calidad / Modo Humilde ---
+        // --- Calidad / Modo humilde ---
         function updateQuality() {
             const isLow = perfCheck.checked;
             renderer.shadowMap.enabled = !isLow;
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
 
-            scene.traverse(n => { 
-                if(n.isMesh) { 
+            scene.traverse(n => {
+                if (n.isMesh) {
                     if (focoMesh && (n === focoMesh || focoMesh.children.includes(n))) return;
-                    
-                    n.castShadow = !isLow; 
-                    n.receiveShadow = !isLow; 
-                    if(n.material) n.material.needsUpdate = true; 
+                    n.castShadow = !isLow;
+                    n.receiveShadow = !isLow;
+                    if (n.material) n.material.needsUpdate = true;
                 }
             });
 
             localStorage.setItem('performanceMode', isLow);
-            updateLighting(); 
+            updateLighting();
         }
 
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
         perfCheck.addEventListener('change', updateQuality);
 
-        // --- Animación ---
+        // --- Animación principal ---
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
+            // actualizar transiciones de material antes de render
+            updateMaterialTransitions(performance.now());
             effect.render(scene, camera);
         }
         animate();
@@ -586,12 +576,15 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            effect.setSize(window.innerWidth, window.innerHeight); 
+            effect.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Configuración inicial de UI
+        // --- UI inicial ---
         updateQuality();
         document.getElementById('settings-button').onclick = () => document.getElementById('settings-panel').classList.toggle('visible');
+
+        // --- Aplicar estado inicial de luz (si modelos ya cargados, applyLightToLunari se llama tras cargar lunari) ---
+        // (si usuario recarga con luz apagada, los cambios serán animados al cargar lunari)
     </script>
 </body>
 </html>
