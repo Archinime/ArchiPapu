@@ -224,6 +224,11 @@
         // Estado inicial de la luz
         let lightOn = localStorage.getItem('lightState') !== 'off';
 
+        // --- Variables para objetos interactivos/especiales ---
+        let switchMesh = null;
+        let focoMesh = null;
+        let lunariMesh = null; // <-- NUEVO: para lunari2.glb
+
         // --- Carga de Modelos ---
         const loader = new GLTFLoader();
         let modelsLoaded = 0;
@@ -237,9 +242,6 @@
             'interruptor.glb', 'maouse_pad.glb', 'techo.glb', 'base_foco.glb', 'lunari2.glb', 
             'foco.glb'
         ];
-
-        let switchMesh = null;
-        let focoMesh = null;
 
         modelos.forEach(path => {
             loader.load(path, (gltf) => {
@@ -266,7 +268,27 @@
                             }
                         }
                     });
-                } else {
+                } 
+                else if (path.includes('lunari2.glb')) {
+                    // Guardar referencia y configurar emisión inicial
+                    lunariMesh = model;
+                    
+                    model.traverse((node) => {
+                        if (node.isMesh && node.material) {
+                            // Asegurar que tenga color emisivo blanco para poder controlar la intensidad
+                            if (Array.isArray(node.material)) {
+                                node.material.forEach(mat => {
+                                    mat.emissive = new THREE.Color(0xffffff);
+                                    mat.emissiveIntensity = lightOn ? 0 : 0.1; // Luz encendida: 0, apagada: 0.1
+                                });
+                            } else {
+                                node.material.emissive = new THREE.Color(0xffffff);
+                                node.material.emissiveIntensity = lightOn ? 0 : 0.1;
+                            }
+                        }
+                    });
+                }
+                else {
                     model.traverse((node) => {
                         if (node.isMesh) {
                             node.castShadow = true;
@@ -298,6 +320,22 @@
         // --- SISTEMA DE ILUMINACIÓN CENTRALIZADO ---
         const perfCheck = document.getElementById('performance-mode');
 
+        function updateLunariEmission() {
+            if (!lunariMesh) return;
+            lunariMesh.traverse((node) => {
+                if (node.isMesh && node.material) {
+                    const intensity = lightOn ? 0 : 0.1; // Apagado: 0.1, Encendido: 0
+                    if (Array.isArray(node.material)) {
+                        node.material.forEach(mat => {
+                            mat.emissiveIntensity = intensity;
+                        });
+                    } else {
+                        node.material.emissiveIntensity = intensity;
+                    }
+                }
+            });
+        }
+
         function updateLighting() {
             const isLow = perfCheck.checked;
 
@@ -328,6 +366,9 @@
                     });
                 }
             }
+
+            // Aplicar emisión especial para lunari2.glb
+            updateLunariEmission();
         }
 
         // --- Interacción Interruptor ---
