@@ -143,10 +143,9 @@
 
         // --- Cámara optimizada ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
-        
+
         // Ajuste: Cámara más baja pero mirando al frente en PC
-        let camPosY = 8, camPosZ = 20, targetY = 8; 
-        
+        let camPosY = 8, camPosZ = 20, targetY = 8;
         // Se mantiene igual para móvil
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
         
@@ -176,10 +175,17 @@
             defaultKeepAlive: true
         });
 
-        // --- Controles ---
+        // --- Controles y Límites (NUEVO) ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.target.set(0, targetY, 0);
+
+        // Límites de rotación y zoom
+        controls.maxPolarAngle = Math.PI / 2 - 0.05; // Evita mirar por debajo del suelo
+        controls.minDistance = 2; // Acercamiento máximo
+        const baseMaxDistance = deviceType === 'mobile' ? 15 : 25;
+        controls.maxDistance = baseMaxDistance; // Alejamiento máximo predeterminado
+        controls.enablePan = false; // Deshabilita mover el objetivo para que la cámara no salga de la habitación
 
         // --- LUCES ---
         const ambient = new THREE.AmbientLight(0xffffff, 0.3);
@@ -211,9 +217,11 @@
         // Estado inicial de la luz
         let lightOn = localStorage.getItem('lightState') !== 'off';
 
-        // --- Carga de Modelos ---
+        // --- Carga de Modelos y Lista de Colisiones ---
         const loader = new GLTFLoader();
         let modelsLoaded = 0;
+        const collidableMeshes = []; // Arreglo para detectar choques de cámara (NUEVO)
+
         const modelos = [
             'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb',
             'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb',
@@ -271,6 +279,8 @@
                 }
                  
                 scene.add(model);
+                // Agregamos el modelo a la lista de colisiones (NUEVO)
+                collidableMeshes.push(model); 
 
                 if (path.includes('interruptor.glb')) {
                     switchMesh = model;
@@ -284,6 +294,7 @@
 
         // --- SISTEMA DE ILUMINACIÓN CENTRALIZADO ---
         const perfCheck = document.getElementById('performance-mode');
+
         function updateLighting() {
             const isLow = perfCheck.checked;
             if (lightOn) {
@@ -291,7 +302,6 @@
                 ambient.intensity = isLow ? 0.8 : 0.3;
                 hemiLight.intensity = isLow ? 0.8 : 0.4;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
-                
                 if (focoMesh) {
                     focoMesh.traverse((node) => {
                         if (node.isMesh && node.material) {
@@ -304,7 +314,6 @@
                 ambient.intensity = 0.02;
                 hemiLight.intensity = 0.05; 
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
-                
                 if (focoMesh) {
                     focoMesh.traverse((node) => {
                         if (node.isMesh && node.material) {
@@ -329,7 +338,6 @@
             const rect = renderer.domElement.getBoundingClientRect();
             const x = event.touches ? event.touches[0].clientX : event.clientX;
             const y = event.touches ? event.touches[0].clientY : event.clientY;
-            
             mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
 
@@ -348,7 +356,6 @@
             renderer.shadowMap.enabled = !isLow;
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-            
             scene.traverse(n => { 
                 if(n.isMesh) { 
                     if (focoMesh && (n === focoMesh || focoMesh.children.includes(n))) return;
@@ -365,10 +372,35 @@
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
         perfCheck.addEventListener('change', updateQuality);
 
+        // --- Raycaster exclusivo para colisiones de cámara (NUEVO) ---
+        const cameraRaycaster = new THREE.Raycaster();
+
         // --- Animación ---
         function animate() {
             requestAnimationFrame(animate);
-            controls.update();
+
+            // SISTEMA DE COLISIÓN DE CÁMARA (NUEVO)
+            if (collidableMeshes.length > 0) {
+                // Vector que apunta del objetivo a la cámara
+                const direction = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+                cameraRaycaster.set(controls.target, direction);
+                
+                // Comprobar si hay objetos bloqueando el paso
+                const intersects = cameraRaycaster.intersectObjects(collidableMeshes, true);
+                
+                if (intersects.length > 0) {
+                    const hit = intersects[0];
+                    const margin = 0.6; // Margen para que la cámara no se encajone en el polígono
+                    
+                    // Ajustamos el límite de alejamiento dinámicamente si hay una pared
+                    controls.maxDistance = Math.max(controls.minDistance, hit.distance - margin);
+                } else {
+                    // Si el camino está libre, regresamos al límite base
+                    controls.maxDistance = baseMaxDistance;
+                }
+            }
+
+            controls.update(); // Mover controles aquí para que apliquen los nuevos límites
             effect.render(scene, camera);
         }
         animate();
