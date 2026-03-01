@@ -184,14 +184,9 @@
         controls.target.set(0, targetY, 0);
 
         // LÍMITES DE LA CÁMARA (Anti-traspaso)
-        // 1. Evita que la cámara pase por debajo del piso
-        controls.maxPolarAngle = Math.PI / 2 - 0.05; 
-        
-        // 2. Limita el Zoom para no atravesar muebles por delante ni paredes por detrás
-        controls.minDistance = 2.5; // Distancia mínima al centro
-        controls.maxDistance = 16;  // Distancia máxima (ajusta si la habitación es muy grande)
-        
-        // 3. Desactiva el paneo (arrastre lateral con clic derecho) para que la cámara no salga del cuarto
+        controls.maxPolarAngle = Math.PI / 2 - 0.05;         
+        controls.minDistance = 2.5; 
+        controls.maxDistance = 16;  
         controls.enablePan = false;
 
         // --- LUCES ---
@@ -240,6 +235,7 @@
 
         let switchMesh = null;
         let focoMesh = null;
+        let lunari2Mesh = null; // Nueva referencia para el modelo lunari2
 
         modelos.forEach(path => {
             loader.load(path, (gltf) => {
@@ -266,7 +262,47 @@
                             }
                         }
                     });
-                } else {
+                } 
+                else if (path.includes('lunari2.glb')) {
+                    lunari2Mesh = model;
+                    
+                    // Configurar emisión inicial y guardar intensidades originales
+                    model.traverse((node) => {
+                        if (node.isMesh && node.material) {
+                            // Asegurar que el material tenga emissive
+                            if (!node.material.emissive) {
+                                node.material.emissive = new THREE.Color(0xffffff);
+                            }
+                            // Guardar intensidad original si no existe
+                            if (node.material.emissiveIntensity !== undefined) {
+                                node.material.userData = node.material.userData || {};
+                                node.material.userData.originalEmissiveIntensity = node.material.emissiveIntensity;
+                            } else {
+                                node.material.emissiveIntensity = 1.0; // valor por defecto
+                                node.material.userData = { originalEmissiveIntensity: 1.0 };
+                            }
+                            // Aplicar estado inicial
+                            node.material.emissiveIntensity = lightOn ? node.material.userData.originalEmissiveIntensity : 0;
+                        }
+                    });
+                    
+                    // Aplicar misma configuración de sombras y materiales que al resto de modelos
+                    model.traverse((node) => {
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                            
+                            if(node.material) {
+                                node.material.shadowSide = THREE.FrontSide;
+                                if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
+                                    node.material.shadowSide = THREE.BackSide;
+                                }
+                                node.material.side = THREE.DoubleSide;
+                            }
+                        }
+                    });
+                }
+                else {
                     model.traverse((node) => {
                         if (node.isMesh) {
                             node.castShadow = true;
@@ -314,6 +350,14 @@
                         }
                     });
                 }
+                if (lunari2Mesh) {
+                    lunari2Mesh.traverse((node) => {
+                        if (node.isMesh && node.material) {
+                            const original = node.material.userData?.originalEmissiveIntensity;
+                            node.material.emissiveIntensity = original !== undefined ? original : 1.0;
+                        }
+                    });
+                }
             } else {
                 mainLight.visible = false;
                 ambient.intensity = 0.02;
@@ -322,6 +366,13 @@
 
                 if (focoMesh) {
                     focoMesh.traverse((node) => {
+                        if (node.isMesh && node.material) {
+                            node.material.emissiveIntensity = 0;
+                        }
+                    });
+                }
+                if (lunari2Mesh) {
+                    lunari2Mesh.traverse((node) => {
                         if (node.isMesh && node.material) {
                             node.material.emissiveIntensity = 0;
                         }
