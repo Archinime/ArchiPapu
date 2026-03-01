@@ -134,8 +134,10 @@
         const ua = navigator.userAgent;
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
         const width = window.innerWidth;
-        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : 
-                         (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
+        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ?
+                         'mobile' : 
+                         (width >= 768 && width <= 1024) ?
+                         'tablet' : 'desktop';
 
         // --- Escena ---
         const scene = new THREE.Scene();
@@ -143,8 +145,10 @@
 
         // --- Cámara optimizada ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
+        
         // Ajuste: Cámara más cerca y centrada para PC
-        let camPosY = 6, camPosZ = 14, targetY = 6;
+        let camPosY = 6, camPosZ = 14, targetY = 6; 
+        
         // Se mantiene igual para móvil
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
         
@@ -181,10 +185,11 @@
 
         // LÍMITES DE LA CÁMARA (Anti-traspaso)
         // 1. Evita que la cámara pase por debajo del piso
-        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+        controls.maxPolarAngle = Math.PI / 2 - 0.05; 
+        
         // 2. Limita el Zoom para no atravesar muebles por delante ni paredes por detrás
-        controls.minDistance = 2.5;
-        controls.maxDistance = 16;
+        controls.minDistance = 2.5; // Distancia mínima al centro
+        controls.maxDistance = 16;  // Distancia máxima (ajusta si la habitación es muy grande)
         
         // 3. Desactiva el paneo (arrastre lateral con clic derecho) para que la cámara no salga del cuarto
         controls.enablePan = false;
@@ -219,13 +224,9 @@
         // Estado inicial de la luz
         let lightOn = localStorage.getItem('lightState') !== 'off';
 
-        // --- Carga de Modelos y Lista de Colisiones ---
+        // --- Carga de Modelos ---
         const loader = new GLTFLoader();
         let modelsLoaded = 0;
-        
-        // ARREGLO PARA COLISIONES DE LA CÁMARA
-        const collidableMeshes = [];
-
         const modelos = [
             'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb',
             'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb',
@@ -277,12 +278,6 @@
                                     node.material.shadowSide = THREE.BackSide;
                                 }
                                 node.material.side = THREE.DoubleSide;
-                            }
-
-                            // Agregamos a la lista de colisiones, ignorando el piso y el techo para evitar bugs
-                            const nombre = node.name.toLowerCase();
-                            if (!nombre.includes('piso') && !nombre.includes('techo') && !nombre.includes('foco') && !nombre.includes('luz')) {
-                                collidableMeshes.push(node);
                             }
                         }
                     });
@@ -387,35 +382,10 @@
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
         perfCheck.addEventListener('change', updateQuality);
 
-        // --- SISTEMA DE COLISIÓN DE CÁMARA (Suave y sin tirones) ---
-        const collisionRaycaster = new THREE.Raycaster();
-        const cameraDirection = new THREE.Vector3();
-        const absoluteMaxDistance = 16; // El límite natural que configuraste
-
         // --- Animación ---
         function animate() {
             requestAnimationFrame(animate);
-
-            // 1. Calculamos la dirección del rayo: del 'centro' hacia la cámara actual
-            cameraDirection.subVectors(camera.position, controls.target).normalize();
-            collisionRaycaster.set(controls.target, cameraDirection);
-            
-            // 2. Buscamos el obstáculo más cercano en esa línea de visión
-            const intersects = collisionRaycaster.intersectObjects(collidableMeshes, false);
-
-            if (intersects.length > 0) {
-                const hitDistance = intersects[0].distance;
-                // Le restamos 0.8 como un "escudo" o margen de seguridad 
-                // para que los polígonos no se corten por el lente de la cámara
-                controls.maxDistance = Math.max(controls.minDistance, hitDistance - 0.8);
-            } else {
-                // Si la vista está despejada, restauramos tu límite de distancia natural
-                controls.maxDistance = absoluteMaxDistance;
-            }
-
-            // 3. Dejamos que OrbitControls haga la magia internamente y actualice suavemente la vista
             controls.update();
-
             effect.render(scene, camera);
         }
         animate();
