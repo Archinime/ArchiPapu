@@ -134,10 +134,8 @@
         const ua = navigator.userAgent;
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
         const width = window.innerWidth;
-        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ?
-                         'mobile' : 
-                         (width >= 768 && width <= 1024) ?
-                         'tablet' : 'desktop';
+        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : 
+                         (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
 
         // --- Escena ---
         const scene = new THREE.Scene();
@@ -145,8 +143,13 @@
 
         // --- Cámara optimizada ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
-        let camPosY = 10, camPosZ = 20, targetY = 2;
+        
+        // Ajuste: Cámara más alta y mirando al frente en PC
+        let camPosY = 12, camPosZ = 20, targetY = 12; 
+        
+        // Se mantiene igual para móvil
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
+        
         camera.position.set(0, camPosY, camPosZ);
 
         // --- RENDERIZADOR PRO ---
@@ -166,7 +169,6 @@
         document.body.appendChild(renderer.domElement);
 
         // --- EFECTO DE CONTORNO ANIME SUAVIZADO ---
-        // Se redujo el grosor, se ajustó el color a un gris muy oscuro y se añadió transparencia (alpha)
         const effect = new OutlineEffect(renderer, {
             defaultThickness: 0.0008, 
             defaultColor: [0.05, 0.05, 0.08], 
@@ -189,14 +191,14 @@
 
         // Luz Principal
         const mainLight = new THREE.SpotLight(0xffeedd, 6);
-        mainLight.position.set(2, 22, 2); 
+        mainLight.position.set(2, 22, 2);
         mainLight.angle = Math.PI / 3;
         mainLight.penumbra = 0.8; 
         mainLight.decay = 2; 
         mainLight.distance = 60;
         
         mainLight.castShadow = true;
-        mainLight.shadow.mapSize.set(2048, 2048); 
+        mainLight.shadow.mapSize.set(2048, 2048);
         mainLight.shadow.camera.near = 0.5;
         mainLight.shadow.camera.far = 40;
         mainLight.shadow.bias = -0.0001;
@@ -205,9 +207,6 @@
         
         scene.add(mainLight);
         scene.add(mainLight.target);
-
-        const indicatorLight = new THREE.PointLight(0xffaa00, 0.8, 5);
-        scene.add(indicatorLight);
 
         // Estado inicial de la luz
         let lightOn = localStorage.getItem('lightState') !== 'off';
@@ -275,8 +274,7 @@
 
                 if (path.includes('interruptor.glb')) {
                     switchMesh = model;
-                    const box = new THREE.Box3().setFromObject(model);
-                    box.getCenter(indicatorLight.position);
+                    // Ya no se requiere calcular el centro para la luz eliminada
                 }
                 
                 modelsLoaded++;
@@ -287,15 +285,12 @@
 
         // --- SISTEMA DE ILUMINACIÓN CENTRALIZADO ---
         const perfCheck = document.getElementById('performance-mode');
-
         function updateLighting() {
             const isLow = perfCheck.checked;
-
             if (lightOn) {
                 mainLight.visible = true;
                 ambient.intensity = isLow ? 0.8 : 0.3;
                 hemiLight.intensity = isLow ? 0.8 : 0.4;
-                indicatorLight.intensity = 0.8;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
                 
                 if (focoMesh) {
@@ -309,9 +304,8 @@
                 mainLight.visible = false;
                 ambient.intensity = 0.02;
                 hemiLight.intensity = 0.05; 
-                indicatorLight.intensity = 2;
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
-
+                
                 if (focoMesh) {
                     focoMesh.traverse((node) => {
                         if (node.isMesh && node.material) {
@@ -341,7 +335,6 @@
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
-
             if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
                 toggleLight();
             }
@@ -356,7 +349,7 @@
             renderer.shadowMap.enabled = !isLow;
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-
+            
             scene.traverse(n => { 
                 if(n.isMesh) { 
                     if (focoMesh && (n === focoMesh || focoMesh.children.includes(n))) return;
@@ -366,7 +359,6 @@
                     if(n.material) n.material.needsUpdate = true; 
                 }
             });
-
             localStorage.setItem('performanceMode', isLow);
             updateLighting(); 
         }
