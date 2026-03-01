@@ -134,10 +134,8 @@
         const ua = navigator.userAgent;
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
         const width = window.innerWidth;
-        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ?
-                         'mobile' : 
-                         (width >= 768 && width <= 1024) ?
-                         'tablet' : 'desktop';
+        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : 
+                         (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
 
         // --- Escena ---
         const scene = new THREE.Scene();
@@ -145,10 +143,8 @@
 
         // --- Cámara optimizada ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
-        
         // Ajuste: Cámara más cerca y centrada para PC
-        let camPosY = 6, camPosZ = 14, targetY = 6; 
-        
+        let camPosY = 6, camPosZ = 14, targetY = 6;
         // Se mantiene igual para móvil
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
         
@@ -185,11 +181,10 @@
 
         // LÍMITES DE LA CÁMARA (Anti-traspaso)
         // 1. Evita que la cámara pase por debajo del piso
-        controls.maxPolarAngle = Math.PI / 2 - 0.05; 
-        
+        controls.maxPolarAngle = Math.PI / 2 - 0.05;
         // 2. Limita el Zoom para no atravesar muebles por delante ni paredes por detrás
-        controls.minDistance = 2.5; // Distancia mínima al centro
-        controls.maxDistance = 16;  // Distancia máxima (ajusta si la habitación es muy grande)
+        controls.minDistance = 2.5;
+        controls.maxDistance = 16;
         
         // 3. Desactiva el paneo (arrastre lateral con clic derecho) para que la cámara no salga del cuarto
         controls.enablePan = false;
@@ -224,9 +219,13 @@
         // Estado inicial de la luz
         let lightOn = localStorage.getItem('lightState') !== 'off';
 
-        // --- Carga de Modelos ---
+        // --- Carga de Modelos y Lista de Colisiones ---
         const loader = new GLTFLoader();
         let modelsLoaded = 0;
+        
+        // ARREGLO PARA COLISIONES DE LA CÁMARA
+        const collidableMeshes = [];
+
         const modelos = [
             'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb',
             'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb',
@@ -278,6 +277,12 @@
                                     node.material.shadowSide = THREE.BackSide;
                                 }
                                 node.material.side = THREE.DoubleSide;
+                            }
+
+                            // Agregamos a la lista de colisiones, ignorando el piso y el techo para evitar bugs
+                            const nombre = node.name.toLowerCase();
+                            if (!nombre.includes('piso') && !nombre.includes('techo') && !nombre.includes('foco') && !nombre.includes('luz')) {
+                                collidableMeshes.push(node);
                             }
                         }
                     });
@@ -382,10 +387,37 @@
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
         perfCheck.addEventListener('change', updateQuality);
 
+        // --- SISTEMA DE COLISIÓN DE CÁMARA ---
+        const collisionRaycaster = new THREE.Raycaster();
+
         // --- Animación ---
         function animate() {
             requestAnimationFrame(animate);
+            
+            // Guardamos la posición exacta antes de que OrbitControls mueva la cámara
+            const positionBeforeUpdate = camera.position.clone();
+            
             controls.update();
+
+            // Calculamos el vector de movimiento (hacia dónde se dirigió la cámara)
+            const moveVector = new THREE.Vector3().subVectors(camera.position, positionBeforeUpdate);
+            const distanceMoved = moveVector.length();
+
+            // Si la cámara intentó moverse, verificamos el camino
+            if (distanceMoved > 0.001) {
+                moveVector.normalize();
+                collisionRaycaster.set(positionBeforeUpdate, moveVector);
+                // Damos un pequeño margen (0.3) para que la cámara no se hunda en la textura
+                collisionRaycaster.far = distanceMoved + 0.3; 
+
+                const intersects = collisionRaycaster.intersectObjects(collidableMeshes, false);
+
+                if (intersects.length > 0) {
+                    // ¡COLISIÓN DETECTADA! Regresamos la cámara instantáneamente a la posición segura anterior
+                    camera.position.copy(positionBeforeUpdate);
+                }
+            }
+
             effect.render(scene, camera);
         }
         animate();
