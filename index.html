@@ -240,8 +240,7 @@
 
         let switchMesh = null;
         let focoMesh = null;
-        let lunari2Mesh = null; // Referencia al modelo lunari2
-        // Guardaremos datos de emisión originales de lunari2
+        // Guardamos referencia a los materiales de lunari2 que tienen emisión, junto con su color original
         const lunari2EmissiveData = [];
 
         modelos.forEach(path => {
@@ -271,20 +270,19 @@
                     });
                 } 
                 else if (path.includes('lunari2.glb')) {
-                    // Guardamos referencia para controlar su emisión
-                    lunari2Mesh = model;
-                    
-                    // Almacenamos los valores originales de emisión de cada material
+                    // Guardamos referencia al modelo y sus materiales emisivos
+                    // Primero, almacenamos los colores emisivos originales
                     model.traverse((node) => {
                         if (node.isMesh && node.material) {
                             // Puede ser material único o array
                             const materials = Array.isArray(node.material) ? node.material : [node.material];
                             materials.forEach(mat => {
+                                // Solo si tiene propiedad emissive (puede ser undefined en algunos materiales)
                                 if (mat.emissive) {
-                                    // Guardamos color e intensidad originales
+                                    // Guardamos el color original (clon para no modificarlo después)
                                     lunari2EmissiveData.push({
                                         material: mat,
-                                        originalColor: mat.emissive.clone(),
+                                        originalEmissive: mat.emissive.clone(),
                                         originalIntensity: mat.emissiveIntensity !== undefined ? mat.emissiveIntensity : 1.0
                                     });
                                 }
@@ -353,15 +351,16 @@
                     });
                 }
 
-                // Restauramos la emisión original de lunari2
-                if (lunari2EmissiveData.length > 0) {
-                    lunari2EmissiveData.forEach(item => {
-                        if (item.material) {
-                            item.material.emissive.copy(item.originalColor);
+                // Restauramos la emisión original de lunari2 (color e intensidad)
+                lunari2EmissiveData.forEach(item => {
+                    if (item.material) {
+                        item.material.emissive.copy(item.originalEmissive);
+                        if (item.material.emissiveIntensity !== undefined) {
                             item.material.emissiveIntensity = item.originalIntensity;
                         }
-                    });
-                }
+                        item.material.needsUpdate = true;
+                    }
+                });
             } else {
                 mainLight.visible = false;
                 ambient.intensity = 0.02;
@@ -376,14 +375,16 @@
                     });
                 }
 
-                // Apagamos completamente la emisión de lunari2
-                if (lunari2EmissiveData.length > 0) {
-                    lunari2EmissiveData.forEach(item => {
-                        if (item.material) {
+                // Apagamos completamente la emisión de lunari2: color negro y cero intensidad
+                lunari2EmissiveData.forEach(item => {
+                    if (item.material) {
+                        item.material.emissive.setRGB(0, 0, 0);
+                        if (item.material.emissiveIntensity !== undefined) {
                             item.material.emissiveIntensity = 0;
                         }
-                    });
-                }
+                        item.material.needsUpdate = true;
+                    }
+                });
             }
         }
 
