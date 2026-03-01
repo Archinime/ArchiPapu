@@ -145,7 +145,11 @@
 
         // --- Cámara optimizada ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
-        let camPosY = 6, camPosZ = 14, targetY = 6;
+        
+        // Ajuste: Cámara más cerca y centrada para PC
+        let camPosY = 6, camPosZ = 14, targetY = 6; 
+        
+        // Se mantiene igual para móvil
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
         
         camera.position.set(0, camPosY, camPosZ);
@@ -180,7 +184,7 @@
         controls.target.set(0, targetY, 0);
 
         // LÍMITES DE LA CÁMARA (Anti-traspaso)
-        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+        controls.maxPolarAngle = Math.PI / 2 - 0.05; 
         controls.minDistance = 2.5;
         controls.maxDistance = 16;
         controls.enablePan = false;
@@ -215,6 +219,17 @@
         // Estado inicial de la luz
         let lightOn = localStorage.getItem('lightState') !== 'off';
 
+        // --- Variables para el modelo lunari (conmutación) ---
+        let lunariOriginalModel = null;      // modelo claro (lunari2.glb)
+        let lunariDarkModel = null;          // modelo oscuro (lunari_oscuro.glb) - se cargará bajo demanda
+        let lunariCurrentModel = null;       // modelo actualmente en escena
+        const lunariTransform = {             // transformación del original (se copia al cambiar)
+            position: new THREE.Vector3(),
+            rotation: new THREE.Euler(),
+            scale: new THREE.Vector3(1, 1, 1)
+        };
+        let isReplacing = false;              // para evitar llamadas simultáneas
+
         // --- Carga de Modelos ---
         const loader = new GLTFLoader();
         let modelsLoaded = 0;
@@ -231,7 +246,6 @@
 
         let switchMesh = null;
         let focoMesh = null;
-        let lunariMesh = null; // VARIABLE AÑADIDA PARA TU MODELO
 
         modelos.forEach(path => {
             loader.load(path, (gltf) => {
@@ -259,22 +273,6 @@
                         }
                     });
                 } else {
-                    // SE CAPTURA TU MODELO AQUÍ MIENTRAS APLICA LAS SOMBRAS
-                    if (path.includes('lunari2.glb')) {
-                        lunariMesh = model;
-                        
-                        // Opcional: Establecer el estado inicial correcto al cargar
-                        model.traverse((node) => {
-                            if (node.isMesh && node.material) {
-                                node.material.emissiveIntensity = lightOn ? 1.0 : 0.1;
-                            }
-                        });
-                    }
-
-                    if (path.includes('interruptor.glb')) {
-                        switchMesh = model;
-                    }
-
                     model.traverse((node) => {
                         if (node.isMesh) {
                             node.castShadow = true;
@@ -292,6 +290,20 @@
                 }
                  
                 scene.add(model);
+
+                // --- Guardar referencia del modelo lunari2 (claro) ---
+                if (path === 'lunari2.glb') {
+                    lunariOriginalModel = model;
+                    lunariCurrentModel = model;
+                    // Guardar transformación original
+                    lunariTransform.position.copy(model.position);
+                    lunariTransform.rotation.copy(model.rotation);
+                    lunariTransform.scale.copy(model.scale);
+                }
+
+                if (path.includes('interruptor.glb')) {
+                    switchMesh = model;
+                }
                 
                 modelsLoaded++;
                 document.getElementById('loading').innerText = `Cargando: ${modelsLoaded}/${modelos.length}`;
@@ -299,18 +311,87 @@
             });
         });
 
+        // --- Función para reemplazar el modelo lunari ---
+        function replaceLunari(targetPath) {
+            if (isReplacing) return;
+            if (!lunariOriginalModel) return; // aún no cargado el original
+
+            isReplacing = true;
+
+            // Determinar qué modelo usar
+            let targetModel = null;
+            const isLight = (targetPath === 'lunari2.glb');
+
+            if (isLight) {
+                if (lunariOriginalModel) {
+                    targetModel = lunariOriginalModel;
+                    applyModelTransform(targetModel);
+                    replaceInScene(targetModel);
+                } else {
+                    // No debería ocurrir porque ya tenemos lunariOriginalModel
+                    isReplacing = false;
+                }
+            } else {
+                // Modelo oscuro
+                if (lunariDarkModel) {
+                    targetModel = lunariDarkModel;
+                    applyModelTransform(targetModel);
+                    replaceInScene(targetModel);
+                } else {
+                    // Cargar el modelo oscuro por primera vez
+                    loader.load('lunari_oscuro.glb', (gltf) => {
+                        const darkModel = gltf.scene;
+                        // Configurar sombras y materiales según el modo actual
+                        const isLow = perfCheck.checked;
+                        darkModel.traverse((node) => {
+                            if (node.isMesh) {
+                                node.castShadow = !isLow;
+                                node.receiveShadow = !isLow;
+                                if (node.material) {
+                                    node.material.shadowSide = THREE.FrontSide;
+                                    node.material.side = THREE.DoubleSide;
+                                }
+                            }
+                        });
+                        lunariDarkModel = darkModel;
+                        applyModelTransform(darkModel);
+                        replaceInScene(darkModel);
+                    }, undefined, (error) => {
+                        console.error('Error cargando lunari_oscuro.glb', error);
+                        isReplacing = false;
+                    });
+                    return; // la carga es asíncrona, no continuar
+                }
+            }
+
+            function applyModelTransform(model) {
+                model.position.copy(lunariTransform.position);
+                model.rotation.copy(lunariTransform.rotation);
+                model.scale.copy(lunariTransform.scale);
+            }
+
+            function replaceInScene(newModel) {
+                if (lunariCurrentModel) {
+                    scene.remove(lunariCurrentModel);
+                }
+                scene.add(newModel);
+                lunariCurrentModel = newModel;
+                isReplacing = false;
+            }
+        }
+
         // --- SISTEMA DE ILUMINACIÓN CENTRALIZADO ---
         const perfCheck = document.getElementById('performance-mode');
 
         function updateLighting() {
             const isLow = perfCheck.checked;
-            
+
             if (lightOn) {
                 mainLight.visible = true;
                 ambient.intensity = isLow ? 0.8 : 0.3;
                 hemiLight.intensity = isLow ? 0.8 : 0.4;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
-                
+
                 if (focoMesh) {
                     focoMesh.traverse((node) => {
                         if (node.isMesh && node.material) {
@@ -318,35 +399,16 @@
                         }
                     });
                 }
-                
-                // LUNARI: LUZ ENCENDIDA -> FUERZA 1.0
-                if (lunariMesh) {
-                    lunariMesh.traverse((node) => {
-                        if (node.isMesh && node.material) {
-                            node.material.emissiveIntensity = 1.0;
-                        }
-                    });
-                }
-                
             } else {
                 mainLight.visible = false;
                 ambient.intensity = 0.02;
                 hemiLight.intensity = 0.05; 
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
-                
+
                 if (focoMesh) {
                     focoMesh.traverse((node) => {
                         if (node.isMesh && node.material) {
                             node.material.emissiveIntensity = 0;
-                        }
-                    });
-                }
-
-                // LUNARI: LUZ APAGADA -> FUERZA 0.1
-                if (lunariMesh) {
-                    lunariMesh.traverse((node) => {
-                        if (node.isMesh && node.material) {
-                            node.material.emissiveIntensity = 0.1;
                         }
                     });
                 }
@@ -361,18 +423,25 @@
             lightOn = !lightOn;
             localStorage.setItem('lightState', lightOn ? 'on' : 'off');
             updateLighting();
+
+            // Cambiar el modelo lunari según el estado de la luz
+            if (lightOn) {
+                replaceLunari('lunari2.glb');
+            } else {
+                replaceLunari('lunari_oscuro.glb');
+            }
         }
 
         function handleInteraction(event) {
             const rect = renderer.domElement.getBoundingClientRect();
             const x = event.touches ? event.touches[0].clientX : event.clientX;
             const y = event.touches ? event.touches[0].clientY : event.clientY;
-            
+
             mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
-            
+
             if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
                 toggleLight();
             }
@@ -387,7 +456,7 @@
             renderer.shadowMap.enabled = !isLow;
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-            
+
             scene.traverse(n => { 
                 if(n.isMesh) { 
                     if (focoMesh && (n === focoMesh || focoMesh.children.includes(n))) return;
@@ -397,7 +466,7 @@
                     if(n.material) n.material.needsUpdate = true; 
                 }
             });
-            
+
             localStorage.setItem('performanceMode', isLow);
             updateLighting(); 
         }
