@@ -144,8 +144,8 @@
         // --- Cámara optimizada ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
         
-        // Ajuste: Cámara más alta y mirando al frente en PC
-        let camPosY = 12, camPosZ = 20, targetY = 12; 
+        // Ajuste: Cámara más baja pero mirando al frente en PC
+        let camPosY = 8, camPosZ = 20, targetY = 8; 
         
         // Se mantiene igual para móvil
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
@@ -274,7 +274,6 @@
 
                 if (path.includes('interruptor.glb')) {
                     switchMesh = model;
-                    // Ya no se requiere calcular el centro para la luz eliminada
                 }
                 
                 modelsLoaded++;
