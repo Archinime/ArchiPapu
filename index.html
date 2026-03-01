@@ -240,7 +240,48 @@
 
         let switchMesh = null;
         let focoMesh = null;
-        let lunariMesh = null; // Referencia para el modelo lunari2.glb
+
+        // --- NUEVO: manejo específico para lunari2.glb ---
+        const lunariMeshes = []; // nodos que pertenecen a lunari2
+        const lunariMaterialData = new Map(); // key: material.uuid -> data { originalMaterial, replacementMaterial?, originalProps }
+
+        function cloneMaterialProps(mat) {
+            // guarda los atributos que vamos a restaurar
+            return {
+                color: mat.color ? mat.color.clone() : null,
+                emissive: mat.emissive ? mat.emissive.clone() : null,
+                emissiveIntensity: (typeof mat.emissiveIntensity !== 'undefined') ? mat.emissiveIntensity : 0,
+                metalness: (typeof mat.metalness !== 'undefined') ? mat.metalness : null,
+                roughness: (typeof mat.roughness !== 'undefined') ? mat.roughness : null,
+                type: mat.type || '',
+                opacity: (typeof mat.opacity !== 'undefined') ? mat.opacity : 1,
+                transparent: (typeof mat.transparent !== 'undefined') ? mat.transparent : false,
+                map: mat.map || null,
+                normalMap: mat.normalMap || null,
+                aoMap: mat.aoMap || null,
+                envMap: mat.envMap || null,
+                envMapIntensity: (typeof mat.envMapIntensity !== 'undefined') ? mat.envMapIntensity : 1
+            };
+        }
+
+        function createStandardFromBasic(basicMatProps) {
+            // crea un MeshStandardMaterial usando mapas y color del basic, para que responda a la iluminación
+            const m = new THREE.MeshStandardMaterial({
+                map: basicMatProps.map || null,
+                normalMap: basicMatProps.normalMap || null,
+                aoMap: basicMatProps.aoMap || null,
+                envMap: basicMatProps.envMap || null,
+                envMapIntensity: basicMatProps.envMapIntensity || 1,
+                color: basicMatProps.color ? basicMatProps.color.clone() : new THREE.Color(0xffffff),
+                metalness: (basicMatProps.metalness !== null) ? basicMatProps.metalness : 0.0,
+                roughness: (basicMatProps.roughness !== null) ? basicMatProps.roughness : 1.0,
+                transparent: basicMatProps.transparent,
+                opacity: basicMatProps.opacity
+            });
+            return m;
+        }
+
+        loader.load = loader.load.bind(loader); // mantener contexto (no obligatorio, pero seguro)
 
         modelos.forEach(path => {
             loader.load(path, (gltf) => {
@@ -267,38 +308,74 @@
                             }
                         }
                     });
-                } 
-                else if (path.includes('lunari2.glb')) {
-                    lunariMesh = model;
-                    // Guardar los valores originales de emisión para restaurarlos después
-                    model.traverse((node) => {
-                        if (node.isMesh && node.material) {
-                            const materials = Array.isArray(node.material) ? node.material : [node.material];
-                            materials.forEach(mat => {
-                                if (mat.emissive) {
-                                    // Guardar color e intensidad originales en userData del material
-                                    mat.userData.originalEmissive = mat.emissive.clone();
-                                    mat.userData.originalEmissiveIntensity = mat.emissiveIntensity !== undefined ? mat.emissiveIntensity : 1.0;
+                } else {
+                    // Si es lunari2, aplicamos el tratamiento especial
+                    if (path.includes('lunari2.glb')) {
+                        model.traverse((node) => {
+                            if (node.isMesh) {
+                                // guardar referencia global del mesh
+                                lunariMeshes.push(node);
+
+                                // several meshes could share same material object; guardamos por material.uuid
+                                let mats = Array.isArray(node.material) ? node.material : [node.material];
+                                mats.forEach(mat => {
+                                    if (!mat) return;
+                                    if (!lunariMaterialData.has(mat.uuid)) {
+                                        const originalProps = cloneMaterialProps(mat);
+                                        let replacement = null;
+                                        let replacedBasic = false;
+                                        // Si es MeshBasicMaterial (no responde a la luz), crear sustituto MeshStandardMaterial
+                                        if (mat.type === 'MeshBasicMaterial' || mat.isMeshBasicMaterial) {
+                                            replacement = createStandardFromBasic(originalProps);
+                                            replacement.emissive = new THREE.Color(0x000000);
+                                            replacement.emissiveIntensity = 0;
+                                            replacedBasic = true;
+                                        } else {
+                                            // asegurarnos de que exista emissive para controlarlo
+                                            if (!mat.emissive) mat.emissive = new THREE.Color(0x000000);
+                                        }
+
+                                        lunariMaterialData.set(mat.uuid, {
+                                            originalMaterial: mat,
+                                            originalProps,
+                                            replacementMaterial: replacement,
+                                            replacedBasic
+                                        });
+                                    }
+                                });
+
+                                // Si se creó replacement para algún material, lo aplicamos (por ejemplo para Basic -> Standard)
+                                if (Array.isArray(node.material)) {
+                                    node.material = node.material.map(m => {
+                                        const info = m ? lunariMaterialData.get(m.uuid) : null;
+                                        return info && info.replacementMaterial ? info.replacementMaterial : m;
+                                    });
+                                } else {
+                                    const info = lunariMaterialData.get(node.material.uuid);
+                                    if (info && info.replacementMaterial) node.material = info.replacementMaterial;
                                 }
-                            });
-                        }
-                    });
-                }
-                else {
-                    model.traverse((node) => {
-                        if (node.isMesh) {
-                            node.castShadow = true;
-                            node.receiveShadow = true;
-                            
-                            if(node.material) {
-                                node.material.shadowSide = THREE.FrontSide;
-                                if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
-                                    node.material.shadowSide = THREE.BackSide;
-                                }
-                                node.material.side = THREE.DoubleSide;
+
+                                // Configuraciones de sombras para lunari
+                                node.castShadow = true;
+                                node.receiveShadow = true;
                             }
-                        }
-                    });
+                        });
+                    } else {
+                        model.traverse((node) => {
+                            if (node.isMesh) {
+                                node.castShadow = true;
+                                node.receiveShadow = true;
+                                
+                                if(node.material) {
+                                    node.material.shadowSide = THREE.FrontSide;
+                                    if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
+                                        node.material.shadowSide = THREE.BackSide;
+                                    }
+                                    node.material.side = THREE.DoubleSide;
+                                }
+                            }
+                        });
+                    }
                 }
                  
                 scene.add(model);
@@ -310,8 +387,98 @@
                 modelsLoaded++;
                 document.getElementById('loading').innerText = `Cargando: ${modelsLoaded}/${modelos.length}`;
                 if (modelsLoaded === modelos.length) document.getElementById('loading').style.display = 'none';
+
+                // una vez cargado lunari (o su material de reemplazo), aplicar estado inicial de luz
+                if (path.includes('lunari2.glb')) {
+                    // aplicar estado de luz actual a lunari inmediatamente
+                    applyLightToLunari(lightOn, /*instant=*/true);
+                }
             });
         });
+
+        // --- Aplica luz/oscurecimiento solo a lunari ---
+        function applyLightToLunari(turnOn, instant = false) {
+            // turnOn = true -> restaurar original y permitir emissive
+            // turnOn = false -> forzar oscuro (emissive 0, colores más oscuros)
+            lunariMeshes.forEach(mesh => {
+                const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+                mats.forEach(mat => {
+                    if (!mat) return;
+                    // podemos encontrar que mat es replacement o el original. Buscamos por uuid en lunariMaterialData:
+                    // en el Map guardamos info con key originalMaterial.uuid, pero mat.uuid podría ser replacement.uuid.
+                    // Por eso buscamos por equivalencia buscando la entry que tenga replacementMaterial === mat o originalMaterial === mat.
+                    let entry = null;
+                    for (const [k, v] of lunariMaterialData.entries()) {
+                        if (v.originalMaterial === mat || v.replacementMaterial === mat) {
+                            entry = v;
+                            break;
+                        }
+                    }
+
+                    if (!entry) {
+                        // fallback: si no hay entry (material no procesado), intentamos simplemente ajustar emissive
+                        if (mat.emissive) {
+                            if (turnOn) {
+                                mat.emissiveIntensity = (mat.emissiveIntensity !== undefined) ? mat.emissiveIntensity : 1;
+                            } else {
+                                mat.emissive.setHex(0x000000);
+                                mat.emissiveIntensity = 0;
+                            }
+                        } else {
+                            if (!turnOn) {
+                                if (mat.color) mat.color.multiplyScalar(0.08);
+                            }
+                        }
+                        mat.needsUpdate = true;
+                        return;
+                    }
+
+                    const orig = entry.originalProps;
+                    // Si la material fue reemplazado desde Basic a Standard, trabajamos sobre replacement
+                    const targetMat = entry.replacementMaterial ? entry.replacementMaterial : entry.originalMaterial;
+
+                    if (turnOn) {
+                        // Restaurar color y emissive
+                        if (orig.color && targetMat.color) targetMat.color.copy(orig.color);
+                        if (orig.emissive && targetMat.emissive) targetMat.emissive.copy(orig.emissive);
+                        if (typeof orig.emissiveIntensity !== 'undefined' && targetMat.hasOwnProperty('emissiveIntensity')) {
+                            targetMat.emissiveIntensity = orig.emissiveIntensity;
+                        } else if (targetMat.hasOwnProperty('emissiveIntensity')) {
+                            targetMat.emissiveIntensity = 1;
+                        }
+                        // restablecer envMapIntensity si existe
+                        if (typeof orig.envMapIntensity !== 'undefined' && typeof targetMat.envMapIntensity !== 'undefined') {
+                            targetMat.envMapIntensity = orig.envMapIntensity;
+                        }
+                        // si era Basic y lo reemplazamos, mantener la apariencia de encendido (emissive si corresponde)
+                        targetMat.transparent = entry.originalProps.transparent;
+                        targetMat.opacity = entry.originalProps.opacity;
+                    } else {
+                        // Oscurecer: quitar emissive y bajar color mucho
+                        if (targetMat.emissive) {
+                            targetMat.emissive.setHex(0x000000);
+                        }
+                        if (targetMat.hasOwnProperty('emissiveIntensity')) {
+                            targetMat.emissiveIntensity = 0;
+                        }
+                        // Hacer color muy oscuro (mantener textura pero oscurecerla)
+                        if (targetMat.color) {
+                            // multiplicamos por factor pequeño para oscurecer sin perder textura
+                            targetMat.color.multiplyScalar(0.06);
+                        }
+                        // reducir envMap reflectividad para que no parezca brillante
+                        if (typeof targetMat.envMapIntensity !== 'undefined') {
+                            targetMat.envMapIntensity = 0.02;
+                        }
+                        // si tenía transparencia, conservarla pero reducir impacto
+                        targetMat.transparent = entry.originalProps.transparent;
+                        targetMat.opacity = entry.originalProps.opacity;
+                    }
+
+                    targetMat.needsUpdate = true;
+                });
+            });
+        }
 
         // --- SISTEMA DE ILUMINACIÓN CENTRALIZADO ---
         const perfCheck = document.getElementById('performance-mode');
@@ -333,21 +500,8 @@
                     });
                 }
 
-                // Restaurar emisión original en lunari2
-                if (lunariMesh) {
-                    lunariMesh.traverse((node) => {
-                        if (node.isMesh && node.material) {
-                            const materials = Array.isArray(node.material) ? node.material : [node.material];
-                            materials.forEach(mat => {
-                                if (mat.emissive && mat.userData.originalEmissive) {
-                                    mat.emissive.copy(mat.userData.originalEmissive);
-                                    mat.emissiveIntensity = mat.userData.originalEmissiveIntensity;
-                                    mat.needsUpdate = true;
-                                }
-                            });
-                        }
-                    });
-                }
+                // restaurar apariencia de lunari
+                applyLightToLunari(true);
             } else {
                 mainLight.visible = false;
                 ambient.intensity = 0.02;
@@ -362,21 +516,8 @@
                     });
                 }
 
-                // Apagar emisión en lunari2 (poner negro)
-                if (lunariMesh) {
-                    lunariMesh.traverse((node) => {
-                        if (node.isMesh && node.material) {
-                            const materials = Array.isArray(node.material) ? node.material : [node.material];
-                            materials.forEach(mat => {
-                                if (mat.emissive) {
-                                    mat.emissive.setHex(0x000000);
-                                    mat.emissiveIntensity = 0;
-                                    mat.needsUpdate = true;
-                                }
-                            });
-                        }
-                    });
-                }
+                // oscurecer lunari
+                applyLightToLunari(false);
             }
         }
 
