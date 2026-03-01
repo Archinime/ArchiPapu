@@ -387,36 +387,34 @@
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
         perfCheck.addEventListener('change', updateQuality);
 
-        // --- SISTEMA DE COLISIÓN DE CÁMARA ---
+        // --- SISTEMA DE COLISIÓN DE CÁMARA (Suave y sin tirones) ---
         const collisionRaycaster = new THREE.Raycaster();
+        const cameraDirection = new THREE.Vector3();
+        const absoluteMaxDistance = 16; // El límite natural que configuraste
 
         // --- Animación ---
         function animate() {
             requestAnimationFrame(animate);
+
+            // 1. Calculamos la dirección del rayo: del 'centro' hacia la cámara actual
+            cameraDirection.subVectors(camera.position, controls.target).normalize();
+            collisionRaycaster.set(controls.target, cameraDirection);
             
-            // Guardamos la posición exacta antes de que OrbitControls mueva la cámara
-            const positionBeforeUpdate = camera.position.clone();
-            
-            controls.update();
+            // 2. Buscamos el obstáculo más cercano en esa línea de visión
+            const intersects = collisionRaycaster.intersectObjects(collidableMeshes, false);
 
-            // Calculamos el vector de movimiento (hacia dónde se dirigió la cámara)
-            const moveVector = new THREE.Vector3().subVectors(camera.position, positionBeforeUpdate);
-            const distanceMoved = moveVector.length();
-
-            // Si la cámara intentó moverse, verificamos el camino
-            if (distanceMoved > 0.001) {
-                moveVector.normalize();
-                collisionRaycaster.set(positionBeforeUpdate, moveVector);
-                // Damos un pequeño margen (0.3) para que la cámara no se hunda en la textura
-                collisionRaycaster.far = distanceMoved + 0.3; 
-
-                const intersects = collisionRaycaster.intersectObjects(collidableMeshes, false);
-
-                if (intersects.length > 0) {
-                    // ¡COLISIÓN DETECTADA! Regresamos la cámara instantáneamente a la posición segura anterior
-                    camera.position.copy(positionBeforeUpdate);
-                }
+            if (intersects.length > 0) {
+                const hitDistance = intersects[0].distance;
+                // Le restamos 0.8 como un "escudo" o margen de seguridad 
+                // para que los polígonos no se corten por el lente de la cámara
+                controls.maxDistance = Math.max(controls.minDistance, hitDistance - 0.8);
+            } else {
+                // Si la vista está despejada, restauramos tu límite de distancia natural
+                controls.maxDistance = absoluteMaxDistance;
             }
+
+            // 3. Dejamos que OrbitControls haga la magia internamente y actualice suavemente la vista
+            controls.update();
 
             effect.render(scene, camera);
         }
