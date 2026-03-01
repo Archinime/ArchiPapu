@@ -184,14 +184,9 @@
         controls.target.set(0, targetY, 0);
 
         // LÍMITES DE LA CÁMARA (Anti-traspaso)
-        // 1. Evita que la cámara pase por debajo del piso
         controls.maxPolarAngle = Math.PI / 2 - 0.05; 
-        
-        // 2. Limita el Zoom para no atravesar muebles por delante ni paredes por detrás
-        controls.minDistance = 2.5; // Distancia mínima al centro
-        controls.maxDistance = 16;  // Distancia máxima (ajusta si la habitación es muy grande)
-        
-        // 3. Desactiva el paneo (arrastre lateral con clic derecho) para que la cámara no salga del cuarto
+        controls.minDistance = 2.5;
+        controls.maxDistance = 16;
         controls.enablePan = false;
 
         // --- LUCES ---
@@ -279,30 +274,23 @@
                             node.receiveShadow = true;
                             
                             if(node.material) {
-                                // Configuración de sombras
+                                // Configuración de sombras (similar a otros objetos)
                                 node.material.shadowSide = THREE.FrontSide;
                                 if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
                                     node.material.shadowSide = THREE.BackSide;
+                                    node.material.side = THREE.DoubleSide; // Solo para paredes/pisos
                                 }
-                                node.material.side = THREE.DoubleSide;
+                                // No forzamos side para el resto
                                 
-                                // --- Manejo robusto de emisión ---
-                                // Guardamos el color emissive original si existe, si no, asignamos uno por defecto (blanco)
-                                if (!node.userData.originalEmissive) {
-                                    if (node.material.emissive) {
-                                        node.userData.originalEmissive = node.material.emissive.clone();
-                                    } else {
-                                        // Si el material no tiene propiedad emissive, creamos una (para MaterialStandard u otros)
-                                        node.material.emissive = new THREE.Color(0xffffff);
-                                        node.userData.originalEmissive = new THREE.Color(0xffffff);
-                                    }
+                                // Guardamos la intensidad original para restaurarla después
+                                if (node.userData.originalEmissiveIntensity === undefined) {
+                                    node.userData.originalEmissiveIntensity = node.material.emissiveIntensity !== undefined ? node.material.emissiveIntensity : 1.0;
                                 }
+                                
                                 // Aplicamos estado inicial
                                 if (lightOn) {
-                                    node.material.emissive.copy(node.userData.originalEmissive);
-                                    node.material.emissiveIntensity = 1.0;
+                                    node.material.emissiveIntensity = 1.0; // Coincide con strength 1 en Blender
                                 } else {
-                                    node.material.emissive.setHex(0x000000);
                                     node.material.emissiveIntensity = 0.0;
                                 }
                             }
@@ -330,7 +318,6 @@
                     scene.add(model);
                 }
                  
-
                 if (path.includes('interruptor.glb')) {
                     switchMesh = model;
                 }
@@ -361,18 +348,10 @@
                     });
                 }
                 
-                // Activar emisión de lunari2
                 if (lunariMesh) {
                     lunariMesh.traverse((node) => {
                         if (node.isMesh && node.material) {
-                            // Restauramos el color original guardado
-                            if (node.userData.originalEmissive) {
-                                node.material.emissive.copy(node.userData.originalEmissive);
-                            } else {
-                                // Por si acaso, asignamos blanco
-                                node.material.emissive.setHex(0xffffff);
-                            }
-                            node.material.emissiveIntensity = 1.0;
+                            node.material.emissiveIntensity = 1.0; // Activar emisión
                         }
                     });
                 }
@@ -390,12 +369,10 @@
                     });
                 }
                 
-                // Apagar completamente lunari2 (forzar color negro)
                 if (lunariMesh) {
                     lunariMesh.traverse((node) => {
                         if (node.isMesh && node.material) {
-                            node.material.emissive.setHex(0x000000);
-                            node.material.emissiveIntensity = 0.0;
+                            node.material.emissiveIntensity = 0.0; // Desactivar emisión
                         }
                     });
                 }
