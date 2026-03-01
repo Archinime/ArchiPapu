@@ -134,8 +134,10 @@
         const ua = navigator.userAgent;
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
         const width = window.innerWidth;
-        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : 
-                         (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
+        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ?
+                         'mobile' : 
+                         (width >= 768 && width <= 1024) ?
+                         'tablet' : 'desktop';
 
         // --- Escena ---
         const scene = new THREE.Scene();
@@ -144,8 +146,8 @@
         // --- Cámara optimizada ---
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
         
-        // Ajuste: Cámara más baja pero mirando al frente en PC
-        let camPosY = 8, camPosZ = 20, targetY = 8; 
+        // Ajuste: Cámara más cerca y centrada para PC
+        let camPosY = 6, camPosZ = 14, targetY = 6; 
         
         // Se mantiene igual para móvil
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
@@ -176,10 +178,21 @@
             defaultKeepAlive: true
         });
 
-        // --- Controles ---
+        // --- Controles y "Colisiones" ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.target.set(0, targetY, 0);
+
+        // LÍMITES DE LA CÁMARA (Anti-traspaso)
+        // 1. Evita que la cámara pase por debajo del piso
+        controls.maxPolarAngle = Math.PI / 2 - 0.05; 
+        
+        // 2. Limita el Zoom para no atravesar muebles por delante ni paredes por detrás
+        controls.minDistance = 2.5; // Distancia mínima al centro
+        controls.maxDistance = 16;  // Distancia máxima (ajusta si la habitación es muy grande)
+        
+        // 3. Desactiva el paneo (arrastre lateral con clic derecho) para que la cámara no salga del cuarto
+        controls.enablePan = false;
 
         // --- LUCES ---
         const ambient = new THREE.AmbientLight(0xffffff, 0.3);
@@ -284,14 +297,16 @@
 
         // --- SISTEMA DE ILUMINACIÓN CENTRALIZADO ---
         const perfCheck = document.getElementById('performance-mode');
+
         function updateLighting() {
             const isLow = perfCheck.checked;
+
             if (lightOn) {
                 mainLight.visible = true;
                 ambient.intensity = isLow ? 0.8 : 0.3;
                 hemiLight.intensity = isLow ? 0.8 : 0.4;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
-                
+
                 if (focoMesh) {
                     focoMesh.traverse((node) => {
                         if (node.isMesh && node.material) {
@@ -304,7 +319,7 @@
                 ambient.intensity = 0.02;
                 hemiLight.intensity = 0.05; 
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
-                
+
                 if (focoMesh) {
                     focoMesh.traverse((node) => {
                         if (node.isMesh && node.material) {
@@ -329,11 +344,12 @@
             const rect = renderer.domElement.getBoundingClientRect();
             const x = event.touches ? event.touches[0].clientX : event.clientX;
             const y = event.touches ? event.touches[0].clientY : event.clientY;
-            
+
             mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
+
             if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
                 toggleLight();
             }
@@ -348,7 +364,7 @@
             renderer.shadowMap.enabled = !isLow;
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-            
+
             scene.traverse(n => { 
                 if(n.isMesh) { 
                     if (focoMesh && (n === focoMesh || focoMesh.children.includes(n))) return;
@@ -358,6 +374,7 @@
                     if(n.material) n.material.needsUpdate = true; 
                 }
             });
+
             localStorage.setItem('performanceMode', isLow);
             updateLighting(); 
         }
