@@ -184,9 +184,14 @@
         controls.target.set(0, targetY, 0);
 
         // LÍMITES DE LA CÁMARA (Anti-traspaso)
+        // 1. Evita que la cámara pase por debajo del piso
         controls.maxPolarAngle = Math.PI / 2 - 0.05; 
-        controls.minDistance = 2.5;
-        controls.maxDistance = 16;
+        
+        // 2. Limita el Zoom para no atravesar muebles por delante ni paredes por detrás
+        controls.minDistance = 2.5; // Distancia mínima al centro
+        controls.maxDistance = 16;  // Distancia máxima (ajusta si la habitación es muy grande)
+        
+        // 3. Desactiva el paneo (arrastre lateral con clic derecho) para que la cámara no salga del cuarto
         controls.enablePan = false;
 
         // --- LUCES ---
@@ -219,17 +224,6 @@
         // Estado inicial de la luz
         let lightOn = localStorage.getItem('lightState') !== 'off';
 
-        // --- Variables para el modelo lunari (conmutación) ---
-        let lunariOriginalModel = null;      // modelo claro (lunari2.glb)
-        let lunariDarkModel = null;          // modelo oscuro (lunari_oscuro.glb) - se cargará bajo demanda
-        let lunariCurrentModel = null;       // modelo actualmente en escena
-        const lunariTransform = {             // transformación del original (se copia al cambiar)
-            position: new THREE.Vector3(),
-            rotation: new THREE.Euler(),
-            scale: new THREE.Vector3(1, 1, 1)
-        };
-        let isReplacing = false;              // para evitar llamadas simultáneas
-
         // --- Carga de Modelos ---
         const loader = new GLTFLoader();
         let modelsLoaded = 0;
@@ -240,12 +234,15 @@
             'decoracion_2_mueble_1.glb', 'decoracion_3_mueble_1.glb', 'decoracion_4_mueble_1.glb',
             'decoracion_5_mueble_1.glb', 'decoracion_2_mueble_2.glb', 'decoracion_piso.glb',
             'poster_1.glb', 'poster_2.glb', 'poster_3.glb', 'poster_4.glb', 'puerta.glb',
-            'interruptor.glb', 'maouse_pad.glb', 'techo.glb', 'base_foco.glb', 'lunari_oscuro.glb', 'lunari2.glb', 
+            'interruptor.glb', 'maouse_pad.glb', 'techo.glb', 'base_foco.glb', 'lunari2.glb', 
             'foco.glb'
         ];
 
         let switchMesh = null;
         let focoMesh = null;
+        let lunari2Mesh = null; // Referencia al modelo lunari2
+        // Guardaremos datos de emisión originales de lunari2
+        const lunari2EmissiveData = [];
 
         modelos.forEach(path => {
             loader.load(path, (gltf) => {
@@ -272,7 +269,42 @@
                             }
                         }
                     });
-                } else {
+                } 
+                else if (path.includes('lunari2.glb')) {
+                    // Guardamos referencia para controlar su emisión
+                    lunari2Mesh = model;
+                    
+                    // Almacenamos los valores originales de emisión de cada material
+                    model.traverse((node) => {
+                        if (node.isMesh && node.material) {
+                            // Puede ser material único o array
+                            const materials = Array.isArray(node.material) ? node.material : [node.material];
+                            materials.forEach(mat => {
+                                if (mat.emissive) {
+                                    // Guardamos color e intensidad originales
+                                    lunari2EmissiveData.push({
+                                        material: mat,
+                                        originalColor: mat.emissive.clone(),
+                                        originalIntensity: mat.emissiveIntensity !== undefined ? mat.emissiveIntensity : 1.0
+                                    });
+                                }
+                            });
+                        }
+                    });
+                    
+                    // Configurar sombras normalmente
+                    model.traverse((node) => {
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                            if(node.material) {
+                                node.material.shadowSide = THREE.FrontSide;
+                                node.material.side = THREE.DoubleSide;
+                            }
+                        }
+                    });
+                }
+                else {
                     model.traverse((node) => {
                         if (node.isMesh) {
                             node.castShadow = true;
@@ -291,16 +323,6 @@
                  
                 scene.add(model);
 
-                // --- Guardar referencia del modelo lunari2 (claro) ---
-                if (path === 'lunari2.glb') {
-                    lunariOriginalModel = model;
-                    lunariCurrentModel = model;
-                    // Guardar transformación original
-                    lunariTransform.position.copy(model.position);
-                    lunariTransform.rotation.copy(model.rotation);
-                    lunariTransform.scale.copy(model.scale);
-                }
-
                 if (path.includes('interruptor.glb')) {
                     switchMesh = model;
                 }
@@ -310,75 +332,6 @@
                 if (modelsLoaded === modelos.length) document.getElementById('loading').style.display = 'none';
             });
         });
-
-        // --- Función para reemplazar el modelo lunari ---
-        function replaceLunari(targetPath) {
-            if (isReplacing) return;
-            if (!lunariOriginalModel) return; // aún no cargado el original
-
-            isReplacing = true;
-
-            // Determinar qué modelo usar
-            let targetModel = null;
-            const isLight = (targetPath === 'lunari2.glb');
-
-            if (isLight) {
-                if (lunariOriginalModel) {
-                    targetModel = lunariOriginalModel;
-                    applyModelTransform(targetModel);
-                    replaceInScene(targetModel);
-                } else {
-                    // No debería ocurrir porque ya tenemos lunariOriginalModel
-                    isReplacing = false;
-                }
-            } else {
-                // Modelo oscuro
-                if (lunariDarkModel) {
-                    targetModel = lunariDarkModel;
-                    applyModelTransform(targetModel);
-                    replaceInScene(targetModel);
-                } else {
-                    // Cargar el modelo oscuro por primera vez
-                    loader.load('lunari_oscuro.glb', (gltf) => {
-                        const darkModel = gltf.scene;
-                        // Configurar sombras y materiales según el modo actual
-                        const isLow = perfCheck.checked;
-                        darkModel.traverse((node) => {
-                            if (node.isMesh) {
-                                node.castShadow = !isLow;
-                                node.receiveShadow = !isLow;
-                                if (node.material) {
-                                    node.material.shadowSide = THREE.FrontSide;
-                                    node.material.side = THREE.DoubleSide;
-                                }
-                            }
-                        });
-                        lunariDarkModel = darkModel;
-                        applyModelTransform(darkModel);
-                        replaceInScene(darkModel);
-                    }, undefined, (error) => {
-                        console.error('Error cargando lunari_oscuro.glb', error);
-                        isReplacing = false;
-                    });
-                    return; // la carga es asíncrona, no continuar
-                }
-            }
-
-            function applyModelTransform(model) {
-                model.position.copy(lunariTransform.position);
-                model.rotation.copy(lunariTransform.rotation);
-                model.scale.copy(lunariTransform.scale);
-            }
-
-            function replaceInScene(newModel) {
-                if (lunariCurrentModel) {
-                    scene.remove(lunariCurrentModel);
-                }
-                scene.add(newModel);
-                lunariCurrentModel = newModel;
-                isReplacing = false;
-            }
-        }
 
         // --- SISTEMA DE ILUMINACIÓN CENTRALIZADO ---
         const perfCheck = document.getElementById('performance-mode');
@@ -399,6 +352,16 @@
                         }
                     });
                 }
+
+                // Restauramos la emisión original de lunari2
+                if (lunari2EmissiveData.length > 0) {
+                    lunari2EmissiveData.forEach(item => {
+                        if (item.material) {
+                            item.material.emissive.copy(item.originalColor);
+                            item.material.emissiveIntensity = item.originalIntensity;
+                        }
+                    });
+                }
             } else {
                 mainLight.visible = false;
                 ambient.intensity = 0.02;
@@ -409,6 +372,15 @@
                     focoMesh.traverse((node) => {
                         if (node.isMesh && node.material) {
                             node.material.emissiveIntensity = 0;
+                        }
+                    });
+                }
+
+                // Apagamos completamente la emisión de lunari2
+                if (lunari2EmissiveData.length > 0) {
+                    lunari2EmissiveData.forEach(item => {
+                        if (item.material) {
+                            item.material.emissiveIntensity = 0;
                         }
                     });
                 }
@@ -423,13 +395,6 @@
             lightOn = !lightOn;
             localStorage.setItem('lightState', lightOn ? 'on' : 'off');
             updateLighting();
-
-            // Cambiar el modelo lunari según el estado de la luz
-            if (lightOn) {
-                replaceLunari('lunari2.glb');
-            } else {
-                replaceLunari('lunari_oscuro.glb');
-            }
         }
 
         function handleInteraction(event) {
