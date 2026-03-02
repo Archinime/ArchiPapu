@@ -7,7 +7,7 @@
     <style>
         body {
             margin: 0;
-            overflow: hidden;
+            overflow: hidden; [cite: 2]
             font-family: Arial, Helvetica, sans-serif;
             position: fixed;
             width: 100%;
@@ -16,7 +16,7 @@
         }
         #settings-button {
             position: absolute;
-            top: 20px;
+            top: 20px; [cite: 4]
             right: 20px;
             width: 44px;
             height: 44px;
@@ -25,7 +25,7 @@
             border: 1px solid rgba(255,255,255,0.2);
             border-radius: 50%;
             display: flex;
-            align-items: center;
+            align-items: center; [cite: 5]
             justify-content: center;
             color: white;
             font-size: 24px;
@@ -33,14 +33,14 @@
             z-index: 300;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             transition: transform 0.2s;
-            user-select: none;
+            user-select: none; [cite: 6]
         }
-        #settings-button:hover { transform: scale(1.1); }
-        #settings-button:active { transform: scale(0.95); }
+        #settings-button:hover { transform: scale(1.1); } [cite: 6, 7]
+        #settings-button:active { transform: scale(0.95); } [cite: 7, 8]
         
         #settings-panel {
             position: absolute;
-            top: 70px;
+            top: 70px; [cite: 9]
             right: 20px;
             background: rgba(30,30,40,0.95);
             backdrop-filter: blur(10px);
@@ -48,18 +48,18 @@
             padding: 15px 20px;
             border-radius: 20px;
             border: 1px solid rgba(255,255,255,0.2);
-            z-index: 250;
+            z-index: 250; [cite: 10]
             font-size: 14px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             pointer-events: auto;
             display: none;
             min-width: 200px;
         }
-        #settings-panel.visible { display: block; }
+        #settings-panel.visible { display: block; } [cite: 11, 12]
         
         #settings-panel label {
             display: flex;
-            align-items: center;
+            align-items: center; [cite: 13]
             justify-content: space-between;
             gap: 15px;
             cursor: pointer;
@@ -68,13 +68,13 @@
         }
         #settings-panel input[type="checkbox"] {
             width: 18px;
-            height: 18px;
+            height: 18px; [cite: 15]
             cursor: pointer;
             accent-color: #4CAF50;
         }
         #quality-indicator {
             background: #4CAF50;
-            color: white;
+            color: white; [cite: 16]
             padding: 4px 10px;
             border-radius: 50px;
             font-size: 12px;
@@ -84,12 +84,12 @@
             margin-bottom: 10px;
         }
         @media (max-width: 600px) {
-            #settings-button { top: 10px; right: 10px; width: 40px; height: 40px; font-size: 22px; }
-            #settings-panel { top: 60px; right: 10px; padding: 12px 15px; font-size: 13px; min-width: 180px; }
+            #settings-button { top: 10px; right: 10px; width: 40px; height: 40px; font-size: 22px; } [cite: 17, 18]
+            #settings-panel { top: 60px; right: 10px; padding: 12px 15px; font-size: 13px; min-width: 180px; } [cite: 18, 19]
         }
         #loading, #light-status {
             position: absolute;
-            bottom: 20px;
+            bottom: 20px; [cite: 20]
             color: white;
             background: rgba(0,0,0,0.5); 
             padding: 5px 10px; 
@@ -99,8 +99,8 @@
             pointer-events: none;
             backdrop-filter: blur(4px);
         }
-        #loading { right: 20px; }
-        #light-status { left: 20px; }
+        #loading { right: 20px; } [cite: 21, 22]
+        #light-status { left: 20px; } [cite: 22, 23]
     </style>
 </head>
 <body>
@@ -118,212 +118,225 @@
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js", [cite: 24]
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/" [cite: 24]
             }
         }
     </script>
 
     <script type="module">
         import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-        import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; [cite: 25]
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'; [cite: 25]
+        import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js'; [cite: 25]
 
         // --- Detección de dispositivo ---
-        const ua = navigator.userAgent;
-        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-        const width = window.innerWidth;
-        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ?
-                         'mobile' : 
-                         (width >= 768 && width <= 1024) ?
-                         'tablet' : 'desktop';
+        const ua = navigator.userAgent; [cite: 26]
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua); [cite: 27]
+        const width = window.innerWidth; [cite: 27]
+        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : [cite: 27, 28]
+                         (width >= 768 && width <= 1024) ? 'tablet' : 'desktop'; [cite: 28, 29]
 
         // --- Escena ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050508); 
+        scene.background = new THREE.Color(0x050508);  [cite: 30]
 
         // --- Cámara optimizada ---
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200); [cite: 30]
         
         // Ajuste: Cámara más cerca y centrada para PC
-        let camPosY = 6, camPosZ = 14, targetY = 6; 
+        let camPosY = 6, camPosZ = 14, targetY = 6; [cite: 31]
         
         // Se mantiene igual para móvil
-        if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
+        if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; } [cite: 32, 33]
         
-        camera.position.set(0, camPosY, camPosZ);
+        camera.position.set(0, camPosY, camPosZ); [cite: 33]
 
         // --- RENDERIZADOR PRO ---
         const renderer = new THREE.WebGLRenderer({ 
-            antialias: true, 
-            powerPreference: "high-performance"
+            antialias: true,  [cite: 34]
+            powerPreference: "high-performance" [cite: 34]
         });
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(window.innerWidth, window.innerHeight); [cite: 35]
         
         // Mejoras de realismo en renderizado
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
-        renderer.outputEncoding = THREE.sRGBEncoding;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping; 
-        renderer.toneMappingExposure = 1.0;
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        document.body.appendChild(renderer.domElement);
+        renderer.shadowMap.enabled = true; [cite: 35]
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;  [cite: 36]
+        renderer.outputEncoding = THREE.sRGBEncoding; [cite: 36]
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;  [cite: 36]
+        renderer.toneMappingExposure = 1.0; [cite: 36]
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); [cite: 36]
+        document.body.appendChild(renderer.domElement); [cite: 36]
 
         // --- EFECTO DE CONTORNO ANIME SUAVIZADO ---
         const effect = new OutlineEffect(renderer, {
-            defaultThickness: 0.0008, 
-            defaultColor: [0.05, 0.05, 0.08], 
-            defaultAlpha: 0.85, 
-            defaultKeepAlive: true
+            defaultThickness: 0.0008,  [cite: 37]
+            defaultColor: [0.05, 0.05, 0.08],  [cite: 37]
+            defaultAlpha: 0.85,  [cite: 37]
+            defaultKeepAlive: true [cite: 37]
         });
 
         // --- Controles y "Colisiones" ---
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.target.set(0, targetY, 0);
+        const controls = new OrbitControls(camera, renderer.domElement); [cite: 38]
+        controls.enableDamping = true; [cite: 39]
+        controls.target.set(0, targetY, 0); [cite: 39]
 
         // LÍMITES DE LA CÁMARA (Anti-traspaso)
         // 1. Evita que la cámara pase por debajo del piso
-        controls.maxPolarAngle = Math.PI / 2 - 0.05; 
-        
+        controls.maxPolarAngle = Math.PI / 2 - 0.05; [cite: 39]
         // 2. Limita el Zoom para no atravesar muebles por delante ni paredes por detrás
-        controls.minDistance = 2.5; // Distancia mínima al centro
-        controls.maxDistance = 16;  // Distancia máxima (ajusta si la habitación es muy grande)
+        controls.minDistance = 2.5; // Distancia mínima al centro [cite: 40, 41]
+        controls.maxDistance = 16;  // Distancia máxima [cite: 41, 42]
         
         // 3. Desactiva el paneo (arrastre lateral con clic derecho) para que la cámara no salga del cuarto
-        controls.enablePan = false;
+        controls.enablePan = false; [cite: 42]
 
         // --- LUCES ---
-        const ambient = new THREE.AmbientLight(0xffffff, 0.3);
-        scene.add(ambient);
+        const ambient = new THREE.AmbientLight(0xffffff, 0.3); [cite: 43]
+        scene.add(ambient); [cite: 43]
 
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
-        hemiLight.position.set(0, 20, 0);
-        scene.add(hemiLight);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); [cite: 44]
+        hemiLight.position.set(0, 20, 0); [cite: 44]
+        scene.add(hemiLight); [cite: 44]
 
         // Luz Principal
-        const mainLight = new THREE.SpotLight(0xffeedd, 6);
-        mainLight.position.set(2, 22, 2);
-        mainLight.angle = Math.PI / 3;
-        mainLight.penumbra = 0.8; 
-        mainLight.decay = 2; 
-        mainLight.distance = 60;
+        const mainLight = new THREE.SpotLight(0xffeedd, 6); [cite: 45]
+        mainLight.position.set(2, 22, 2); [cite: 45]
+        mainLight.angle = Math.PI / 3; [cite: 46]
+        mainLight.penumbra = 0.8;  [cite: 46]
+        mainLight.decay = 2;  [cite: 46]
+        mainLight.distance = 60; [cite: 46]
         
-        mainLight.castShadow = true;
-        mainLight.shadow.mapSize.set(2048, 2048);
-        mainLight.shadow.camera.near = 0.5;
-        mainLight.shadow.camera.far = 40;
-        mainLight.shadow.bias = -0.0001;
-        mainLight.shadow.normalBias = 0.02;
-        mainLight.shadow.radius = 4; 
+        mainLight.castShadow = true; [cite: 46]
+        mainLight.shadow.mapSize.set(2048, 2048); [cite: 46]
+        mainLight.shadow.camera.near = 0.5; [cite: 47]
+        mainLight.shadow.camera.far = 40; [cite: 47]
+        mainLight.shadow.bias = -0.0001; [cite: 47]
+        mainLight.shadow.normalBias = 0.02; [cite: 47]
+        mainLight.shadow.radius = 4;  [cite: 47]
         
-        scene.add(mainLight);
-        scene.add(mainLight.target);
+        scene.add(mainLight); [cite: 47]
+        scene.add(mainLight.target); [cite: 47]
 
         // Estado inicial de la luz
-        let lightOn = localStorage.getItem('lightState') !== 'off';
+        let lightOn = localStorage.getItem('lightState') !== 'off'; [cite: 48]
 
         // --- Carga de Modelos ---
-        const loader = new GLTFLoader();
-        let modelsLoaded = 0;
+        const loader = new GLTFLoader(); [cite: 49]
+        let modelsLoaded = 0; [cite: 50]
+        
         const modelos = [
-            'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb',
-            'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb',
-            'decoracion_escritorio.glb', 'decoracion_mueble_1.glb', 'decoracion_mueble_2.glb',
-            'decoracion_2_mueble_1.glb', 'decoracion_3_mueble_1.glb', 'decoracion_4_mueble_1.glb',
-            'decoracion_5_mueble_1.glb', 'decoracion_2_mueble_2.glb', 'decoracion_piso.glb',
-            'poster_1.glb', 'poster_2.glb', 'poster_3.glb', 'poster_4.glb', 'puerta.glb',
-            'interruptor.glb', 'maouse_pad.glb', 'techo.glb', 'base_foco.glb', 'Lunari.glb', 
-            'foco.glb'
+            'piso.glb', 'alfombra.glb', 'silla.glb', 'paredes.glb', 'cama.glb', [cite: 50]
+            'cortinas.glb', 'tele.glb', 'mueble1.glb', 'mueble2.glb', 'pc.glb', [cite: 50]
+            'decoracion_escritorio.glb', 'decoracion_mueble_1.glb', 'decoracion_mueble_2.glb', [cite: 50]
+            'decoracion_2_mueble_1.glb', 'decoracion_3_mueble_1.glb', 'decoracion_4_mueble_1.glb', [cite: 50]
+            'decoracion_5_mueble_1.glb', 'decoracion_2_mueble_2.glb', 'decoracion_piso.glb', [cite: 50]
+            'poster_1.glb', 'poster_2.glb', 'poster_3.glb', 'poster_4.glb', 'puerta.glb', [cite: 50]
+            'interruptor.glb', 'maouse_pad.glb', 'techo.glb', 'base_foco.glb', 'Lunari.glb',  [cite: 51]
+            'foco.glb' [cite: 51]
         ];
 
-        let switchMesh = null;
-        let focoMesh = null;
+        let switchMesh = null; [cite: 52]
+        let focoMesh = null; [cite: 52]
 
         modelos.forEach(path => {
             loader.load(path, (gltf) => {
                 const model = gltf.scene;
                 
                 if (path.includes('foco.glb')) {
-                    focoMesh = model;
+                    focoMesh = model; [cite: 52, 53]
                     
-                    const box = new THREE.Box3().setFromObject(model);
-                    const center = new THREE.Vector3();
-                    box.getCenter(center);
+                    const box = new THREE.Box3().setFromObject(model); [cite: 53]
+                    const center = new THREE.Vector3(); [cite: 53]
+                    box.getCenter(center); [cite: 53]
             
-                    mainLight.position.copy(center);
-                    mainLight.position.y -= 0.2; 
+                    mainLight.position.copy(center); [cite: 54]
+                    mainLight.position.y -= 0.2;  [cite: 54]
                     
                     model.traverse((node) => {
-                        if (node.isMesh) {
-                            node.castShadow = false;
-                            node.receiveShadow = false;
+                        if (node.isMesh) { [cite: 55]
+                            node.castShadow = false; [cite: 55]
+                            node.receiveShadow = false; [cite: 55]
                             
-                            if (node.material) {
-                                node.material.emissive = new THREE.Color(0xffeedd);
-                                node.material.emissiveIntensity = lightOn ? 1.5 : 0;
+                            if (node.material) { [cite: 56]
+                                node.material.emissive = new THREE.Color(0xffeedd); [cite: 56]
+                                node.material.emissiveIntensity = lightOn ? 1.5 : 0; [cite: 56, 57]
                             }
                         }
                     });
                 } else {
                     model.traverse((node) => {
                         if (node.isMesh) {
-                            node.castShadow = true;
-                            node.receiveShadow = true;
+                            node.castShadow = true; [cite: 58]
+                            node.receiveShadow = true; [cite: 59]
                             
                             if(node.material) {
-                                node.material.shadowSide = THREE.FrontSide;
+                                node.material.shadowSide = THREE.FrontSide; [cite: 59, 60]
                                 if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
-                                    node.material.shadowSide = THREE.BackSide;
+                                    node.material.shadowSide = THREE.BackSide; [cite: 60]
                                 }
-                                node.material.side = THREE.DoubleSide;
+
+                                // ------ AQUÍ ESTÁ LA MAGIA PARA ARREGLAR A LUNARI ------
+                                if (path.includes('Lunari.glb')) {
+                                    // NO forzamos DoubleSide para no arruinar el contorno/ropa invertida.
+                                    // Dejamos que ThreeJS respete el renderizado natural del modelo Anime.
+                                    
+                                    // Corrección adicional para texturas con transparencias (pelo, pestañas)
+                                    if (node.material.transparent) {
+                                        node.material.alphaTest = 0.5;
+                                        node.material.depthWrite = true;
+                                    }
+                                } else {
+                                    // Para los demás objetos de la habitación, mantenemos el DoubleSide 
+                                    node.material.side = THREE.DoubleSide; [cite: 61]
+                                }
+                                // -------------------------------------------------------
                             }
                         }
                     });
                 }
                  
-                scene.add(model);
+                scene.add(model); [cite: 63]
 
                 if (path.includes('interruptor.glb')) {
-                    switchMesh = model;
+                    switchMesh = model; [cite: 64]
                 }
                 
-                modelsLoaded++;
-                document.getElementById('loading').innerText = `Cargando: ${modelsLoaded}/${modelos.length}`;
-                if (modelsLoaded === modelos.length) document.getElementById('loading').style.display = 'none';
+                modelsLoaded++; [cite: 65]
+                document.getElementById('loading').innerText = `Cargando: ${modelsLoaded}/${modelos.length}`; [cite: 66]
+                if (modelsLoaded === modelos.length) document.getElementById('loading').style.display = 'none'; [cite: 66]
             });
         });
 
         // --- SISTEMA DE ILUMINACIÓN CENTRALIZADO ---
-        const perfCheck = document.getElementById('performance-mode');
+        const perfCheck = document.getElementById('performance-mode'); [cite: 67]
 
         function updateLighting() {
-            const isLow = perfCheck.checked;
+            const isLow = perfCheck.checked; [cite: 68]
 
             if (lightOn) {
-                mainLight.visible = true;
-                ambient.intensity = isLow ? 0.8 : 0.3;
-                hemiLight.intensity = isLow ? 0.8 : 0.4;
-                document.getElementById('light-status').innerText = '💡 Luz encendida';
+                mainLight.visible = true; [cite: 69]
+                ambient.intensity = isLow ? 0.8 : 0.3; [cite: 70]
+                hemiLight.intensity = isLow ? 0.8 : 0.4; [cite: 70]
+                document.getElementById('light-status').innerText = '💡 Luz encendida'; [cite: 70]
 
                 if (focoMesh) {
                     focoMesh.traverse((node) => {
-                        if (node.isMesh && node.material) {
-                            node.material.emissiveIntensity = 1.5;
+                        if (node.isMesh && node.material) { [cite: 71]
+                            node.material.emissiveIntensity = 1.5; [cite: 71]
                         }
                     });
                 }
             } else {
-                mainLight.visible = false;
-                ambient.intensity = 0.02;
-                hemiLight.intensity = 0.05; 
-                document.getElementById('light-status').innerText = '💡 Luz apagada';
+                mainLight.visible = false; [cite: 73]
+                ambient.intensity = 0.02; [cite: 74]
+                hemiLight.intensity = 0.05;  [cite: 74]
+                document.getElementById('light-status').innerText = '💡 Luz apagada'; [cite: 74]
 
                 if (focoMesh) {
                     focoMesh.traverse((node) => {
-                        if (node.isMesh && node.material) {
-                            node.material.emissiveIntensity = 0;
+                        if (node.isMesh && node.material) { [cite: 75]
+                            node.material.emissiveIntensity = 0; [cite: 75]
                         }
                     });
                 }
@@ -331,76 +344,77 @@
         }
 
         // --- Interacción Interruptor ---
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
+        const raycaster = new THREE.Raycaster(); [cite: 77]
+        const mouse = new THREE.Vector2(); [cite: 78]
 
         function toggleLight() {
-            lightOn = !lightOn;
-            localStorage.setItem('lightState', lightOn ? 'on' : 'off');
-            updateLighting();
+            lightOn = !lightOn; [cite: 78]
+            localStorage.setItem('lightState', lightOn ? 'on' : 'off'); [cite: 79]
+            updateLighting(); [cite: 79]
         }
 
         function handleInteraction(event) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            const x = event.touches ? event.touches[0].clientX : event.clientX;
-            const y = event.touches ? event.touches[0].clientY : event.clientY;
+            const rect = renderer.domElement.getBoundingClientRect(); [cite: 79]
+            const x = event.touches ? event.touches[0].clientX : event.clientX; [cite: 80]
+            const y = event.touches ? event.touches[0].clientY : event.clientY; [cite: 80]
 
-            mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
+            mouse.x = ((x - rect.left) / rect.width) * 2 - 1; [cite: 81]
+            mouse.y = -((y - rect.top) / rect.height) * 2 + 1; [cite: 82]
 
-            raycaster.setFromCamera(mouse, camera);
-
-            if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
-                toggleLight();
+            raycaster.setFromCamera(mouse, camera); [cite: 82]
+            
+            if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { [cite: 83]
+                toggleLight(); [cite: 83]
             }
         }
 
-        renderer.domElement.addEventListener('click', handleInteraction);
-        renderer.domElement.addEventListener('touchstart', (e) => { e.preventDefault(); handleInteraction(e); }, {passive: false});
+        renderer.domElement.addEventListener('click', handleInteraction); [cite: 84]
+        renderer.domElement.addEventListener('touchstart', (e) => { e.preventDefault(); handleInteraction(e); }, {passive: false}); [cite: 85]
 
         // --- Calidad / Modo Humilde ---
         function updateQuality() {
-            const isLow = perfCheck.checked;
-            renderer.shadowMap.enabled = !isLow;
-            renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
-            document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-
-            scene.traverse(n => { 
-                if(n.isMesh) { 
-                    if (focoMesh && (n === focoMesh || focoMesh.children.includes(n))) return;
+            const isLow = perfCheck.checked; [cite: 85]
+            
+            renderer.shadowMap.enabled = !isLow; [cite: 86]
+            renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2)); [cite: 86]
+            document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta'; [cite: 86]
+            
+            scene.traverse(n => {  [cite: 87]
+                if(n.isMesh) {  [cite: 87]
+                    if (focoMesh && (n === focoMesh || focoMesh.children.includes(n))) return; [cite: 87]
                     
-                    n.castShadow = !isLow; 
-                    n.receiveShadow = !isLow; 
-                    if(n.material) n.material.needsUpdate = true; 
+                    n.castShadow = !isLow;  [cite: 87]
+                    n.receiveShadow = !isLow;  [cite: 88]
+                    if(n.material) n.material.needsUpdate = true;  [cite: 88]
                 }
             });
 
-            localStorage.setItem('performanceMode', isLow);
-            updateLighting(); 
+            localStorage.setItem('performanceMode', isLow); [cite: 89]
+            updateLighting();  [cite: 89]
         }
 
-        perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
-        perfCheck.addEventListener('change', updateQuality);
+        perfCheck.checked = localStorage.getItem('performanceMode') === 'true'; [cite: 89]
+        perfCheck.addEventListener('change', updateQuality); [cite: 89]
 
         // --- Animación ---
         function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-            effect.render(scene, camera);
+            requestAnimationFrame(animate); [cite: 90]
+            controls.update(); [cite: 91]
+            effect.render(scene, camera); [cite: 91]
         }
-        animate();
+        animate(); [cite: 91]
 
         // --- Resize ---
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            effect.setSize(window.innerWidth, window.innerHeight); 
+        window.addEventListener('resize', () => { [cite: 92]
+            camera.aspect = window.innerWidth / window.innerHeight; [cite: 92]
+            camera.updateProjectionMatrix(); [cite: 92]
+            renderer.setSize(window.innerWidth, window.innerHeight); [cite: 92]
+            effect.setSize(window.innerWidth, window.innerHeight);  [cite: 92]
         });
 
         // Configuración inicial de UI
-        updateQuality();
-        document.getElementById('settings-button').onclick = () => document.getElementById('settings-panel').classList.toggle('visible');
+        updateQuality(); [cite: 93]
+        document.getElementById('settings-button').onclick = () => document.getElementById('settings-panel').classList.toggle('visible'); [cite: 93]
     </script>
 </body>
 </html>
