@@ -114,8 +114,8 @@
             width: 100%;
             text-align: left; padding: 12px 15px; background: transparent; color: #ccc; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 5px; font-size: 14px;
             transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-            display: flex; /* Añadido para alinear icono y texto */
-            align-items: center; /* Añadido para alinear icono y texto */
+            display: flex; 
+            align-items: center; 
         }
         .cat-icon {
             width: 20px;
@@ -209,66 +209,63 @@
         let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
         document.getElementById('coin-amount').innerText = playerCoins;
 
-        // Prefijo base de la CDN
-        const CDN_URL = "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/";
-
-        // CADA OBJETO TIENE SU PROPIA CATEGORÍA (SLOT INDIVIDUAL) CON IMAGEN EN VEZ DE EMOJI
+        // CADA OBJETO AHORA TIENE SU LINK DIRECTO Y NOMBRES SIMPLES
         const defaultInventoryConfig = {
-            piso: { label: "Piso", icon: "piso.png", equipped: "base", items: { "base": { name: "Piso Estándar", file: CDN_URL + "piso.glb", price: 0, owned: true } } },
-            paredes: { label: "Paredes", icon: "paredes.png", equipped: "base", items: { "base": { name: "Paredes Blancas", file: CDN_URL + "paredes.glb", price: 0, owned: true } } },
-            techo: { label: "Techo", icon: "techo.png", equipped: "base", items: { "base": { name: "Techo Base", file: CDN_URL + "techo.glb", price: 0, owned: true } } },
-            puerta: { label: "Puerta", icon: "puerta.png", equipped: "base", items: { "base": { name: "Puerta Madera", file: CDN_URL + "puerta.glb", price: 0, owned: true } } },
+            piso: { label: "Piso", icon: "piso.png", equipped: "base", items: { "base": { name: "Piso Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/piso.glb", price: 0, owned: true } } },
+            paredes: { label: "Paredes", icon: "paredes.png", equipped: "base", items: { "base": { name: "Paredes Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/paredes.glb", price: 0, owned: true } } },
+            techo: { label: "Techo", icon: "techo.png", equipped: "base", items: { "base": { name: "Techo Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo.glb", price: 0, owned: true } } },
+            puerta: { label: "Puerta", icon: "puerta.png", equipped: "base", items: { "base": { name: "Puerta Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta.glb", price: 0, owned: true } } },
             
             // Iluminación
-            interruptor: { label: "Interruptor", icon: "interruptor.png", equipped: "base", items: { "base": { name: "Interruptor Simple", file: CDN_URL + "interruptor.glb", price: 0, owned: true } } },
-            base_foco: { label: "Base Foco", icon: "base_foco.png", equipped: "base", items: { "base": { name: "Base Blanca", file: CDN_URL + "base_foco.glb", price: 0, owned: true } } },
-            foco: { label: "Foco", icon: "foco.png", equipped: "base", items: { "base": { name: "Foco Led", file: CDN_URL + "foco.glb", price: 0, owned: true } } },
+            interruptor: { label: "Interruptor", icon: "interruptor.png", equipped: "base", items: { "base": { name: "Interruptor Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/interruptor.glb", price: 0, owned: true } } },
+            base_foco: { label: "Base Foco", icon: "base_foco.png", equipped: "base", items: { "base": { name: "Base Foco Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/base_foco.glb", price: 0, owned: true } } },
+            foco: { label: "Foco", icon: "foco.png", equipped: "base", items: { "base": { name: "Foco Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco.glb", price: 0, owned: true } } },
             
-            // Muebles principales (AQUÍ ESTÁ LA CAMA NUEVA)
+            // Muebles principales (AQUÍ ESTÁ LA CAMA BRILLANTE TAMBIÉN)
             cama: { 
                 label: "Cama", icon: "cama.png", equipped: "base", 
                 items: { 
-                    "base": { name: "Cama Estándar", file: CDN_URL + "cama.glb", price: 0, owned: true },
-                    "cama_brillante": { name: "Cama Brillante", file: CDN_URL + "cama_brillante.glb", price: 500, owned: false }
+                    "base": { name: "Cama Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama.glb", price: 0, owned: true },
+                    "cama_brillante": { name: "Cama Brillante", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama_brillante.glb", price: 500, owned: false }
                 } 
             },
-            silla: { label: "Silla", icon: "silla.png", equipped: "base", items: { "base": { name: "Silla Escritorio", file: CDN_URL + "silla.glb", price: 0, owned: true } } },
-            pc: { label: "Setup PC", icon: "pc.png", equipped: "base", items: { "base": { name: "PC Básica", file: CDN_URL + "pc.glb", price: 0, owned: true } } },
-            tele: { label: "Televisor", icon: "tele.png", equipped: "base", items: { "base": { name: "TV Plasma", file: CDN_URL + "tele.glb", price: 0, owned: true } } },
-            mueble1: { label: "Mueble 1", icon: "mueble1.png", equipped: "base", items: { "base": { name: "Estante 1", file: CDN_URL + "mueble1.glb", price: 0, owned: true } } },
-            mueble2: { label: "Mueble 2", icon: "mueble2.png", equipped: "base", items: { "base": { name: "Estante 2", file: CDN_URL + "mueble2.glb", price: 0, owned: true } } },
+            silla: { label: "Silla", icon: "silla.png", equipped: "base", items: { "base": { name: "Silla Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/silla.glb", price: 0, owned: true } } },
+            pc: { label: "Setup PC", icon: "pc.png", equipped: "base", items: { "base": { name: "PC Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pc.glb", price: 0, owned: true } } },
+            tele: { label: "Televisor", icon: "tele.png", equipped: "base", items: { "base": { name: "Televisor Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele.glb", price: 0, owned: true } } },
+            mueble1: { label: "Mueble 1", icon: "mueble1.png", equipped: "base", items: { "base": { name: "Mueble 1 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble1.glb", price: 0, owned: true } } },
+            mueble2: { label: "Mueble 2", icon: "mueble2.png", equipped: "base", items: { "base": { name: "Mueble 2 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble2.glb", price: 0, owned: true } } },
             
             // Textiles y Extras
-            alfombra: { label: "Alfombra", icon: "alfombra.png", equipped: "base", items: { "base": { name: "Alfombra Gris", file: CDN_URL + "alfombra.glb", price: 0, owned: true } } },
-            cortinas: { label: "Cortinas", icon: "cortinas.png", equipped: "base", items: { "base": { name: "Cortinas Claras", file: CDN_URL + "cortinas.glb", price: 0, owned: true } } },
-            mousepad: { label: "Mouse Pad", icon: "mousepad.png", equipped: "base", items: { "base": { name: "Mouse Pad Negro", file: CDN_URL + "maouse_pad.glb", price: 0, owned: true } } },
+            alfombra: { label: "Alfombra", icon: "alfombra.png", equipped: "base", items: { "base": { name: "Alfombra Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/alfombra.glb", price: 0, owned: true } } },
+            cortinas: { label: "Cortinas", icon: "cortinas.png", equipped: "base", items: { "base": { name: "Cortinas Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cortinas.glb", price: 0, owned: true } } },
+            mousepad: { label: "Mouse Pad", icon: "mousepad.png", equipped: "base", items: { "base": { name: "Mouse Pad Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/maouse_pad.glb", price: 0, owned: true } } },
 
             // Pósters
-            poster_1: { label: "Póster 1", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster Default 1", file: CDN_URL + "poster_1.glb", price: 0, owned: true } } },
-            poster_2: { label: "Póster 2", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster Default 2", file: CDN_URL + "poster_2.glb", price: 0, owned: true } } },
-            poster_3: { label: "Póster 3", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster Default 3", file: CDN_URL + "poster_3.glb", price: 0, owned: true } } },
-            poster_4: { label: "Póster 4", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster Default 4", file: CDN_URL + "poster_4.glb", price: 0, owned: true } } },
+            poster_1: { label: "Póster 1", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster 1 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_1.glb", price: 0, owned: true } } },
+            poster_2: { label: "Póster 2", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster 2 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_2.glb", price: 0, owned: true } } },
+            poster_3: { label: "Póster 3", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster 3 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_3.glb", price: 0, owned: true } } },
+            poster_4: { label: "Póster 4", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster 4 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_4.glb", price: 0, owned: true } } },
             
             // Decoraciones
-            deco_escritorio: { label: "Deco: Escritorio", icon: "deco.png", equipped: "base", items: { "base": { name: "Plantita Escritorio", file: CDN_URL + "decoracion_escritorio.glb", price: 0, owned: true } } },
-            deco_piso: { label: "Deco: Piso", icon: "deco.png", equipped: "base", items: { "base": { name: "Planta de Piso", file: CDN_URL + "decoracion_piso.glb", price: 0, owned: true } } },
-            deco_mueble_1: { label: "Deco: Mueble 1 (A)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 1", file: CDN_URL + "decoracion_mueble_1.glb", price: 0, owned: true } } },
-            deco_2_mueble_1: { label: "Deco: Mueble 1 (B)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 2", file: CDN_URL + "decoracion_2_mueble_1.glb", price: 0, owned: true } } },
-            deco_3_mueble_1: { label: "Deco: Mueble 1 (C)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 3", file: CDN_URL + "decoracion_3_mueble_1.glb", price: 0, owned: true } } },
-            deco_4_mueble_1: { label: "Deco: Mueble 1 (D)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 4", file: CDN_URL + "decoracion_4_mueble_1.glb", price: 0, owned: true } } },
-            deco_5_mueble_1: { label: "Deco: Mueble 1 (E)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 5", file: CDN_URL + "decoracion_5_mueble_1.glb", price: 0, owned: true } } },
-            deco_mueble_2: { label: "Deco: Mueble 2 (A)", icon: "deco.png", equipped: "base", items: { "base": { name: "Libros", file: CDN_URL + "decoracion_mueble_2.glb", price: 0, owned: true } } },
-            deco_2_mueble_2: { label: "Deco: Mueble 2 (B)", icon: "deco.png", equipped: "base", items: { "base": { name: "Reloj", file: CDN_URL + "decoracion_2_mueble_2.glb", price: 0, owned: true } } }
+            deco_escritorio: { label: "Deco: Escritorio", icon: "deco.png", equipped: "base", items: { "base": { name: "Deco Escritorio", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_escritorio.glb", price: 0, owned: true } } },
+            deco_piso: { label: "Deco: Piso", icon: "deco.png", equipped: "base", items: { "base": { name: "Deco Piso", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_piso.glb", price: 0, owned: true } } },
+            deco_mueble_1: { label: "Deco: Mueble 1 (A)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 1", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_1.glb", price: 0, owned: true } } },
+            deco_2_mueble_1: { label: "Deco: Mueble 1 (B)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 2", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_1.glb", price: 0, owned: true } } },
+            deco_3_mueble_1: { label: "Deco: Mueble 1 (C)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 3", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_3_mueble_1.glb", price: 0, owned: true } } },
+            deco_4_mueble_1: { label: "Deco: Mueble 1 (D)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 4", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_4_mueble_1.glb", price: 0, owned: true } } },
+            deco_5_mueble_1: { label: "Deco: Mueble 1 (E)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 5", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_5_mueble_1.glb", price: 0, owned: true } } },
+            deco_mueble_2: { label: "Deco: Mueble 2 (A)", icon: "deco.png", equipped: "base", items: { "base": { name: "Libros", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_2.glb", price: 0, owned: true } } },
+            deco_2_mueble_2: { label: "Deco: Mueble 2 (B)", icon: "deco.png", equipped: "base", items: { "base": { name: "Reloj", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_2.glb", price: 0, owned: true } } }
         };
 
         // Cargar o inicializar progreso
         let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
 
-        // Sincronizar objetos nuevos y forzar actualización de rutas CDN e Iconos
+        // Sincronizar objetos nuevos y forzar actualización de rutas e Iconos
         for (let cat in defaultInventoryConfig) {
             if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
             
-            // Forzamos actualización visual (iconos y nombres sin emojis)
+            // Forzamos actualización visual (iconos y nombres consistentes)
             inventoryData[cat].icon = defaultInventoryConfig[cat].icon;
             inventoryData[cat].label = defaultInventoryConfig[cat].label;
 
@@ -276,8 +273,9 @@
                 if(!inventoryData[cat].items[item]) {
                     inventoryData[cat].items[item] = defaultInventoryConfig[cat].items[item];
                 } else {
-                    // Forzamos la ruta al CDN para jugadores con datos viejos guardados
+                    // Forzamos la ruta nueva y el nombre unificado para jugadores con datos viejos
                     inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file;
+                    inventoryData[cat].items[item].name = defaultInventoryConfig[cat].items[item].name;
                 }
             }
         }
@@ -492,7 +490,6 @@
                 const btn = document.createElement('button');
                 btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
                 
-                // Se reemplazan emojis por la imagen usando la propiedad 'icon'
                 btn.innerHTML = `<img src="${inventoryData[catKey].icon}" class="cat-icon" onerror="this.style.display='none'"> <span>${inventoryData[catKey].label}</span>`;
                 
                 btn.onclick = () => { currentCategory = catKey; renderInventory(); };
