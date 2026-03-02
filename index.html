@@ -79,17 +79,20 @@
         }
         #settings-panel.visible { display: block; }
         #settings-panel label {
-            display: flex; align-items: center; justify-content: space-between; gap: 15px; cursor: pointer; user-select: none; margin-bottom: 10px;
+            display: flex;
+            align-items: center; justify-content: space-between; gap: 15px; cursor: pointer; user-select: none; margin-bottom: 10px;
         }
         #settings-panel input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: #4CAF50; }
         
         #quality-indicator {
-            background: #4CAF50; color: white; padding: 4px 10px; border-radius: 50px; font-size: 12px; font-weight: bold; letter-spacing: 0.5px; text-align: center; margin-bottom: 10px;
+            background: #4CAF50;
+            color: white; padding: 4px 10px; border-radius: 50px; font-size: 12px; font-weight: bold; letter-spacing: 0.5px; text-align: center; margin-bottom: 10px;
         }
 
         /* --- MODAL INVENTARIO / TIENDA --- */
         #inventory-modal {
-            display: none; position: fixed; top: 5%; left: 5%; width: 90%; height: 90%;
+            display: none;
+            position: fixed; top: 5%; left: 5%; width: 90%; height: 90%;
             background: rgba(20,20,25,0.95); backdrop-filter: blur(15px);
             border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
             z-index: 1000; color: white; padding: 20px; box-sizing: border-box;
@@ -97,18 +100,37 @@
             flex-direction: column;
         }
         #inventory-modal.visible { display: flex; }
-        #inv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        #inv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 15px; }
         #inv-header h2 { margin: 0; font-size: 24px; }
         #close-inv { cursor: pointer; font-size: 24px; background: none; border: none; color: white; }
         
-        #inv-body { display: flex; flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
-        #inv-sidebar { width: 30%; border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding-right: 10px; }
-        .cat-btn { width: 100%; text-align: left; padding: 12px 15px; background: transparent; color: #ccc; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 5px; font-size: 14px; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #inv-body { display: flex;
+            flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
+        #inv-sidebar { width: 30%;
+            border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding-right: 10px; }
+        
+        .cat-btn { 
+            width: 100%;
+            text-align: left; padding: 12px 15px; background: transparent; color: #ccc; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 5px; font-size: 14px;
+            transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+            display: flex; /* Añadido para alinear icono y texto */
+            align-items: center; /* Añadido para alinear icono y texto */
+        }
+        .cat-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            object-fit: contain;
+        }
+
         .cat-btn:hover { background: rgba(255,255,255,0.05); color: white; }
         .cat-btn.active { background: #4CAF50; color: white; font-weight: bold; }
         
-        #inv-content { width: 70%; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; align-content: start; }
-        .item-card { background: rgba(40,40,50,0.8); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
+        #inv-content { width: 70%;
+            overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; align-content: start; }
+        .item-card { background: rgba(40,40,50,0.8); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05);
+            text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
         .item-card h4 { margin: 0 0 10px 0; font-size: 16px; color: #eee; }
         .item-price { color: gold; font-weight: bold; margin-bottom: 15px; font-size: 14px; }
         .item-btn { padding: 8px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; }
@@ -132,7 +154,8 @@
 
         /* --- ESTADOS --- */
         #loading, #light-status {
-            position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 10px; font-size: 12px; z-index: 100; pointer-events: none; backdrop-filter: blur(4px);
+            position: absolute;
+            bottom: 20px; color: white; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 10px; font-size: 12px; z-index: 100; pointer-events: none; backdrop-filter: blur(4px);
         }
         #loading { right: 20px; }
         #light-status { left: 20px; }
@@ -164,6 +187,7 @@
     </div>
 
     <div id="loading">Preparando habitación...</div>
+    
     <div id="light-status">💡 Luz encendida</div>
 
     <script type="importmap">
@@ -185,59 +209,75 @@
         let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
         document.getElementById('coin-amount').innerText = playerCoins;
 
-        // CADA OBJETO TIENE SU PROPIA CATEGORÍA (SLOT INDIVIDUAL)
+        // Prefijo base de la CDN
+        const CDN_URL = "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/";
+
+        // CADA OBJETO TIENE SU PROPIA CATEGORÍA (SLOT INDIVIDUAL) CON IMAGEN EN VEZ DE EMOJI
         const defaultInventoryConfig = {
-            // Estructura de la habitación
-            piso: { label: "🪵 Piso", equipped: "base", items: { "base": { name: "Piso Estándar", file: "piso.glb", price: 0, owned: true } } },
-            paredes: { label: "🧱 Paredes", equipped: "base", items: { "base": { name: "Paredes Blancas", file: "paredes.glb", price: 0, owned: true } } },
-            techo: { label: "قف Techo", equipped: "base", items: { "base": { name: "Techo Base", file: "techo.glb", price: 0, owned: true } } },
-            puerta: { label: "🚪 Puerta", equipped: "base", items: { "base": { name: "Puerta Madera", file: "puerta.glb", price: 0, owned: true } } },
+            piso: { label: "Piso", icon: "piso.png", equipped: "base", items: { "base": { name: "Piso Estándar", file: CDN_URL + "piso.glb", price: 0, owned: true } } },
+            paredes: { label: "Paredes", icon: "paredes.png", equipped: "base", items: { "base": { name: "Paredes Blancas", file: CDN_URL + "paredes.glb", price: 0, owned: true } } },
+            techo: { label: "Techo", icon: "techo.png", equipped: "base", items: { "base": { name: "Techo Base", file: CDN_URL + "techo.glb", price: 0, owned: true } } },
+            puerta: { label: "Puerta", icon: "puerta.png", equipped: "base", items: { "base": { name: "Puerta Madera", file: CDN_URL + "puerta.glb", price: 0, owned: true } } },
             
             // Iluminación
-            interruptor: { label: "🔘 Interruptor", equipped: "base", items: { "base": { name: "Interruptor Simple", file: "interruptor.glb", price: 0, owned: true } } },
-            base_foco: { label: "🔌 Base Foco", equipped: "base", items: { "base": { name: "Base Blanca", file: "base_foco.glb", price: 0, owned: true } } },
-            foco: { label: "💡 Foco", equipped: "base", items: { "base": { name: "Foco Led", file: "foco.glb", price: 0, owned: true } } },
+            interruptor: { label: "Interruptor", icon: "interruptor.png", equipped: "base", items: { "base": { name: "Interruptor Simple", file: CDN_URL + "interruptor.glb", price: 0, owned: true } } },
+            base_foco: { label: "Base Foco", icon: "base_foco.png", equipped: "base", items: { "base": { name: "Base Blanca", file: CDN_URL + "base_foco.glb", price: 0, owned: true } } },
+            foco: { label: "Foco", icon: "foco.png", equipped: "base", items: { "base": { name: "Foco Led", file: CDN_URL + "foco.glb", price: 0, owned: true } } },
             
-            // Muebles principales
-            cama: { label: "🛏️ Cama", equipped: "base", items: { "base": { name: "Cama Estándar", file: "cama.glb", price: 0, owned: true } } },
-            silla: { label: "🪑 Silla", equipped: "base", items: { "base": { name: "Silla Escritorio", file: "silla.glb", price: 0, owned: true } } },
-            pc: { label: "💻 Setup PC", equipped: "base", items: { "base": { name: "PC Básica", file: "pc.glb", price: 0, owned: true } } },
-            tele: { label: "📺 Televisor", equipped: "base", items: { "base": { name: "TV Plasma", file: "tele.glb", price: 0, owned: true } } },
-            mueble1: { label: "🗄️ Mueble 1 (Principal)", equipped: "base", items: { "base": { name: "Estante 1", file: "mueble1.glb", price: 0, owned: true } } },
-            mueble2: { label: "🗄️ Mueble 2 (Secundario)", equipped: "base", items: { "base": { name: "Estante 2", file: "mueble2.glb", price: 0, owned: true } } },
+            // Muebles principales (AQUÍ ESTÁ LA CAMA NUEVA)
+            cama: { 
+                label: "Cama", icon: "cama.png", equipped: "base", 
+                items: { 
+                    "base": { name: "Cama Estándar", file: CDN_URL + "cama.glb", price: 0, owned: true },
+                    "cama_brillante": { name: "Cama Brillante", file: CDN_URL + "cama_brillante.glb", price: 500, owned: false }
+                } 
+            },
+            silla: { label: "Silla", icon: "silla.png", equipped: "base", items: { "base": { name: "Silla Escritorio", file: CDN_URL + "silla.glb", price: 0, owned: true } } },
+            pc: { label: "Setup PC", icon: "pc.png", equipped: "base", items: { "base": { name: "PC Básica", file: CDN_URL + "pc.glb", price: 0, owned: true } } },
+            tele: { label: "Televisor", icon: "tele.png", equipped: "base", items: { "base": { name: "TV Plasma", file: CDN_URL + "tele.glb", price: 0, owned: true } } },
+            mueble1: { label: "Mueble 1", icon: "mueble1.png", equipped: "base", items: { "base": { name: "Estante 1", file: CDN_URL + "mueble1.glb", price: 0, owned: true } } },
+            mueble2: { label: "Mueble 2", icon: "mueble2.png", equipped: "base", items: { "base": { name: "Estante 2", file: CDN_URL + "mueble2.glb", price: 0, owned: true } } },
             
             // Textiles y Extras
-            alfombra: { label: "🧶 Alfombra", equipped: "base", items: { "base": { name: "Alfombra Gris", file: "alfombra.glb", price: 0, owned: true } } },
-            cortinas: { label: "🪟 Cortinas", equipped: "base", items: { "base": { name: "Cortinas Claras", file: "cortinas.glb", price: 0, owned: true } } },
-            mousepad: { label: "🖱️ Mouse Pad", equipped: "base", items: { "base": { name: "Mouse Pad Negro", file: "maouse_pad.glb", price: 0, owned: true } } },
+            alfombra: { label: "Alfombra", icon: "alfombra.png", equipped: "base", items: { "base": { name: "Alfombra Gris", file: CDN_URL + "alfombra.glb", price: 0, owned: true } } },
+            cortinas: { label: "Cortinas", icon: "cortinas.png", equipped: "base", items: { "base": { name: "Cortinas Claras", file: CDN_URL + "cortinas.glb", price: 0, owned: true } } },
+            mousepad: { label: "Mouse Pad", icon: "mousepad.png", equipped: "base", items: { "base": { name: "Mouse Pad Negro", file: CDN_URL + "maouse_pad.glb", price: 0, owned: true } } },
 
-            // Pósters (CADA UNO SEPARADO)
-            poster_1: { label: "🖼️ Póster 1", equipped: "base", items: { "base": { name: "Póster Default 1", file: "poster_1.glb", price: 0, owned: true } } },
-            poster_2: { label: "🖼️ Póster 2", equipped: "base", items: { "base": { name: "Póster Default 2", file: "poster_2.glb", price: 0, owned: true } } },
-            poster_3: { label: "🖼️ Póster 3", equipped: "base", items: { "base": { name: "Póster Default 3", file: "poster_3.glb", price: 0, owned: true } } },
-            poster_4: { label: "🖼️ Póster 4", equipped: "base", items: { "base": { name: "Póster Default 4", file: "poster_4.glb", price: 0, owned: true } } },
+            // Pósters
+            poster_1: { label: "Póster 1", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster Default 1", file: CDN_URL + "poster_1.glb", price: 0, owned: true } } },
+            poster_2: { label: "Póster 2", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster Default 2", file: CDN_URL + "poster_2.glb", price: 0, owned: true } } },
+            poster_3: { label: "Póster 3", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster Default 3", file: CDN_URL + "poster_3.glb", price: 0, owned: true } } },
+            poster_4: { label: "Póster 4", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster Default 4", file: CDN_URL + "poster_4.glb", price: 0, owned: true } } },
             
-            // Decoraciones (CADA UNA SEPARADA)
-            deco_escritorio: { label: "🪴 Deco: Escritorio", equipped: "base", items: { "base": { name: "Plantita Escritorio", file: "decoracion_escritorio.glb", price: 0, owned: true } } },
-            deco_piso: { label: "🪴 Deco: Piso", equipped: "base", items: { "base": { name: "Planta de Piso", file: "decoracion_piso.glb", price: 0, owned: true } } },
-            deco_mueble_1: { label: "🪴 Deco: Mueble 1 (A)", equipped: "base", items: { "base": { name: "Adorno 1", file: "decoracion_mueble_1.glb", price: 0, owned: true } } },
-            deco_2_mueble_1: { label: "🪴 Deco: Mueble 1 (B)", equipped: "base", items: { "base": { name: "Adorno 2", file: "decoracion_2_mueble_1.glb", price: 0, owned: true } } },
-            deco_3_mueble_1: { label: "🪴 Deco: Mueble 1 (C)", equipped: "base", items: { "base": { name: "Adorno 3", file: "decoracion_3_mueble_1.glb", price: 0, owned: true } } },
-            deco_4_mueble_1: { label: "🪴 Deco: Mueble 1 (D)", equipped: "base", items: { "base": { name: "Adorno 4", file: "decoracion_4_mueble_1.glb", price: 0, owned: true } } },
-            deco_5_mueble_1: { label: "🪴 Deco: Mueble 1 (E)", equipped: "base", items: { "base": { name: "Adorno 5", file: "decoracion_5_mueble_1.glb", price: 0, owned: true } } },
-            deco_mueble_2: { label: "🪴 Deco: Mueble 2 (A)", equipped: "base", items: { "base": { name: "Libros", file: "decoracion_mueble_2.glb", price: 0, owned: true } } },
-            deco_2_mueble_2: { label: "🪴 Deco: Mueble 2 (B)", equipped: "base", items: { "base": { name: "Reloj", file: "decoracion_2_mueble_2.glb", price: 0, owned: true } } }
+            // Decoraciones
+            deco_escritorio: { label: "Deco: Escritorio", icon: "deco.png", equipped: "base", items: { "base": { name: "Plantita Escritorio", file: CDN_URL + "decoracion_escritorio.glb", price: 0, owned: true } } },
+            deco_piso: { label: "Deco: Piso", icon: "deco.png", equipped: "base", items: { "base": { name: "Planta de Piso", file: CDN_URL + "decoracion_piso.glb", price: 0, owned: true } } },
+            deco_mueble_1: { label: "Deco: Mueble 1 (A)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 1", file: CDN_URL + "decoracion_mueble_1.glb", price: 0, owned: true } } },
+            deco_2_mueble_1: { label: "Deco: Mueble 1 (B)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 2", file: CDN_URL + "decoracion_2_mueble_1.glb", price: 0, owned: true } } },
+            deco_3_mueble_1: { label: "Deco: Mueble 1 (C)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 3", file: CDN_URL + "decoracion_3_mueble_1.glb", price: 0, owned: true } } },
+            deco_4_mueble_1: { label: "Deco: Mueble 1 (D)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 4", file: CDN_URL + "decoracion_4_mueble_1.glb", price: 0, owned: true } } },
+            deco_5_mueble_1: { label: "Deco: Mueble 1 (E)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 5", file: CDN_URL + "decoracion_5_mueble_1.glb", price: 0, owned: true } } },
+            deco_mueble_2: { label: "Deco: Mueble 2 (A)", icon: "deco.png", equipped: "base", items: { "base": { name: "Libros", file: CDN_URL + "decoracion_mueble_2.glb", price: 0, owned: true } } },
+            deco_2_mueble_2: { label: "Deco: Mueble 2 (B)", icon: "deco.png", equipped: "base", items: { "base": { name: "Reloj", file: CDN_URL + "decoracion_2_mueble_2.glb", price: 0, owned: true } } }
         };
 
         // Cargar o inicializar progreso
         let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
 
-        // Sincronizar objetos nuevos por si agregas algo al código base en el futuro
+        // Sincronizar objetos nuevos y forzar actualización de rutas CDN e Iconos
         for (let cat in defaultInventoryConfig) {
             if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
+            
+            // Forzamos actualización visual (iconos y nombres sin emojis)
+            inventoryData[cat].icon = defaultInventoryConfig[cat].icon;
+            inventoryData[cat].label = defaultInventoryConfig[cat].label;
+
             for(let item in defaultInventoryConfig[cat].items) {
                 if(!inventoryData[cat].items[item]) {
                     inventoryData[cat].items[item] = defaultInventoryConfig[cat].items[item];
+                } else {
+                    // Forzamos la ruta al CDN para jugadores con datos viejos guardados
+                    inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file;
                 }
             }
         }
@@ -248,7 +288,7 @@
             document.getElementById('coin-amount').innerText = playerCoins;
         }
 
-        const loadedSlotMeshes = {}; 
+        const loadedSlotMeshes = {};
         let switchMesh = null;
         let focoMesh = null;
 
@@ -256,7 +296,8 @@
         const ua = navigator.userAgent;
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
         const width = window.innerWidth;
-        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
+        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ?
+        'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
 
         // --- Escena y Cámara ---
         const scene = new THREE.Scene();
@@ -290,12 +331,14 @@
         controls.enablePan = false;
 
         // --- LUCES ---
-        const ambient = new THREE.AmbientLight(0xffffff, 0.3); scene.add(ambient);
+        const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambient);
         const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
         
         const mainLight = new THREE.SpotLight(0xffeedd, 6);
         mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
-        mainLight.castShadow = true; mainLight.shadow.mapSize.set(2048, 2048);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.set(2048, 2048);
         mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
         scene.add(mainLight); scene.add(mainLight.target);
 
@@ -368,7 +411,7 @@
                 if(isInitialLoad) checkLoading();
             }, undefined, (e) => { 
                 console.error(`Falta el modelo para [${categoryKey}]:`, itemFile); 
-                if(isInitialLoad) checkLoading(); 
+                if(isInitialLoad) checkLoading();
             });
         }
 
@@ -383,11 +426,13 @@
         function updateLighting() {
             const isLow = perfCheck.checked;
             if (lightOn) {
-                mainLight.visible = true; ambient.intensity = isLow ? 0.8 : 0.3; hemiLight.intensity = isLow ? 0.8 : 0.4;
+                mainLight.visible = true;
+                ambient.intensity = isLow ? 0.8 : 0.3; hemiLight.intensity = isLow ? 0.8 : 0.4;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
                 if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 1.5; });
             } else {
-                mainLight.visible = false; ambient.intensity = 0.02; hemiLight.intensity = 0.05; 
+                mainLight.visible = false;
+                ambient.intensity = 0.02; hemiLight.intensity = 0.05; 
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
                 if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; });
             }
@@ -396,7 +441,8 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         function toggleLight() {
-            lightOn = !lightOn; localStorage.setItem('lightState', lightOn ? 'on' : 'off'); updateLighting();
+            lightOn = !lightOn;
+            localStorage.setItem('lightState', lightOn ? 'on' : 'off'); updateLighting();
         }
 
         function handleInteraction(event) {
@@ -422,7 +468,6 @@
             renderer.shadowMap.enabled = !isLow;
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-            
             scene.traverse(n => { 
                 if(n.isMesh) { 
                     if (focoMesh && (n === focoMesh || focoMesh.children.includes(n))) return;
@@ -446,7 +491,10 @@
             for (let catKey in inventoryData) {
                 const btn = document.createElement('button');
                 btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
-                btn.innerText = inventoryData[catKey].label;
+                
+                // Se reemplazan emojis por la imagen usando la propiedad 'icon'
+                btn.innerHTML = `<img src="${inventoryData[catKey].icon}" class="cat-icon" onerror="this.style.display='none'"> <span>${inventoryData[catKey].label}</span>`;
+                
                 btn.onclick = () => { currentCategory = catKey; renderInventory(); };
                 sidebar.appendChild(btn);
             }
