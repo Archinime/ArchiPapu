@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Habitación 3D - Inventario & Tienda</title>
+    <title>Habitación 3D - Inventario Total</title>
     <style>
         body {
             margin: 0;
@@ -39,7 +39,7 @@
         .top-btn:active { transform: scale(0.95); }
         
         #settings-button { right: 20px; }
-        #inventory-button { right: 75px; } /* Botón de la mochila */
+        #inventory-button { right: 75px; }
 
         /* --- UI DE MONEDAS --- */
         #coin-display {
@@ -103,7 +103,7 @@
         
         #inv-body { display: flex; flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
         #inv-sidebar { width: 30%; border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding-right: 10px; }
-        .cat-btn { width: 100%; text-align: left; padding: 12px 15px; background: transparent; color: #ccc; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 5px; font-size: 16px; transition: 0.2s; }
+        .cat-btn { width: 100%; text-align: left; padding: 12px 15px; background: transparent; color: #ccc; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 5px; font-size: 14px; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .cat-btn:hover { background: rgba(255,255,255,0.05); color: white; }
         .cat-btn.active { background: #4CAF50; color: white; font-weight: bold; }
         
@@ -126,7 +126,7 @@
             #coin-display { top: 10px; left: 10px; font-size: 14px; padding: 8px 12px; }
             #inv-body { flex-direction: column; }
             #inv-sidebar { width: 100%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; overflow-x: auto; padding-bottom: 10px; }
-            .cat-btn { white-space: nowrap; width: auto; margin-right: 10px; margin-bottom: 0; }
+            .cat-btn { width: auto; margin-right: 10px; margin-bottom: 0; }
             #inv-content { width: 100%; }
         }
 
@@ -158,10 +158,8 @@
             <button id="close-inv">✖</button>
         </div>
         <div id="inv-body">
-            <div id="inv-sidebar">
-                </div>
-            <div id="inv-content">
-                </div>
+            <div id="inv-sidebar"></div>
+            <div id="inv-content"></div>
         </div>
     </div>
 
@@ -184,96 +182,57 @@
         import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
 
         // --- SISTEMA DE DATOS E INVENTARIO ---
-        // Aquí administras tu economía
-        let playerCoins = parseInt(localStorage.getItem('room_coins')) || 500; // Empezamos con 500 monedas de regalo
+        let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
         document.getElementById('coin-amount').innerText = playerCoins;
 
-        // Modelos estructurales que siempre se cargan (No se cambian en tienda)
-        const staticModels = [
-            'piso.glb', 'paredes.glb', 'puerta.glb', 'interruptor.glb', 
-            'techo.glb', 'base_foco.glb', 'foco.glb'
-        ];
-
-        // CONFIGURACIÓN DE TIENDA E INVENTARIO
-        // Agrupé todos tus modelos en categorías. Si quieres añadir "cama_roja.glb" en un futuro, 
-        // solo agregas una línea nueva dentro de "cama" copiando la estructura de "cama_1".
+        // CADA OBJETO TIENE SU PROPIA CATEGORÍA (SLOT INDIVIDUAL)
         const defaultInventoryConfig = {
-            cama: {
-                label: "🛏️ Camas",
-                equipped: "cama_1",
-                items: {
-                    "cama_1": { name: "Cama Estándar", file: "cama.glb", price: 0, owned: true },
-                    "cama_roja": { name: "Cama Roja (Ejemplo)", file: "cama_roja.glb", price: 150, owned: false } // <- Ejemplo de cómo agregar en el futuro
-                }
-            },
-            silla: {
-                label: "🪑 Sillas",
-                equipped: "silla_1",
-                items: {
-                    "silla_1": { name: "Silla de Base", file: "silla.glb", price: 0, owned: true },
-                    "silla_gamer": { name: "Silla Gamer (Ejemplo)", file: "silla_gamer.glb", price: 200, owned: false }
-                }
-            },
-            pc: {
-                label: "💻 Computadora",
-                equipped: "pc_1",
-                items: { "pc_1": { name: "Setup Básico", file: "pc.glb", price: 0, owned: true } }
-            },
-            tele: {
-                label: "📺 Televisor",
-                equipped: "tv_1",
-                items: { "tv_1": { name: "Televisor Normal", file: "tele.glb", price: 0, owned: true } }
-            },
-            alfombra: {
-                label: "🧶 Alfombras",
-                equipped: "alfombra_1",
-                items: { "alfombra_1": { name: "Alfombra Central", file: "alfombra.glb", price: 0, owned: true } }
-            },
-            cortinas: {
-                label: "🪟 Cortinas",
-                equipped: "cortina_1",
-                items: { "cortina_1": { name: "Cortinas Blancas", file: "cortinas.glb", price: 0, owned: true } }
-            },
-            muebles: {
-                label: "🗄️ Muebles",
-                equipped: "mueble_1",
-                items: { 
-                    "mueble_1": { name: "Mueble 1", file: "mueble1.glb", price: 0, owned: true },
-                    "mueble_2": { name: "Mueble 2", file: "mueble2.glb", price: 0, owned: true } 
-                }
-            },
-            posters: {
-                label: "🖼️ Pósters",
-                equipped: "poster_1",
-                items: { 
-                    "poster_1": { name: "Póster 1", file: "poster_1.glb", price: 0, owned: true },
-                    "poster_2": { name: "Póster 2", file: "poster_2.glb", price: 0, owned: true },
-                    "poster_3": { name: "Póster 3", file: "poster_3.glb", price: 0, owned: true },
-                    "poster_4": { name: "Póster 4", file: "poster_4.glb", price: 0, owned: true }
-                }
-            },
-            decoracion: {
-                label: "🪴 Decoración",
-                equipped: "deco_escritorio",
-                items: {
-                    "deco_escritorio": { name: "Deco Escritorio", file: "decoracion_escritorio.glb", price: 0, owned: true },
-                    "deco_piso": { name: "Deco Piso", file: "decoracion_piso.glb", price: 0, owned: true },
-                    "deco_mueble_1": { name: "Deco Mueble 1", file: "decoracion_mueble_1.glb", price: 0, owned: true },
-                    "deco_mueble_2": { name: "Deco Mueble 2", file: "decoracion_mueble_2.glb", price: 0, owned: true },
-                    "deco_2_m1": { name: "Deco 2 M1", file: "decoracion_2_mueble_1.glb", price: 0, owned: true },
-                    "deco_3_m1": { name: "Deco 3 M1", file: "decoracion_3_mueble_1.glb", price: 0, owned: true },
-                    "deco_4_m1": { name: "Deco 4 M1", file: "decoracion_4_mueble_1.glb", price: 0, owned: true },
-                    "deco_5_m1": { name: "Deco 5 M1", file: "decoracion_5_mueble_1.glb", price: 0, owned: true },
-                    "deco_2_m2": { name: "Deco 2 M2", file: "decoracion_2_mueble_2.glb", price: 0, owned: true },
-                    "mousepad": { name: "Mouse Pad", file: "maouse_pad.glb", price: 0, owned: true }
-                }
-            }
+            // Estructura de la habitación
+            piso: { label: "🪵 Piso", equipped: "base", items: { "base": { name: "Piso Estándar", file: "piso.glb", price: 0, owned: true } } },
+            paredes: { label: "🧱 Paredes", equipped: "base", items: { "base": { name: "Paredes Blancas", file: "paredes.glb", price: 0, owned: true } } },
+            techo: { label: "قف Techo", equipped: "base", items: { "base": { name: "Techo Base", file: "techo.glb", price: 0, owned: true } } },
+            puerta: { label: "🚪 Puerta", equipped: "base", items: { "base": { name: "Puerta Madera", file: "puerta.glb", price: 0, owned: true } } },
+            
+            // Iluminación
+            interruptor: { label: "🔘 Interruptor", equipped: "base", items: { "base": { name: "Interruptor Simple", file: "interruptor.glb", price: 0, owned: true } } },
+            base_foco: { label: "🔌 Base Foco", equipped: "base", items: { "base": { name: "Base Blanca", file: "base_foco.glb", price: 0, owned: true } } },
+            foco: { label: "💡 Foco", equipped: "base", items: { "base": { name: "Foco Led", file: "foco.glb", price: 0, owned: true } } },
+            
+            // Muebles principales
+            cama: { label: "🛏️ Cama", equipped: "base", items: { "base": { name: "Cama Estándar", file: "cama.glb", price: 0, owned: true } } },
+            silla: { label: "🪑 Silla", equipped: "base", items: { "base": { name: "Silla Escritorio", file: "silla.glb", price: 0, owned: true } } },
+            pc: { label: "💻 Setup PC", equipped: "base", items: { "base": { name: "PC Básica", file: "pc.glb", price: 0, owned: true } } },
+            tele: { label: "📺 Televisor", equipped: "base", items: { "base": { name: "TV Plasma", file: "tele.glb", price: 0, owned: true } } },
+            mueble1: { label: "🗄️ Mueble 1 (Principal)", equipped: "base", items: { "base": { name: "Estante 1", file: "mueble1.glb", price: 0, owned: true } } },
+            mueble2: { label: "🗄️ Mueble 2 (Secundario)", equipped: "base", items: { "base": { name: "Estante 2", file: "mueble2.glb", price: 0, owned: true } } },
+            
+            // Textiles y Extras
+            alfombra: { label: "🧶 Alfombra", equipped: "base", items: { "base": { name: "Alfombra Gris", file: "alfombra.glb", price: 0, owned: true } } },
+            cortinas: { label: "🪟 Cortinas", equipped: "base", items: { "base": { name: "Cortinas Claras", file: "cortinas.glb", price: 0, owned: true } } },
+            mousepad: { label: "🖱️ Mouse Pad", equipped: "base", items: { "base": { name: "Mouse Pad Negro", file: "maouse_pad.glb", price: 0, owned: true } } },
+
+            // Pósters (CADA UNO SEPARADO)
+            poster_1: { label: "🖼️ Póster 1", equipped: "base", items: { "base": { name: "Póster Default 1", file: "poster_1.glb", price: 0, owned: true } } },
+            poster_2: { label: "🖼️ Póster 2", equipped: "base", items: { "base": { name: "Póster Default 2", file: "poster_2.glb", price: 0, owned: true } } },
+            poster_3: { label: "🖼️ Póster 3", equipped: "base", items: { "base": { name: "Póster Default 3", file: "poster_3.glb", price: 0, owned: true } } },
+            poster_4: { label: "🖼️ Póster 4", equipped: "base", items: { "base": { name: "Póster Default 4", file: "poster_4.glb", price: 0, owned: true } } },
+            
+            // Decoraciones (CADA UNA SEPARADA)
+            deco_escritorio: { label: "🪴 Deco: Escritorio", equipped: "base", items: { "base": { name: "Plantita Escritorio", file: "decoracion_escritorio.glb", price: 0, owned: true } } },
+            deco_piso: { label: "🪴 Deco: Piso", equipped: "base", items: { "base": { name: "Planta de Piso", file: "decoracion_piso.glb", price: 0, owned: true } } },
+            deco_mueble_1: { label: "🪴 Deco: Mueble 1 (A)", equipped: "base", items: { "base": { name: "Adorno 1", file: "decoracion_mueble_1.glb", price: 0, owned: true } } },
+            deco_2_mueble_1: { label: "🪴 Deco: Mueble 1 (B)", equipped: "base", items: { "base": { name: "Adorno 2", file: "decoracion_2_mueble_1.glb", price: 0, owned: true } } },
+            deco_3_mueble_1: { label: "🪴 Deco: Mueble 1 (C)", equipped: "base", items: { "base": { name: "Adorno 3", file: "decoracion_3_mueble_1.glb", price: 0, owned: true } } },
+            deco_4_mueble_1: { label: "🪴 Deco: Mueble 1 (D)", equipped: "base", items: { "base": { name: "Adorno 4", file: "decoracion_4_mueble_1.glb", price: 0, owned: true } } },
+            deco_5_mueble_1: { label: "🪴 Deco: Mueble 1 (E)", equipped: "base", items: { "base": { name: "Adorno 5", file: "decoracion_5_mueble_1.glb", price: 0, owned: true } } },
+            deco_mueble_2: { label: "🪴 Deco: Mueble 2 (A)", equipped: "base", items: { "base": { name: "Libros", file: "decoracion_mueble_2.glb", price: 0, owned: true } } },
+            deco_2_mueble_2: { label: "🪴 Deco: Mueble 2 (B)", equipped: "base", items: { "base": { name: "Reloj", file: "decoracion_2_mueble_2.glb", price: 0, owned: true } } }
         };
 
-        // Cargar progreso del jugador desde LocalStorage
+        // Cargar o inicializar progreso
         let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
 
-        // Validar si hay items nuevos en el config base que el usuario no tiene en su guardado local
+        // Sincronizar objetos nuevos por si agregas algo al código base en el futuro
         for (let cat in defaultInventoryConfig) {
             if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
             for(let item in defaultInventoryConfig[cat].items) {
@@ -289,7 +248,6 @@
             document.getElementById('coin-amount').innerText = playerCoins;
         }
 
-        // Referencias a los modelos 3D cargados en escena para poder borrarlos y reemplazarlos
         const loadedSlotMeshes = {}; 
         let switchMesh = null;
         let focoMesh = null;
@@ -345,9 +303,10 @@
         const perfCheck = document.getElementById('performance-mode');
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
 
-        // --- FUNCIONES DE MATERIAL Y SOMBRAS (Extraído para reutilizar al cambiar objetos) ---
-        function applyMaterialLogic(model, isFoco) {
+        function applyMaterialLogic(model, categoryKey) {
             const isLow = perfCheck.checked;
+            const isFoco = categoryKey === 'foco';
+            
             model.traverse((node) => {
                 if (node.isMesh) {
                     if (isFoco) {
@@ -374,7 +333,7 @@
         // --- CARGA DE MODELOS ---
         const loader = new GLTFLoader();
         let modelsLoaded = 0;
-        let totalModelsToLoad = staticModels.length + Object.keys(inventoryData).length; // Los fijos + 1 equipado por categoría
+        let totalModelsToLoad = Object.keys(inventoryData).length; 
 
         function checkLoading() {
             modelsLoaded++;
@@ -384,52 +343,43 @@
             }
         }
 
-        // 1. Cargar Estructura Fija
-        staticModels.forEach(path => {
-            loader.load(path, (gltf) => {
-                const model = gltf.scene;
-                if (path.includes('foco.glb')) {
-                    focoMesh = model;
-                    const box = new THREE.Box3().setFromObject(model);
-                    const center = new THREE.Vector3(); box.getCenter(center);
-                    mainLight.position.copy(center); mainLight.position.y -= 0.2; 
-                    applyMaterialLogic(model, true);
-                } else {
-                    applyMaterialLogic(model, false);
-                }
-                if (path.includes('interruptor.glb')) switchMesh = model;
-                scene.add(model);
-                checkLoading();
-            }, undefined, (e) => { console.error("Falta el modelo:", path); checkLoading(); });
-        });
-
-        // 2. Función para cargar o reemplazar un objeto de inventario
         function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
-            // Si ya hay un modelo en esa categoría, lo quitamos de la escena (Reemplazo en tiempo real)
             if (loadedSlotMeshes[categoryKey]) {
                 scene.remove(loadedSlotMeshes[categoryKey]);
             }
 
             loader.load(itemFile, (gltf) => {
                 const model = gltf.scene;
-                applyMaterialLogic(model, false);
+                applyMaterialLogic(model, categoryKey);
+                
+                // Lógica especial para Foco y Luz
+                if (categoryKey === 'foco') {
+                    focoMesh = model;
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = new THREE.Vector3(); box.getCenter(center);
+                    mainLight.position.copy(center); mainLight.position.y -= 0.2; 
+                }
+                
+                // Lógica especial para Interruptor
+                if (categoryKey === 'interruptor') switchMesh = model;
+
                 scene.add(model);
-                loadedSlotMeshes[categoryKey] = model; // Guardar referencia para futuro reemplazo
+                loadedSlotMeshes[categoryKey] = model; 
                 if(isInitialLoad) checkLoading();
             }, undefined, (e) => { 
-                console.error("Falta el modelo:", itemFile); 
+                console.error(`Falta el modelo para [${categoryKey}]:`, itemFile); 
                 if(isInitialLoad) checkLoading(); 
             });
         }
 
-        // Cargar los objetos equipados inicialmente
+        // Cargar todos los objetos equipados al inicio
         for (let cat in inventoryData) {
             let equippedItemId = inventoryData[cat].equipped;
             let file = inventoryData[cat].items[equippedItemId].file;
             loadItemForSlot(cat, file, true);
         }
 
-        // --- SISTEMA DE ILUMINACIÓN CENTRALIZADO ---
+        // --- SISTEMA DE ILUMINACIÓN ---
         function updateLighting() {
             const isLow = perfCheck.checked;
             if (lightOn) {
@@ -462,7 +412,6 @@
         }
         renderer.domElement.addEventListener('click', handleInteraction);
         renderer.domElement.addEventListener('touchstart', (e) => { 
-            // Ignorar click si modal esta abierto
             if(document.getElementById('inventory-modal').classList.contains('visible')) return;
             handleInteraction(e); 
         }, {passive: true});
@@ -494,7 +443,6 @@
             const content = document.getElementById('inv-content');
             sidebar.innerHTML = ''; content.innerHTML = '';
 
-            // Generar botones de categoría
             for (let catKey in inventoryData) {
                 const btn = document.createElement('button');
                 btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
@@ -503,7 +451,6 @@
                 sidebar.appendChild(btn);
             }
 
-            // Generar items de la categoría actual
             const catData = inventoryData[currentCategory];
             for (let itemId in catData.items) {
                 const item = catData.items[itemId];
@@ -531,7 +478,6 @@
                 content.appendChild(card);
             }
 
-            // Asignar eventos a los botones de comprar/equipar
             document.querySelectorAll('.btn-equip').forEach(b => {
                 b.onclick = (e) => equipItem(currentCategory, e.target.getAttribute('data-id'));
             });
@@ -543,8 +489,7 @@
         function equipItem(category, itemId) {
             inventoryData[category].equipped = itemId;
             saveGame();
-            renderInventory(); // Re-renderizar UI
-            // Cargar el nuevo modelo 3D dinámicamente
+            renderInventory(); 
             loadItemForSlot(category, inventoryData[category].items[itemId].file, false);
         }
 
@@ -560,7 +505,7 @@
             }
         }
 
-        // Eventos UI de botones
+        // Eventos UI
         document.getElementById('inventory-button').onclick = () => {
             document.getElementById('inventory-modal').classList.add('visible');
             renderInventory();
@@ -587,7 +532,6 @@
             effect.setSize(window.innerWidth, window.innerHeight); 
         });
 
-        // Inicio
         updateQuality();
     </script>
 </body>
