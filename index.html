@@ -234,14 +234,12 @@
             'decoracion_2_mueble_1.glb', 'decoracion_3_mueble_1.glb', 'decoracion_4_mueble_1.glb',
             'decoracion_5_mueble_1.glb', 'decoracion_2_mueble_2.glb', 'decoracion_piso.glb',
             'poster_1.glb', 'poster_2.glb', 'poster_3.glb', 'poster_4.glb', 'puerta.glb',
-            'interruptor.glb', 'maouse_pad.glb', 'techo.glb', 'base_foco.glb', 'lunari2.glb', 
+            'interruptor.glb', 'maouse_pad.glb', 'techo.glb', 'base_foco.glb', 'Lunari.glb', 
             'foco.glb'
         ];
 
         let switchMesh = null;
         let focoMesh = null;
-        // Guardamos referencia a los materiales de lunari2 que tienen emisión, junto con su color original
-        const lunari2EmissiveData = [];
 
         modelos.forEach(path => {
             loader.load(path, (gltf) => {
@@ -268,41 +266,7 @@
                             }
                         }
                     });
-                } 
-                else if (path.includes('lunari2.glb')) {
-                    // Guardamos referencia al modelo y sus materiales emisivos
-                    // Primero, almacenamos los colores emisivos originales
-                    model.traverse((node) => {
-                        if (node.isMesh && node.material) {
-                            // Puede ser material único o array
-                            const materials = Array.isArray(node.material) ? node.material : [node.material];
-                            materials.forEach(mat => {
-                                // Solo si tiene propiedad emissive (puede ser undefined en algunos materiales)
-                                if (mat.emissive) {
-                                    // Guardamos el color original (clon para no modificarlo después)
-                                    lunari2EmissiveData.push({
-                                        material: mat,
-                                        originalEmissive: mat.emissive.clone(),
-                                        originalIntensity: mat.emissiveIntensity !== undefined ? mat.emissiveIntensity : 1.0
-                                    });
-                                }
-                            });
-                        }
-                    });
-                    
-                    // Configurar sombras normalmente
-                    model.traverse((node) => {
-                        if (node.isMesh) {
-                            node.castShadow = true;
-                            node.receiveShadow = true;
-                            if(node.material) {
-                                node.material.shadowSide = THREE.FrontSide;
-                                node.material.side = THREE.DoubleSide;
-                            }
-                        }
-                    });
-                }
-                else {
+                } else {
                     model.traverse((node) => {
                         if (node.isMesh) {
                             node.castShadow = true;
@@ -350,17 +314,6 @@
                         }
                     });
                 }
-
-                // Restauramos la emisión original de lunari2 (color e intensidad)
-                lunari2EmissiveData.forEach(item => {
-                    if (item.material) {
-                        item.material.emissive.copy(item.originalEmissive);
-                        if (item.material.emissiveIntensity !== undefined) {
-                            item.material.emissiveIntensity = item.originalIntensity;
-                        }
-                        item.material.needsUpdate = true;
-                    }
-                });
             } else {
                 mainLight.visible = false;
                 ambient.intensity = 0.02;
@@ -374,17 +327,6 @@
                         }
                     });
                 }
-
-                // Apagamos completamente la emisión de lunari2: color negro y cero intensidad
-                lunari2EmissiveData.forEach(item => {
-                    if (item.material) {
-                        item.material.emissive.setRGB(0, 0, 0);
-                        if (item.material.emissiveIntensity !== undefined) {
-                            item.material.emissiveIntensity = 0;
-                        }
-                        item.material.needsUpdate = true;
-                    }
-                });
             }
         }
 
