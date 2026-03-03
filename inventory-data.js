@@ -207,7 +207,7 @@ export const defaultInventoryConfig = {
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/maouse_pad.glb", 
                 price: 0, 
                 owned: true,
-                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mouse_pad_estandar.avif"
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/maouse_pad_estandar.avif"
             } 
         } 
     },
