@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Habitación 3D - Inventario Total</title>
+    <title>Habitación 3D - Inventario Mejorado</title>
     <style>
         body {
             margin: 0;
@@ -14,6 +14,7 @@
             height: 100%;
             background-color: #111;
         }
+
         /* --- BOTONES SUPERIORES --- */
         .top-btn {
             position: absolute;
@@ -100,37 +101,41 @@
             flex-direction: column;
         }
         #inventory-modal.visible { display: flex; }
-        #inv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1);
-            padding-bottom: 15px; }
+        #inv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
         #inv-header h2 { margin: 0; font-size: 24px; }
         #close-inv { cursor: pointer; font-size: 24px; background: none; border: none; color: white; }
         
-        #inv-body { display: flex;
-            flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
-        #inv-sidebar { width: 30%;
-            border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding-right: 10px; }
+        #inv-body { display: flex; flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
         
-        .cat-btn { 
-            width: 100%;
-            text-align: left; padding: 12px 15px; background: transparent; color: #ccc; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 5px; font-size: 14px;
-            transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-            display: flex; 
-            align-items: center; 
+        /* SISTEMA DE CATEGORÍAS ACORDEÓN */
+        #inv-sidebar { width: 30%; border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding-right: 10px; }
+        
+        .inv-group { margin-bottom: 8px; }
+        .group-btn {
+            width: 100%; text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.4);
+            color: white; border: 1px solid rgba(255,255,255,0.05); border-radius: 10px;
+            cursor: pointer; font-size: 15px; font-weight: bold;
+            display: flex; justify-content: space-between; align-items: center; transition: 0.2s;
         }
-        .cat-icon {
-            width: 20px;
-            height: 20px;
-            margin-right: 10px;
-            object-fit: contain;
+        .group-btn:hover { background: rgba(255,255,255,0.1); }
+        .group-content {
+            display: none; flex-direction: column; padding-left: 10px; margin-top: 5px;
+            border-left: 2px solid rgba(255,255,255,0.1); margin-left: 5px;
         }
+        .group-content.open { display: flex; }
 
+        .cat-btn { 
+            width: 100%; text-align: left; padding: 10px 15px; background: transparent; 
+            color: #ccc; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 2px; 
+            font-size: 14px; transition: 0.2s; display: flex; align-items: center; gap: 10px;
+        }
         .cat-btn:hover { background: rgba(255,255,255,0.05); color: white; }
         .cat-btn.active { background: #4CAF50; color: white; font-weight: bold; }
+        .cat-icon-emoji { font-size: 18px; }
         
-        #inv-content { width: 70%;
-            overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; align-content: start; }
-        .item-card { background: rgba(40,40,50,0.8); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05);
-            text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
+        /* CONTENIDO DE ÍTEMS */
+        #inv-content { width: 70%; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; align-content: start; }
+        .item-card { background: rgba(40,40,50,0.8); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
         .item-card h4 { margin: 0 0 10px 0; font-size: 16px; color: #eee; }
         .item-price { color: gold; font-weight: bold; margin-bottom: 15px; font-size: 14px; }
         .item-btn { padding: 8px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; }
@@ -147,15 +152,13 @@
             #settings-panel { top: 60px; right: 10px; padding: 12px 15px; font-size: 13px; min-width: 180px; }
             #coin-display { top: 10px; left: 10px; font-size: 14px; padding: 8px 12px; }
             #inv-body { flex-direction: column; }
-            #inv-sidebar { width: 100%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; overflow-x: auto; padding-bottom: 10px; }
-            .cat-btn { width: auto; margin-right: 10px; margin-bottom: 0; }
-            #inv-content { width: 100%; }
+            #inv-sidebar { width: 100%; height: 40%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+            #inv-content { width: 100%; height: 60%; }
         }
 
         /* --- ESTADOS --- */
         #loading, #light-status {
-            position: absolute;
-            bottom: 20px; color: white; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 10px; font-size: 12px; z-index: 100; pointer-events: none; backdrop-filter: blur(4px);
+            position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 10px; font-size: 12px; z-index: 100; pointer-events: none; backdrop-filter: blur(4px);
         }
         #loading { right: 20px; }
         #light-status { left: 20px; }
@@ -187,7 +190,6 @@
     </div>
 
     <div id="loading">Preparando habitación...</div>
-    
     <div id="light-status">💡 Luz encendida</div>
 
     <script type="importmap">
@@ -209,73 +211,89 @@
         let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
         document.getElementById('coin-amount').innerText = playerCoins;
 
-        // CADA OBJETO AHORA TIENE SU LINK DIRECTO Y NOMBRES SIMPLES
+        // CONFIGURACIÓN PRINCIPAL DE ITEMS (CON EMOJIS Y GRUPOS)
         const defaultInventoryConfig = {
-            piso: { label: "Piso", icon: "piso.png", equipped: "base", items: { "base": { name: "Piso Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/piso.glb", price: 0, owned: true } } },
-            paredes: { label: "Paredes", icon: "paredes.png", equipped: "base", items: { "base": { name: "Paredes Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/paredes.glb", price: 0, owned: true } } },
-            techo: { label: "Techo", icon: "techo.png", equipped: "base", items: { "base": { name: "Techo Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo.glb", price: 0, owned: true } } },
-            puerta: { label: "Puerta", icon: "puerta.png", equipped: "base", items: { "base": { name: "Puerta Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta.glb", price: 0, owned: true } } },
+            // Estructura
+            piso: { label: "Piso", emoji: "🟫", equipped: "base", items: { "base": { name: "Piso Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/piso.glb", price: 0, owned: true } } },
+            paredes: { label: "Paredes", emoji: "🧱", equipped: "base", items: { "base": { name: "Paredes Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/paredes.glb", price: 0, owned: true } } },
+            techo: { label: "Techo", emoji: "🛖", equipped: "base", items: { "base": { name: "Techo Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo.glb", price: 0, owned: true } } },
+            puerta: { label: "Puerta", emoji: "🚪", equipped: "base", items: { "base": { name: "Puerta Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta.glb", price: 0, owned: true } } },
             
-            // Iluminación
-            interruptor: { label: "Interruptor", icon: "interruptor.png", equipped: "base", items: { "base": { name: "Interruptor Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/interruptor.glb", price: 0, owned: true } } },
-            base_foco: { label: "Base Foco", icon: "base_foco.png", equipped: "base", items: { "base": { name: "Base Foco Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/base_foco.glb", price: 0, owned: true } } },
-            foco: { label: "Foco", icon: "foco.png", equipped: "base", items: { "base": { name: "Foco Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco.glb", price: 0, owned: true } } },
-            
-            // Muebles principales (AQUÍ ESTÁ LA CAMA BRILLANTE TAMBIÉN)
-            cama: { 
-                label: "Cama", icon: "cama.png", equipped: "base", 
+            // Iluminación (Base Foco ahora viene amarrada internamente al Foco)
+            interruptor: { label: "Interruptor", emoji: "🎛️", equipped: "base", items: { "base": { name: "Interruptor Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/interruptor.glb", price: 0, owned: true } } },
+            foco: { 
+                label: "Foco", emoji: "💡", equipped: "base", 
                 items: { 
-                    "base": { name: "Cama Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama.glb", price: 0, owned: true },
-                    "cama_brillante": { name: "Cama Brillante", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama_brillante.glb", price: 500, owned: false }
+                    "base": { name: "Foco Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco.glb", baseFile: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/base_foco.glb", price: 0, owned: true },
+                    "foco_brillante": { name: "Foco Brillante", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco.glb", baseFile: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/base_foco.glb", price: 250, owned: false } // Reemplazar los links por tus modelos brillantes
                 } 
             },
-            silla: { label: "Silla", icon: "silla.png", equipped: "base", items: { "base": { name: "Silla Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/silla.glb", price: 0, owned: true } } },
-            pc: { label: "Setup PC", icon: "pc.png", equipped: "base", items: { "base": { name: "PC Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pc.glb", price: 0, owned: true } } },
-            tele: { label: "Televisor", icon: "tele.png", equipped: "base", items: { "base": { name: "Televisor Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele.glb", price: 0, owned: true } } },
-            mueble1: { label: "Mueble 1", icon: "mueble1.png", equipped: "base", items: { "base": { name: "Mueble 1 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble1.glb", price: 0, owned: true } } },
-            mueble2: { label: "Mueble 2", icon: "mueble2.png", equipped: "base", items: { "base": { name: "Mueble 2 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble2.glb", price: 0, owned: true } } },
             
-            // Textiles y Extras
-            alfombra: { label: "Alfombra", icon: "alfombra.png", equipped: "base", items: { "base": { name: "Alfombra Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/alfombra.glb", price: 0, owned: true } } },
-            cortinas: { label: "Cortinas", icon: "cortinas.png", equipped: "base", items: { "base": { name: "Cortinas Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cortinas.glb", price: 0, owned: true } } },
-            mousepad: { label: "Mouse Pad", icon: "mousepad.png", equipped: "base", items: { "base": { name: "Mouse Pad Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/maouse_pad.glb", price: 0, owned: true } } },
+            // Muebles
+            cama: { label: "Cama", emoji: "🛏️", equipped: "base", items: { "base": { name: "Cama Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama.glb", price: 0, owned: true }, "cama_brillante": { name: "Cama Brillante", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama_brillante.glb", price: 500, owned: false } } },
+            silla: { label: "Silla", emoji: "🪑", equipped: "base", items: { "base": { name: "Silla Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/silla.glb", price: 0, owned: true } } },
+            pc: { label: "Setup PC", emoji: "🖥️", equipped: "base", items: { "base": { name: "PC Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pc.glb", price: 0, owned: true } } },
+            tele: { label: "Televisor", emoji: "📺", equipped: "base", items: { "base": { name: "Televisor Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele.glb", price: 0, owned: true } } },
+            mueble1: { label: "Mueble 1", emoji: "🗄️", equipped: "base", items: { "base": { name: "Mueble 1 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble1.glb", price: 0, owned: true } } },
+            mueble2: { label: "Mueble 2", emoji: "🗄️", equipped: "base", items: { "base": { name: "Mueble 2 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble2.glb", price: 0, owned: true } } },
+            
+            // Textiles
+            alfombra: { label: "Alfombra", emoji: "🔲", equipped: "base", items: { "base": { name: "Alfombra Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/alfombra.glb", price: 0, owned: true } } },
+            cortinas: { label: "Cortinas", emoji: "🪟", equipped: "base", items: { "base": { name: "Cortinas Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cortinas.glb", price: 0, owned: true } } },
+            mousepad: { label: "Mouse Pad", emoji: "🖱️", equipped: "base", items: { "base": { name: "Mouse Pad Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/maouse_pad.glb", price: 0, owned: true } } },
 
             // Pósters
-            poster_1: { label: "Póster 1", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster 1 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_1.glb", price: 0, owned: true } } },
-            poster_2: { label: "Póster 2", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster 2 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_2.glb", price: 0, owned: true } } },
-            poster_3: { label: "Póster 3", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster 3 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_3.glb", price: 0, owned: true } } },
-            poster_4: { label: "Póster 4", icon: "poster.png", equipped: "base", items: { "base": { name: "Póster 4 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_4.glb", price: 0, owned: true } } },
+            poster_1: { label: "Póster 1", emoji: "🖼️", equipped: "base", items: { "base": { name: "Póster 1 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_1.glb", price: 0, owned: true } } },
+            poster_2: { label: "Póster 2", emoji: "🖼️", equipped: "base", items: { "base": { name: "Póster 2 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_2.glb", price: 0, owned: true } } },
+            poster_3: { label: "Póster 3", emoji: "🖼️", equipped: "base", items: { "base": { name: "Póster 3 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_3.glb", price: 0, owned: true } } },
+            poster_4: { label: "Póster 4", emoji: "🖼️", equipped: "base", items: { "base": { name: "Póster 4 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_4.glb", price: 0, owned: true } } },
             
             // Decoraciones
-            deco_escritorio: { label: "Deco: Escritorio", icon: "deco.png", equipped: "base", items: { "base": { name: "Deco Escritorio", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_escritorio.glb", price: 0, owned: true } } },
-            deco_piso: { label: "Deco: Piso", icon: "deco.png", equipped: "base", items: { "base": { name: "Deco Piso", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_piso.glb", price: 0, owned: true } } },
-            deco_mueble_1: { label: "Deco: Mueble 1 (A)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 1", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_1.glb", price: 0, owned: true } } },
-            deco_2_mueble_1: { label: "Deco: Mueble 1 (B)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 2", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_1.glb", price: 0, owned: true } } },
-            deco_3_mueble_1: { label: "Deco: Mueble 1 (C)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 3", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_3_mueble_1.glb", price: 0, owned: true } } },
-            deco_4_mueble_1: { label: "Deco: Mueble 1 (D)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 4", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_4_mueble_1.glb", price: 0, owned: true } } },
-            deco_5_mueble_1: { label: "Deco: Mueble 1 (E)", icon: "deco.png", equipped: "base", items: { "base": { name: "Adorno 5", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_5_mueble_1.glb", price: 0, owned: true } } },
-            deco_mueble_2: { label: "Deco: Mueble 2 (A)", icon: "deco.png", equipped: "base", items: { "base": { name: "Libros", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_2.glb", price: 0, owned: true } } },
-            deco_2_mueble_2: { label: "Deco: Mueble 2 (B)", icon: "deco.png", equipped: "base", items: { "base": { name: "Reloj", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_2.glb", price: 0, owned: true } } }
+            deco_escritorio: { label: "Deco Escritorio", emoji: "🪴", equipped: "base", items: { "base": { name: "Deco Escritorio", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_escritorio.glb", price: 0, owned: true } } },
+            deco_piso: { label: "Deco Piso", emoji: "🪴", equipped: "base", items: { "base": { name: "Deco Piso", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_piso.glb", price: 0, owned: true } } },
+            deco_mueble_1: { label: "Adorno 1 (Mueble 1)", emoji: "🪴", equipped: "base", items: { "base": { name: "Adorno 1", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_1.glb", price: 0, owned: true } } },
+            deco_2_mueble_1: { label: "Adorno 2 (Mueble 1)", emoji: "🪴", equipped: "base", items: { "base": { name: "Adorno 2", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_1.glb", price: 0, owned: true } } },
+            deco_3_mueble_1: { label: "Adorno 3 (Mueble 1)", emoji: "🪴", equipped: "base", items: { "base": { name: "Adorno 3", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_3_mueble_1.glb", price: 0, owned: true } } },
+            deco_4_mueble_1: { label: "Adorno 4 (Mueble 1)", emoji: "🪴", equipped: "base", items: { "base": { name: "Adorno 4", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_4_mueble_1.glb", price: 0, owned: true } } },
+            deco_5_mueble_1: { label: "Adorno 5 (Mueble 1)", emoji: "🪴", equipped: "base", items: { "base": { name: "Adorno 5", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_5_mueble_1.glb", price: 0, owned: true } } },
+            deco_mueble_2: { label: "Libros (Mueble 2)", emoji: "📚", equipped: "base", items: { "base": { name: "Libros", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_2.glb", price: 0, owned: true } } },
+            deco_2_mueble_2: { label: "Reloj (Mueble 2)", emoji: "🕰️", equipped: "base", items: { "base": { name: "Reloj", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_2.glb", price: 0, owned: true } } }
         };
+
+        // Estructura visual para la tienda (Acordeones)
+        const inventoryGroups = [
+            { id: 'estructura', label: 'Estructura', emoji: '🏠', categories: ['piso', 'paredes', 'techo', 'puerta'] },
+            { id: 'iluminacion', label: 'Iluminación', emoji: '💡', categories: ['interruptor', 'foco'] },
+            { id: 'muebles', label: 'Muebles', emoji: '🛋️', categories: ['cama', 'silla', 'pc', 'tele', 'mueble1', 'mueble2'] },
+            { id: 'textiles', label: 'Textiles', emoji: '🧶', categories: ['alfombra', 'cortinas', 'mousepad'] },
+            { id: 'posters', label: 'Pósters', emoji: '🖼️', categories: ['poster_1', 'poster_2', 'poster_3', 'poster_4'] },
+            { id: 'decoracion', label: 'Decoración', emoji: '🪴', categories: ['deco_escritorio', 'deco_piso', 'deco_mueble_1', 'deco_2_mueble_1', 'deco_3_mueble_1', 'deco_4_mueble_1', 'deco_5_mueble_1', 'deco_mueble_2', 'deco_2_mueble_2'] }
+        ];
 
         // Cargar o inicializar progreso
         let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
 
-        // Sincronizar objetos nuevos y forzar actualización de rutas e Iconos
+        // Limpiar "base_foco" de guardados viejos, ya que ahora vive dentro de "foco"
+        if (inventoryData.base_foco) delete inventoryData.base_foco;
+
+        // Sincronizar objetos nuevos y forzar actualización de rutas y emojis
         for (let cat in defaultInventoryConfig) {
             if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
             
-            // Forzamos actualización visual (iconos y nombres consistentes)
-            inventoryData[cat].icon = defaultInventoryConfig[cat].icon;
+            // Forzamos actualización visual (emojis y nombres consistentes)
+            inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
             inventoryData[cat].label = defaultInventoryConfig[cat].label;
 
             for(let item in defaultInventoryConfig[cat].items) {
                 if(!inventoryData[cat].items[item]) {
                     inventoryData[cat].items[item] = defaultInventoryConfig[cat].items[item];
                 } else {
-                    // Forzamos la ruta nueva y el nombre unificado para jugadores con datos viejos
+                    // Forzamos la ruta nueva y datos amarrados (baseFile) para jugadores con datos viejos
                     inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file;
                     inventoryData[cat].items[item].name = defaultInventoryConfig[cat].items[item].name;
+                    if(defaultInventoryConfig[cat].items[item].baseFile) {
+                        inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile;
+                    }
                 }
             }
         }
@@ -294,8 +312,7 @@
         const ua = navigator.userAgent;
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
         const width = window.innerWidth;
-        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ?
-        'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
+        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
 
         // --- Escena y Cámara ---
         const scene = new THREE.Scene();
@@ -374,7 +391,7 @@
         // --- CARGA DE MODELOS ---
         const loader = new GLTFLoader();
         let modelsLoaded = 0;
-        let totalModelsToLoad = Object.keys(inventoryData).length; 
+        let totalModelsToLoad = Object.keys(inventoryData).length + 1; // +1 porque el foco carga su base también
 
         function checkLoading() {
             modelsLoaded++;
@@ -385,6 +402,8 @@
         }
 
         function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
+            if (!itemFile) return;
+
             if (loadedSlotMeshes[categoryKey]) {
                 scene.remove(loadedSlotMeshes[categoryKey]);
             }
@@ -416,8 +435,16 @@
         // Cargar todos los objetos equipados al inicio
         for (let cat in inventoryData) {
             let equippedItemId = inventoryData[cat].equipped;
-            let file = inventoryData[cat].items[equippedItemId].file;
-            loadItemForSlot(cat, file, true);
+            let itemData = inventoryData[cat].items[equippedItemId];
+            
+            if (itemData && itemData.file) {
+                loadItemForSlot(cat, itemData.file, true);
+            }
+            
+            // Si es el foco, también cargamos su base automáticamente
+            if (cat === 'foco' && itemData && itemData.baseFile) {
+                loadItemForSlot('base_foco', itemData.baseFile, true);
+            }
         }
 
         // --- SISTEMA DE ILUMINACIÓN ---
@@ -438,6 +465,7 @@
 
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
+        
         function toggleLight() {
             lightOn = !lightOn;
             localStorage.setItem('lightState', lightOn ? 'on' : 'off'); updateLighting();
@@ -454,6 +482,7 @@
                 toggleLight();
             }
         }
+        
         renderer.domElement.addEventListener('click', handleInteraction);
         renderer.domElement.addEventListener('touchstart', (e) => { 
             if(document.getElementById('inventory-modal').classList.contains('visible')) return;
@@ -480,22 +509,46 @@
 
         // --- LÓGICA DE INTERFAZ DEL INVENTARIO ---
         let currentCategory = 'cama';
+        let openGroup = 'muebles'; // Grupo expandido por defecto
 
         function renderInventory() {
             const sidebar = document.getElementById('inv-sidebar');
             const content = document.getElementById('inv-content');
             sidebar.innerHTML = ''; content.innerHTML = '';
 
-            for (let catKey in inventoryData) {
-                const btn = document.createElement('button');
-                btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
-                
-                btn.innerHTML = `<img src="${inventoryData[catKey].icon}" class="cat-icon" onerror="this.style.display='none'"> <span>${inventoryData[catKey].label}</span>`;
-                
-                btn.onclick = () => { currentCategory = catKey; renderInventory(); };
-                sidebar.appendChild(btn);
-            }
+            // Renderizar Grupos y Subcategorías (Acordeón)
+            inventoryGroups.forEach(group => {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'inv-group';
 
+                const groupBtn = document.createElement('button');
+                groupBtn.className = 'group-btn';
+                groupBtn.innerHTML = `<span>${group.emoji} ${group.label}</span> <span>${openGroup === group.id ? '▼' : '▶'}</span>`;
+                groupBtn.onclick = () => {
+                    openGroup = openGroup === group.id ? null : group.id;
+                    renderInventory();
+                };
+                groupDiv.appendChild(groupBtn);
+
+                const groupContent = document.createElement('div');
+                groupContent.className = `group-content ${openGroup === group.id ? 'open' : ''}`;
+
+                group.categories.forEach(catKey => {
+                    const catData = inventoryData[catKey];
+                    if(!catData) return;
+                    
+                    const btn = document.createElement('button');
+                    btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
+                    btn.innerHTML = `<span class="cat-icon-emoji">${catData.emoji}</span> <span>${catData.label}</span>`;
+                    btn.onclick = () => { currentCategory = catKey; renderInventory(); };
+                    groupContent.appendChild(btn);
+                });
+
+                groupDiv.appendChild(groupContent);
+                sidebar.appendChild(groupDiv);
+            });
+
+            // Renderizar Ítems de la categoría seleccionada
             const catData = inventoryData[currentCategory];
             for (let itemId in catData.items) {
                 const item = catData.items[itemId];
@@ -535,7 +588,14 @@
             inventoryData[category].equipped = itemId;
             saveGame();
             renderInventory(); 
-            loadItemForSlot(category, inventoryData[category].items[itemId].file, false);
+            
+            const itemData = inventoryData[category].items[itemId];
+            loadItemForSlot(category, itemData.file, false);
+
+            // Si cambiamos un foco, cargamos también su base atada
+            if (category === 'foco' && itemData.baseFile) {
+                loadItemForSlot('base_foco', itemData.baseFile, false);
+            }
         }
 
         function buyItem(category, itemId) {
