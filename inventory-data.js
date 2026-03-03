@@ -273,7 +273,8 @@ export const defaultInventoryConfig = {
                 name: "Deco Piso", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_piso.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pepsi.avif"
             } 
         } 
     },
@@ -286,7 +287,8 @@ export const defaultInventoryConfig = {
                 name: "Deco Escritorio", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_escritorio.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cocacola.avif"
             } 
         } 
     },
@@ -298,7 +300,8 @@ export const defaultInventoryConfig = {
                 name: "Libros", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_2.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cocacola.avif"
             } 
         } 
     },
@@ -310,7 +313,8 @@ export const defaultInventoryConfig = {
                 name: "Reloj", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_2.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros2.avif" 
             } 
         } 
     },
@@ -323,7 +327,8 @@ export const defaultInventoryConfig = {
                 name: "Adorno 1", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_1.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cocacola.avif"
             } 
         } 
     },
@@ -335,7 +340,8 @@ export const defaultInventoryConfig = {
                 name: "Adorno 2", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_1.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/dvd.avif"
             } 
         } 
     },
@@ -347,7 +353,8 @@ export const defaultInventoryConfig = {
                 name: "Adorno 3", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_3_mueble_1.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/dvd2.avif"
             } 
         } 
     },
@@ -357,7 +364,7 @@ export const defaultInventoryConfig = {
         items: { 
             "base": { 
                 name: "Adorno 4", 
-                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_4_mueble_1.glb", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.glb", 
                 price: 0, 
                 owned: true 
             } 
@@ -369,7 +376,7 @@ export const defaultInventoryConfig = {
         items: { 
             "base": { 
                 name: "Adorno 5", 
-                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_5_mueble_1.glb", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.glb", 
                 price: 0, 
                 owned: true 
             } 
