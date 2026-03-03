@@ -270,7 +270,7 @@ export const defaultInventoryConfig = {
         label: "Adorno Piso", emoji: "🎍", equipped: "base", 
         items: { 
             "base": { 
-                name: "CocaCola", 
+                name: "Pepsi", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_piso.glb", 
                 price: 0, 
                 owned: true,
@@ -364,7 +364,7 @@ export const defaultInventoryConfig = {
         items: { 
             "base": { 
                 name: "Libros", 
-                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.glb", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_4_mueble_1.glb", 
                 price: 0, 
                 owned: true,
                 preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.avif" 
@@ -377,7 +377,7 @@ export const defaultInventoryConfig = {
         items: { 
             "base": { 
                 name: "Libros", 
-                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.glb", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_5_mueble_1.glb", 
                 price: 0, 
                 owned: true,
                 preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.avif" 
