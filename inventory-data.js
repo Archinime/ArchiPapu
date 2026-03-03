@@ -233,7 +233,8 @@ export const defaultInventoryConfig = {
                 name: "Póster 2 Estándar", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_2.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pikachu.avif"
             } 
         } 
     },
@@ -245,7 +246,8 @@ export const defaultInventoryConfig = {
                 name: "Póster 3 Estándar", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_3.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/flores_volando.avif"
             } 
         } 
     },
@@ -257,7 +259,8 @@ export const defaultInventoryConfig = {
                 name: "Póster 4 Estándar", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_4.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/boku.avif"
             } 
         } 
     },
