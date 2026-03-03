@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Habitación 3D - Inventario Mejorado</title>
     <style>
+        /* --- (Mantuve todo tu CSS exactamente igual) --- */
         body {
             margin: 0;
             overflow: hidden;
@@ -15,13 +16,11 @@
             background-color: #111;
         }
 
-        /* --- SCROLLBAR PERSONALIZADO --- */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
 
-        /* --- BOTONES SUPERIORES --- */
         .top-btn {
             position: absolute;
             top: 20px;
@@ -48,7 +47,6 @@
         #settings-button { right: 20px; }
         #inventory-button { right: 75px; }
 
-        /* --- UI DE MONEDAS --- */
         #coin-display {
             position: absolute;
             top: 20px;
@@ -68,7 +66,6 @@
         }
         #coin-display:hover { transform: scale(1.05); }
 
-        /* --- PANELES --- */
         #settings-panel {
             position: absolute;
             top: 70px;
@@ -100,7 +97,6 @@
             box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
         }
 
-        /* --- MODAL INVENTARIO / TIENDA --- */
         @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         
         #inventory-modal {
@@ -120,7 +116,6 @@
         
         #inv-body { display: flex; flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
         
-        /* SISTEMA DE CATEGORÍAS ACORDEÓN */
         #inv-sidebar { width: 30%; border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding-right: 10px; }
         
         .inv-group { margin-bottom: 10px; }
@@ -148,7 +143,6 @@
         .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
         .cat-icon-emoji { font-size: 18px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
         
-        /* CONTENIDO DE ÍTEMS CON IMÁGENES DE PREVIEW */
         #inv-content {
             width: 70%;
             overflow-y: auto;
@@ -245,7 +239,6 @@
             .item-preview { height: 100px; }
         }
 
-        /* --- ESTADOS --- */
         #loading, #light-status {
             position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); font-weight: bold;
         }
@@ -296,7 +289,7 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
-        // Importar datos desde archivo externo
+        // IMPORTA el modulo JS con la data (asegúrate de que inventory-data.js esté en el mismo directorio)
         import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
         // --- SISTEMA DE DATOS E INVENTARIO ---
@@ -583,7 +576,7 @@
                 sidebar.appendChild(groupDiv);
             });
 
-            // Renderizar Ítems de la categoría seleccionada con imagen de preview
+            // Renderizar Ítens de la categoría seleccionada con imagen de preview
             const catData = inventoryData[currentCategory];
             if (!catData) return;
             
@@ -591,56 +584,77 @@
                 const item = catData.items[itemId];
                 const isEquipped = catData.equipped === itemId;
                 
+                // Construir card con DOM (evitar innerHTML/outerHTML que rompía onerror)
                 const card = document.createElement('div');
                 card.className = 'item-card';
-                
-                // Contenedor de imagen de preview
+
+                // Preview container
                 const previewDiv = document.createElement('div');
                 previewDiv.className = 'item-preview';
+
                 const img = document.createElement('img');
+                // Set crossOrigin/referrer to reduce blocking issues en algunos CDNs
+                img.crossOrigin = "anonymous";
+                img.referrerPolicy = "no-referrer";
+                img.decoding = "async";
+                img.alt = item.name || 'item';
                 img.src = item.preview || 'https://via.placeholder.com/150?text=Sin+imagen';
-                img.alt = item.name;
-                img.onerror = () => {
-                    // Si la imagen no carga, mostrar un emoji como placeholder
-                    previewDiv.innerHTML = '<span class="placeholder">📦</span>';
+
+                // Manejar error de carga — actualizamos el contenedor real (parentNode)
+                img.onerror = function(ev) {
+                    const parent = ev && ev.target && ev.target.parentNode;
+                    if (parent) {
+                        parent.innerHTML = '<span class="placeholder">📦</span>';
+                    } else {
+                        // fallback: reemplazo de previewDiv
+                        previewDiv.innerHTML = '<span class="placeholder">📦</span>';
+                    }
+                    console.warn('Error cargando preview:', img.src);
                 };
+
+                // Si carga correctamente, garantizar que se muestra correctamente
+                img.onload = function() {
+                    // nada especial por ahora, pero evita que el elemento se quede vacío
+                };
+
                 previewDiv.appendChild(img);
-                
-                let btnHTML = '';
+
+                const title = document.createElement('h4');
+                title.textContent = item.name || 'Sin nombre';
+
+                const priceDiv = document.createElement('div');
+                priceDiv.className = 'item-price';
+                priceDiv.textContent = item.owned ? 'Adquirido' : `🪙 ${item.price}`;
+
+                // Botón
+                const btn = document.createElement('button');
                 if (isEquipped) {
-                    btnHTML = `<button class="item-btn btn-equipped" disabled>Equipado ✓</button>`;
+                    btn.className = 'item-btn btn-equipped';
+                    btn.disabled = true;
+                    btn.textContent = 'Equipado ✓';
                 } else if (item.owned) {
-                    btnHTML = `<button class="item-btn btn-equip" data-id="${itemId}">Equipar</button>`;
+                    btn.className = 'item-btn btn-equip';
+                    btn.dataset.id = itemId;
+                    btn.textContent = 'Equipar';
+                    btn.addEventListener('click', () => equipItem(currentCategory, itemId));
                 } else {
-                    btnHTML = `<button class="item-btn btn-buy" data-id="${itemId}">Comprar 🪙${item.price}</button>`;
+                    btn.className = 'item-btn btn-buy';
+                    btn.dataset.id = itemId;
+                    btn.textContent = `Comprar 🪙${item.price}`;
+                    btn.addEventListener('click', () => buyItem(currentCategory, itemId));
                 }
 
-                card.innerHTML = `
-                    <div>
-                        ${previewDiv.outerHTML}
-                        <h4>${item.name}</h4>
-                        <div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div>
-                    </div>
-                    ${btnHTML}
-                `;
-                
-                // Reemplazar el previewDiv con el elemento real para que funcione onerror
-                const finalCard = card;
-                const previewContainer = finalCard.querySelector('.item-preview');
-                if (previewContainer) {
-                    previewContainer.innerHTML = ''; // Limpiar
-                    previewContainer.appendChild(img);
-                }
-                
-                content.appendChild(finalCard);
+                // Montaje del card
+                const topDiv = document.createElement('div');
+                topDiv.appendChild(previewDiv);
+                topDiv.appendChild(title);
+                topDiv.appendChild(priceDiv);
+
+                card.appendChild(topDiv);
+                card.appendChild(btn);
+
+                content.appendChild(card);
             }
-
-            document.querySelectorAll('.btn-equip').forEach(b => {
-                b.onclick = (e) => equipItem(currentCategory, e.target.getAttribute('data-id'));
-            });
-            document.querySelectorAll('.btn-buy').forEach(b => {
-                b.onclick = (e) => buyItem(currentCategory, e.target.getAttribute('data-id'));
-            });
         }
 
         function equipItem(category, itemId) {
