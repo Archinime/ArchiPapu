@@ -1,7 +1,18 @@
 // inventory-data.js
 export const defaultInventoryConfig = {
     // Estructura
-    piso: { label: "Piso", emoji: "🟫", equipped: "base", items: { "base": { name: "Piso Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/piso.glb", price: 0, owned: true } } },
+    piso: { 
+        label: "Piso", emoji: "🟫", equipped: "base", 
+        items: { 
+            "base": { 
+                name: "Piso Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/piso.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/piso_estandar.png"
+            } 
+        } 
+    },
     paredes: { label: "Paredes", emoji: "🧱", equipped: "base", items: { "base": { name: "Paredes Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/paredes.glb", price: 0, owned: true } } },
     techo: { label: "Techo", emoji: "🛖", equipped: "base", items: { "base": { name: "Techo Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo.glb", price: 0, owned: true } } },
     puerta: { label: "Puerta", emoji: "🚪", equipped: "base", items: { "base": { name: "Puerta Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta.glb", price: 0, owned: true } } },
