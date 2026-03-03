@@ -15,6 +15,12 @@
             background-color: #111;
         }
 
+        /* --- SCROLLBAR PERSONALIZADO --- */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
+
         /* --- BOTONES SUPERIORES --- */
         .top-btn {
             position: absolute;
@@ -33,10 +39,10 @@
             cursor: pointer;
             z-index: 300;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s;
             user-select: none;
         }
-        .top-btn:hover { transform: scale(1.1); }
+        .top-btn:hover { transform: scale(1.15); background: rgba(50,50,60,0.95); }
         .top-btn:active { transform: scale(0.95); }
         
         #settings-button { right: 20px; }
@@ -58,7 +64,9 @@
             z-index: 300;
             user-select: none;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
         }
+        #coin-display:hover { transform: scale(1.05); }
 
         /* --- PANELES --- */
         #settings-panel {
@@ -73,77 +81,94 @@
             border: 1px solid rgba(255,255,255,0.2);
             z-index: 250;
             font-size: 14px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
             pointer-events: auto;
             display: none;
             min-width: 200px;
+            animation: fadeInDown 0.3s ease forwards;
         }
         #settings-panel.visible { display: block; }
         #settings-panel label {
-            display: flex;
-            align-items: center; justify-content: space-between; gap: 15px; cursor: pointer; user-select: none; margin-bottom: 10px;
+            display: flex; align-items: center; justify-content: space-between; gap: 15px; cursor: pointer; user-select: none; margin-bottom: 10px;
+            transition: color 0.2s;
         }
+        #settings-panel label:hover { color: #4CAF50; }
         #settings-panel input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: #4CAF50; }
         
         #quality-indicator {
-            background: #4CAF50;
-            color: white; padding: 4px 10px; border-radius: 50px; font-size: 12px; font-weight: bold; letter-spacing: 0.5px; text-align: center; margin-bottom: 10px;
+            background: #4CAF50; color: white; padding: 4px 10px; border-radius: 50px; font-size: 12px; font-weight: bold; letter-spacing: 0.5px; text-align: center; margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
         }
 
         /* --- MODAL INVENTARIO / TIENDA --- */
+        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        
         #inventory-modal {
-            display: none;
-            position: fixed; top: 5%; left: 5%; width: 90%; height: 90%;
-            background: rgba(20,20,25,0.95); backdrop-filter: blur(15px);
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
+            display: none; position: fixed; top: 5%; left: 5%; width: 90%; height: 90%;
+            background: rgba(20,20,25,0.85); backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 20px;
             z-index: 1000; color: white; padding: 20px; box-sizing: border-box;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8);
             flex-direction: column;
         }
-        #inventory-modal.visible { display: flex; }
+        #inventory-modal.visible { display: flex; animation: modalFadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1); }
+        
         #inv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
-        #inv-header h2 { margin: 0; font-size: 24px; }
-        #close-inv { cursor: pointer; font-size: 24px; background: none; border: none; color: white; }
+        #inv-header h2 { margin: 0; font-size: 24px; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        #close-inv { cursor: pointer; font-size: 24px; background: rgba(255,255,255,0.1); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; transition: 0.2s; }
+        #close-inv:hover { background: rgba(255,50,50,0.6); transform: rotate(90deg); }
         
         #inv-body { display: flex; flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
         
         /* SISTEMA DE CATEGORÍAS ACORDEÓN */
         #inv-sidebar { width: 30%; border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding-right: 10px; }
         
-        .inv-group { margin-bottom: 8px; }
+        .inv-group { margin-bottom: 10px; }
         .group-btn {
-            width: 100%; text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.4);
-            color: white; border: 1px solid rgba(255,255,255,0.05); border-radius: 10px;
+            width: 100%; text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.5);
+            color: white; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
             cursor: pointer; font-size: 15px; font-weight: bold;
-            display: flex; justify-content: space-between; align-items: center; transition: 0.2s;
+            display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease;
         }
-        .group-btn:hover { background: rgba(255,255,255,0.1); }
+        .group-btn:hover { background: rgba(255,255,255,0.15); transform: translateX(2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .group-content {
             display: none; flex-direction: column; padding-left: 10px; margin-top: 5px;
-            border-left: 2px solid rgba(255,255,255,0.1); margin-left: 5px;
+            border-left: 2px solid rgba(255,255,255,0.1); margin-left: 8px;
+            animation: slideDown 0.3s ease;
         }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
         .group-content.open { display: flex; }
 
         .cat-btn { 
             width: 100%; text-align: left; padding: 10px 15px; background: transparent; 
-            color: #ccc; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 2px; 
+            color: #bbb; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 4px; 
             font-size: 14px; transition: 0.2s; display: flex; align-items: center; gap: 10px;
         }
-        .cat-btn:hover { background: rgba(255,255,255,0.05); color: white; }
-        .cat-btn.active { background: #4CAF50; color: white; font-weight: bold; }
-        .cat-icon-emoji { font-size: 18px; }
+        .cat-btn:hover { background: rgba(255,255,255,0.08); color: white; padding-left: 18px; }
+        .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
+        .cat-icon-emoji { font-size: 18px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
         
         /* CONTENIDO DE ÍTEMS */
-        #inv-content { width: 70%; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; align-content: start; }
-        .item-card { background: rgba(40,40,50,0.8); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
-        .item-card h4 { margin: 0 0 10px 0; font-size: 16px; color: #eee; }
-        .item-price { color: gold; font-weight: bold; margin-bottom: 15px; font-size: 14px; }
-        .item-btn { padding: 8px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; }
-        .btn-buy { background: #FF9800; color: white; }
-        .btn-buy:hover { background: #F57C00; }
-        .btn-equip { background: #2196F3; color: white; }
-        .btn-equip:hover { background: #1976D2; }
-        .btn-equipped { background: #4CAF50; color: white; cursor: default; }
+        #inv-content { width: 70%; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; align-content: start; padding-right: 5px; }
+        .item-card { 
+            background: linear-gradient(145deg, rgba(40,40,50,0.9), rgba(25,25,30,0.9)); 
+            padding: 18px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.05); 
+            text-align: center; display: flex; flex-direction: column; justify-content: space-between;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .item-card:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 10px 25px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.2); }
+        .item-card h4 { margin: 0 0 10px 0; font-size: 16px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+        .item-price { color: #FFD700; font-weight: bold; margin-bottom: 15px; font-size: 14px; text-shadow: 0 0 5px rgba(255, 215, 0, 0.3); }
+        .item-btn { padding: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+        
+        .btn-buy { background: linear-gradient(135deg, #FF9800, #F57C00); color: white; box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3); }
+        .btn-buy:hover { background: linear-gradient(135deg, #FFB74D, #FF9800); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(255, 152, 0, 0.4); }
+        
+        .btn-equip { background: linear-gradient(135deg, #2196F3, #1976D2); color: white; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3); }
+        .btn-equip:hover { background: linear-gradient(135deg, #64B5F6, #2196F3); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(33, 150, 243, 0.4); }
+        
+        .btn-equipped { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; cursor: default; box-shadow: inset 0 2px 5px rgba(0,0,0,0.2), 0 0 10px rgba(76, 175, 80, 0.4); border: 1px solid rgba(129, 199, 132, 0.5); }
 
         @media (max-width: 600px) {
             .top-btn { top: 10px; width: 40px; height: 40px; font-size: 20px; }
@@ -151,17 +176,20 @@
             #inventory-button { right: 60px; }
             #settings-panel { top: 60px; right: 10px; padding: 12px 15px; font-size: 13px; min-width: 180px; }
             #coin-display { top: 10px; left: 10px; font-size: 14px; padding: 8px 12px; }
-            #inv-body { flex-direction: column; }
-            #inv-sidebar { width: 100%; height: 40%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
-            #inv-content { width: 100%; height: 60%; }
+            #inventory-modal { top: 2%; left: 2%; width: 96%; height: 96%; padding: 15px; }
+            #inv-body { flex-direction: column; gap: 10px; }
+            #inv-sidebar { width: 100%; height: 35%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; padding-right: 0; }
+            #inv-content { width: 100%; height: 65%; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); padding-right: 0; }
+            .item-card { padding: 12px; }
         }
 
         /* --- ESTADOS --- */
         #loading, #light-status {
-            position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 10px; font-size: 12px; z-index: 100; pointer-events: none; backdrop-filter: blur(4px);
+            position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); font-weight: bold;
         }
-        #loading { right: 20px; }
-        #light-status { left: 20px; }
+        #loading { right: 20px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
+        #light-status { left: 20px; transition: 0.3s; }
     </style>
 </head>
 <body>
@@ -211,7 +239,7 @@
         let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
         document.getElementById('coin-amount').innerText = playerCoins;
 
-        // CONFIGURACIÓN PRINCIPAL DE ITEMS (CON EMOJIS Y GRUPOS)
+        // CONFIGURACIÓN PRINCIPAL DE ITEMS (ACTUALIZADA CON NUEVAS CATEGORÍAS Y EMOJIS)
         const defaultInventoryConfig = {
             // Estructura
             piso: { label: "Piso", emoji: "🟫", equipped: "base", items: { "base": { name: "Piso Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/piso.glb", price: 0, owned: true } } },
@@ -219,13 +247,13 @@
             techo: { label: "Techo", emoji: "🛖", equipped: "base", items: { "base": { name: "Techo Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo.glb", price: 0, owned: true } } },
             puerta: { label: "Puerta", emoji: "🚪", equipped: "base", items: { "base": { name: "Puerta Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta.glb", price: 0, owned: true } } },
             
-            // Iluminación (Base Foco ahora viene amarrada internamente al Foco)
+            // Iluminación
             interruptor: { label: "Interruptor", emoji: "🎛️", equipped: "base", items: { "base": { name: "Interruptor Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/interruptor.glb", price: 0, owned: true } } },
             foco: { 
                 label: "Foco", emoji: "💡", equipped: "base", 
                 items: { 
                     "base": { name: "Foco Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco.glb", baseFile: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/base_foco.glb", price: 0, owned: true },
-                    "foco_brillante": { name: "Foco Brillante", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco.glb", baseFile: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/base_foco.glb", price: 250, owned: false } // Reemplazar los links por tus modelos brillantes
+                    "foco_brillante": { name: "Foco Brillante", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco.glb", baseFile: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/base_foco.glb", price: 250, owned: false }
                 } 
             },
             
@@ -248,39 +276,47 @@
             poster_3: { label: "Póster 3", emoji: "🖼️", equipped: "base", items: { "base": { name: "Póster 3 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_3.glb", price: 0, owned: true } } },
             poster_4: { label: "Póster 4", emoji: "🖼️", equipped: "base", items: { "base": { name: "Póster 4 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_4.glb", price: 0, owned: true } } },
             
-            // Decoraciones
-            deco_escritorio: { label: "Deco Escritorio", emoji: "🪴", equipped: "base", items: { "base": { name: "Deco Escritorio", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_escritorio.glb", price: 0, owned: true } } },
-            deco_piso: { label: "Deco Piso", emoji: "🪴", equipped: "base", items: { "base": { name: "Deco Piso", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_piso.glb", price: 0, owned: true } } },
-            deco_mueble_1: { label: "Adorno 1 (Mueble 1)", emoji: "🪴", equipped: "base", items: { "base": { name: "Adorno 1", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_1.glb", price: 0, owned: true } } },
-            deco_2_mueble_1: { label: "Adorno 2 (Mueble 1)", emoji: "🪴", equipped: "base", items: { "base": { name: "Adorno 2", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_1.glb", price: 0, owned: true } } },
-            deco_3_mueble_1: { label: "Adorno 3 (Mueble 1)", emoji: "🪴", equipped: "base", items: { "base": { name: "Adorno 3", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_3_mueble_1.glb", price: 0, owned: true } } },
-            deco_4_mueble_1: { label: "Adorno 4 (Mueble 1)", emoji: "🪴", equipped: "base", items: { "base": { name: "Adorno 4", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_4_mueble_1.glb", price: 0, owned: true } } },
-            deco_5_mueble_1: { label: "Adorno 5 (Mueble 1)", emoji: "🪴", equipped: "base", items: { "base": { name: "Adorno 5", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_5_mueble_1.glb", price: 0, owned: true } } },
-            deco_mueble_2: { label: "Libros (Mueble 2)", emoji: "📚", equipped: "base", items: { "base": { name: "Libros", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_2.glb", price: 0, owned: true } } },
-            deco_2_mueble_2: { label: "Reloj (Mueble 2)", emoji: "🕰️", equipped: "base", items: { "base": { name: "Reloj", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_2.glb", price: 0, owned: true } } }
+            // --- NUEVAS CATEGORÍAS DE DECORACIÓN ---
+            
+            // Decoración del Piso
+            deco_piso: { label: "Adorno Piso", emoji: "🎍", equipped: "base", items: { "base": { name: "Deco Piso", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_piso.glb", price: 0, owned: true } } },
+            
+            // Decoración del Escritorio (Incluye libros y reloj del mueble 2 según lo solicitado)
+            deco_escritorio: { label: "Adorno Escritorio", emoji: "🎍", equipped: "base", items: { "base": { name: "Deco Escritorio", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_escritorio.glb", price: 0, owned: true } } },
+            deco_mueble_2: { label: "Decoración 1 (Libros)", emoji: "🎍", equipped: "base", items: { "base": { name: "Libros", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_2.glb", price: 0, owned: true } } },
+            deco_2_mueble_2: { label: "Decoración 2 (Reloj)", emoji: "🎍", equipped: "base", items: { "base": { name: "Reloj", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_2.glb", price: 0, owned: true } } },
+            
+            // Decoración del Mueble 1
+            deco_mueble_1: { label: "Decoración 1", emoji: "🎍", equipped: "base", items: { "base": { name: "Adorno 1", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_1.glb", price: 0, owned: true } } },
+            deco_2_mueble_1: { label: "Decoración 2", emoji: "🎍", equipped: "base", items: { "base": { name: "Adorno 2", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_1.glb", price: 0, owned: true } } },
+            deco_3_mueble_1: { label: "Decoración 3", emoji: "🎍", equipped: "base", items: { "base": { name: "Adorno 3", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_3_mueble_1.glb", price: 0, owned: true } } },
+            deco_4_mueble_1: { label: "Decoración 4", emoji: "🎍", equipped: "base", items: { "base": { name: "Adorno 4", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_4_mueble_1.glb", price: 0, owned: true } } },
+            deco_5_mueble_1: { label: "Decoración 5", emoji: "🎍", equipped: "base", items: { "base": { name: "Adorno 5", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_5_mueble_1.glb", price: 0, owned: true } } }
         };
 
-        // Estructura visual para la tienda (Acordeones)
+        // Estructura visual para la tienda (Acordeones Mejorados)
         const inventoryGroups = [
             { id: 'estructura', label: 'Estructura', emoji: '🏠', categories: ['piso', 'paredes', 'techo', 'puerta'] },
             { id: 'iluminacion', label: 'Iluminación', emoji: '💡', categories: ['interruptor', 'foco'] },
             { id: 'muebles', label: 'Muebles', emoji: '🛋️', categories: ['cama', 'silla', 'pc', 'tele', 'mueble1', 'mueble2'] },
             { id: 'textiles', label: 'Textiles', emoji: '🧶', categories: ['alfombra', 'cortinas', 'mousepad'] },
             { id: 'posters', label: 'Pósters', emoji: '🖼️', categories: ['poster_1', 'poster_2', 'poster_3', 'poster_4'] },
-            { id: 'decoracion', label: 'Decoración', emoji: '🪴', categories: ['deco_escritorio', 'deco_piso', 'deco_mueble_1', 'deco_2_mueble_1', 'deco_3_mueble_1', 'deco_4_mueble_1', 'deco_5_mueble_1', 'deco_mueble_2', 'deco_2_mueble_2'] }
+            
+            // Secciones separadas de decoración
+            { id: 'deco_mueble', label: 'Decoración del Mueble', emoji: '🎍', categories: ['deco_mueble_1', 'deco_2_mueble_1', 'deco_3_mueble_1', 'deco_4_mueble_1', 'deco_5_mueble_1'] },
+            { id: 'deco_escritorio', label: 'Decoración del Escritorio', emoji: '🎍', categories: ['deco_escritorio', 'deco_mueble_2', 'deco_2_mueble_2'] },
+            { id: 'deco_piso', label: 'Decoración del Piso', emoji: '🎍', categories: ['deco_piso'] }
         ];
 
         // Cargar o inicializar progreso
         let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
 
-        // Limpiar "base_foco" de guardados viejos, ya que ahora vive dentro de "foco"
         if (inventoryData.base_foco) delete inventoryData.base_foco;
 
         // Sincronizar objetos nuevos y forzar actualización de rutas y emojis
         for (let cat in defaultInventoryConfig) {
             if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
             
-            // Forzamos actualización visual (emojis y nombres consistentes)
             inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
             inventoryData[cat].label = defaultInventoryConfig[cat].label;
 
@@ -288,7 +324,6 @@
                 if(!inventoryData[cat].items[item]) {
                     inventoryData[cat].items[item] = defaultInventoryConfig[cat].items[item];
                 } else {
-                    // Forzamos la ruta nueva y datos amarrados (baseFile) para jugadores con datos viejos
                     inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file;
                     inventoryData[cat].items[item].name = defaultInventoryConfig[cat].items[item].name;
                     if(defaultInventoryConfig[cat].items[item].baseFile) {
@@ -509,21 +544,21 @@
 
         // --- LÓGICA DE INTERFAZ DEL INVENTARIO ---
         let currentCategory = 'cama';
-        let openGroup = 'muebles'; // Grupo expandido por defecto
+        let openGroup = 'muebles';
 
         function renderInventory() {
             const sidebar = document.getElementById('inv-sidebar');
             const content = document.getElementById('inv-content');
             sidebar.innerHTML = ''; content.innerHTML = '';
 
-            // Renderizar Grupos y Subcategorías (Acordeón)
+            // Renderizar Grupos y Subcategorías (Acordeón Animado)
             inventoryGroups.forEach(group => {
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'inv-group';
 
                 const groupBtn = document.createElement('button');
                 groupBtn.className = 'group-btn';
-                groupBtn.innerHTML = `<span>${group.emoji} ${group.label}</span> <span>${openGroup === group.id ? '▼' : '▶'}</span>`;
+                groupBtn.innerHTML = `<span>${group.emoji} ${group.label}</span> <span style="transition:0.3s; transform: ${openGroup === group.id ? 'rotate(90deg)' : 'rotate(0deg)'}">▶</span>`;
                 groupBtn.onclick = () => {
                     openGroup = openGroup === group.id ? null : group.id;
                     renderInventory();
@@ -592,7 +627,6 @@
             const itemData = inventoryData[category].items[itemId];
             loadItemForSlot(category, itemData.file, false);
 
-            // Si cambiamos un foco, cargamos también su base atada
             if (category === 'foco' && itemData.baseFile) {
                 loadItemForSlot('base_foco', itemData.baseFile, false);
             }
