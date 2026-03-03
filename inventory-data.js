@@ -115,7 +115,7 @@ export const defaultInventoryConfig = {
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/silla.glb", 
                 price: 0, 
                 owned: true 
-                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/silla_estandar.avif"
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/silla_estandar.avif",
             } 
         } 
     },
@@ -128,6 +128,7 @@ export const defaultInventoryConfig = {
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pc.glb", 
                 price: 0, 
                 owned: true 
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pc_estandar.avif",
             } 
         } 
     },
