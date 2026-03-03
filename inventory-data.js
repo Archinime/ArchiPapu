@@ -9,7 +9,7 @@ export const defaultInventoryConfig = {
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/piso.glb", 
                 price: 0, 
                 owned: true,
-                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/piso_estandar.png"
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/piso_estandar.avif"
             } 
         } 
     },
@@ -22,7 +22,7 @@ export const defaultInventoryConfig = {
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/paredes.glb", 
                 price: 0, 
                 owned: true,
-                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/paredes_estandar.png"
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/paredes_estandar.avif"
             } 
         } 
     },
@@ -35,20 +35,20 @@ export const defaultInventoryConfig = {
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo.glb", 
                 price: 0, 
                 owned: true,
-                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo_estandar.png"
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo_estandar.avif"
             } 
         } 
     },
 
     puerta: { 
-        label: "Puerta", emoji: "🛖", equipped: "base", 
+        label: "Puerta", emoji: "🚪", equipped: "base", 
         items: { 
             "base": { 
                 name: "Puerta Estándar", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta.glb", 
                 price: 0, 
                 owned: true,
-                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta_estandar.png"
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta_estandar.avif"
             } 
         } 
     },
