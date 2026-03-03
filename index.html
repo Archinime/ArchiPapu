@@ -1,569 +1,701 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Habitación 3D — Inventario</title>
-  <style>
-    /* --- CSS completo y conservado (coloco aquí la versión completa que preserva diseño original) --- */
-    :root { --bg:#0b0b0f; --panel: rgba(30,30,40,0.85); --glass: rgba(255,255,255,0.06); --accent: #4caf50; --gold: #ffd700; }
-    * { box-sizing: border-box; }
-    html,body { height:100%; }
-    body {
-      margin:0;
-      overflow:hidden;
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      background-color: var(--bg);
-      color: #fff;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      position: fixed;
-      width: 100%;
-      height: 100%;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Habitación 3D - Inventario Mejorado</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, Helvetica, sans-serif;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background-color: #111;
+        }
 
-    /* Scrollbar */
-    ::-webkit-scrollbar { width:8px; height:8px; }
-    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.12); border-radius:10px; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius:10px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+        /* --- SCROLLBAR PERSONALIZADO --- */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
 
-    /* Top controls */
-    .top-btn {
-      position:absolute;
-      top:20px;
-      width:44px;
-      height:44px;
-      background: var(--panel);
-      backdrop-filter: blur(8px);
-      border:1px solid rgba(255,255,255,0.06);
-      border-radius:50%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:#fff;
-      font-size:20px;
-      cursor:pointer;
-      z-index:400;
-      user-select:none;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
-      transition: transform .18s cubic-bezier(.2,.9,.3,1);
-    }
-    .top-btn:hover { transform: scale(1.12); }
-    #inventory-button { right: 78px; }
-    #settings-button { right: 20px; }
+        /* --- BOTONES SUPERIORES --- */
+        .top-btn {
+            position: absolute;
+            top: 20px;
+            width: 44px;
+            height: 44px;
+            background: rgba(30,30,40,0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 300;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s;
+            user-select: none;
+        }
+        .top-btn:hover { transform: scale(1.15); background: rgba(50,50,60,0.95); }
+        .top-btn:active { transform: scale(0.95); }
+        
+        #settings-button { right: 20px; }
+        #inventory-button { right: 75px; }
 
-    #coin-display {
-      position:absolute; left:20px; top:20px;
-      background: var(--panel); padding:10px 14px; border-radius:18px;
-      border:1px solid rgba(255,215,0,0.12); color: var(--gold); font-weight:700; z-index:400;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.45);
-    }
+        /* --- UI DE MONEDAS --- */
+        #coin-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(30,30,40,0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,215,0,0.5);
+            color: gold;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 16px;
+            z-index: 300;
+            user-select: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
+        }
+        #coin-display:hover { transform: scale(1.05); }
 
-    /* Settings panel */
-    #settings-panel {
-      position:absolute; right:20px; top:80px; z-index:380;
-      width:220px; padding:14px; border-radius:14px; display:none;
-      background: linear-gradient(180deg, rgba(20,20,30,0.95), rgba(10,10,15,0.86));
-      border:1px solid rgba(255,255,255,0.06);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-      color:#e9f5ea;
-    }
-    #settings-panel.visible { display:block; }
-    #quality-indicator { display:inline-block; background:var(--accent); color:#fff; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; margin-bottom:10px; }
-    #settings-panel label { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:8px; cursor:pointer; font-size:14px; }
-    #settings-panel input[type="checkbox"] { width:18px; height:18px; cursor:pointer; accent-color: var(--accent); }
+        /* --- PANELES --- */
+        #settings-panel {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: rgba(30,30,40,0.95);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+            z-index: 250;
+            font-size: 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            pointer-events: auto;
+            display: none;
+            min-width: 200px;
+            animation: fadeInDown 0.3s ease forwards;
+        }
+        #settings-panel.visible { display: block; }
+        #settings-panel label {
+            display: flex; align-items: center; justify-content: space-between; gap: 15px; cursor: pointer; user-select: none; margin-bottom: 10px;
+            transition: color 0.2s;
+        }
+        #settings-panel label:hover { color: #4CAF50; }
+        #settings-panel input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: #4CAF50; }
+        
+        #quality-indicator {
+            background: #4CAF50; color: white; padding: 4px 10px; border-radius: 50px; font-size: 12px; font-weight: bold; letter-spacing: 0.5px; text-align: center; margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+        }
 
-    /* Inventory modal */
-    #inventory-modal {
-      position:fixed; left:5%; top:5%; width:90%; height:90%; z-index:350;
-      background: linear-gradient(180deg, rgba(10,10,14,0.92), rgba(12,12,18,0.92));
-      border-radius:16px; padding:18px; display:none; box-shadow: 0 30px 90px rgba(0,0,0,0.75);
-      border:1px solid rgba(255,255,255,0.04);
-      color:#fff;
-      overflow:hidden;
-    }
-    #inventory-modal.visible { display:flex; flex-direction:column; }
+        /* --- MODAL INVENTARIO / TIENDA --- */
+        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        
+        #inventory-modal {
+            display: none; position: fixed; top: 5%; left: 5%; width: 90%; height: 90%;
+            background: rgba(20,20,25,0.85); backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 20px;
+            z-index: 1000; color: white; padding: 20px; box-sizing: border-box;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+            flex-direction: column;
+        }
+        #inventory-modal.visible { display: flex; animation: modalFadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1); }
+        
+        #inv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        #inv-header h2 { margin: 0; font-size: 24px; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        #close-inv { cursor: pointer; font-size: 24px; background: rgba(255,255,255,0.1); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; transition: 0.2s; }
+        #close-inv:hover { background: rgba(255,50,50,0.6); transform: rotate(90deg); }
+        
+        #inv-body { display: flex; flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
+        
+        /* SISTEMA DE CATEGORÍAS ACORDEÓN */
+        #inv-sidebar { width: 30%; border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding-right: 10px; }
+        
+        .inv-group { margin-bottom: 10px; }
+        .group-btn {
+            width: 100%; text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.5);
+            color: white; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
+            cursor: pointer; font-size: 15px; font-weight: bold;
+            display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease;
+        }
+        .group-btn:hover { background: rgba(255,255,255,0.15); transform: translateX(2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .group-content {
+            display: none; flex-direction: column; padding-left: 10px; margin-top: 5px;
+            border-left: 2px solid rgba(255,255,255,0.1); margin-left: 8px;
+            animation: slideDown 0.3s ease;
+        }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        .group-content.open { display: flex; }
 
-    #inv-header { display:flex; align-items:center; justify-content:space-between; gap:10px; padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.04); }
-    #inv-header h2 { margin:0; font-size:20px; font-weight:800; letter-spacing:0.2px; }
-    #close-inv { background: transparent; border:none; color:#fff; cursor:pointer; font-size:18px; width:42px; height:42px; border-radius:12px; transition: transform .18s; }
-    #close-inv:hover { transform: rotate(30deg); color:#ff6b6b; }
+        .cat-btn { 
+            width: 100%; text-align: left; padding: 10px 15px; background: transparent; 
+            color: #bbb; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 4px; 
+            font-size: 14px; transition: 0.2s; display: flex; align-items: center; gap: 10px;
+        }
+        .cat-btn:hover { background: rgba(255,255,255,0.08); color: white; padding-left: 18px; }
+        .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
+        .cat-icon-emoji { font-size: 18px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
+        
+        /* CONTENIDO DE ÍTEMS CON IMÁGENES DE PREVIEW */
+        #inv-content {
+            width: 70%;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            align-content: start;
+            padding-right: 5px;
+        }
+        .item-card {
+            background: linear-gradient(145deg, rgba(40,40,50,0.9), rgba(25,25,30,0.9));
+            padding: 15px;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.05);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .item-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            border-color: rgba(255,255,255,0.2);
+        }
+        .item-preview {
+            width: 100%;
+            height: 120px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .item-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .item-preview .placeholder {
+            font-size: 40px;
+            opacity: 0.5;
+        }
+        .item-card h4 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+        .item-price {
+            color: #FFD700;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+        }
+        .item-btn {
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn-buy { background: linear-gradient(135deg, #FF9800, #F57C00); color: white; box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3); }
+        .btn-buy:hover { background: linear-gradient(135deg, #FFB74D, #FF9800); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(255, 152, 0, 0.4); }
+        
+        .btn-equip { background: linear-gradient(135deg, #2196F3, #1976D2); color: white; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3); }
+        .btn-equip:hover { background: linear-gradient(135deg, #64B5F6, #2196F3); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(33, 150, 243, 0.4); }
+        
+        .btn-equipped { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; cursor: default; box-shadow: inset 0 2px 5px rgba(0,0,0,0.2), 0 0 10px rgba(76, 175, 80, 0.4); border: 1px solid rgba(129, 199, 132, 0.5); }
 
-    #inv-body { display:flex; flex:1; gap:20px; margin-top:12px; overflow:hidden; }
+        @media (max-width: 600px) {
+            .top-btn { top: 10px; width: 40px; height: 40px; font-size: 20px; }
+            #settings-button { right: 10px; }
+            #inventory-button { right: 60px; }
+            #settings-panel { top: 60px; right: 10px; padding: 12px 15px; font-size: 13px; min-width: 180px; }
+            #coin-display { top: 10px; left: 10px; font-size: 14px; padding: 8px 12px; }
+            #inventory-modal { top: 2%; left: 2%; width: 96%; height: 96%; padding: 15px; }
+            #inv-body { flex-direction: column; gap: 10px; }
+            #inv-sidebar { width: 100%; height: 35%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; padding-right: 0; }
+            #inv-content { width: 100%; height: 65%; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); padding-right: 0; }
+            .item-card { padding: 12px; }
+            .item-preview { height: 100px; }
+        }
 
-    #inv-sidebar {
-      width:28%; min-width:220px; max-width:360px; overflow-y:auto; padding-right:8px;
-      border-right:1px solid rgba(255,255,255,0.03);
-    }
-
-    .inv-group { margin-bottom:12px; }
-    .group-btn {
-      width:100%; padding:12px 14px; background: rgba(255,255,255,0.03); border-radius:12px; border:1px solid rgba(0,0,0,0.12);
-      display:flex; justify-content:space-between; align-items:center; cursor:pointer; font-weight:700; font-size:15px; color:#f3f6f3;
-    }
-    .group-content { margin-top:8px; display:none; padding-left:8px; gap:6px; flex-direction:column; }
-    .group-content.open { display:flex; }
-
-    .cat-btn {
-      background:transparent; border:none; text-align:left; padding:8px 10px; border-radius:10px; color:#d1d7d1; cursor:pointer; display:flex; gap:10px; align-items:center; font-size:14px;
-    }
-    .cat-btn:hover { background: rgba(255,255,255,0.03); padding-left:14px; color:#fff; }
-    .cat-btn.active { background: linear-gradient(135deg, rgba(76,175,80,0.18), rgba(46,125,50,0.12)); color:#fff; font-weight:800; box-shadow: 0 6px 18px rgba(46,125,50,0.08); }
-
-    #inv-content {
-      width:72%; height:100%; overflow-y:auto;
-      display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:16px; align-content:start; padding-bottom:16px;
-    }
-
-    .item-card {
-      background: linear-gradient(145deg, rgba(40,40,50,0.9), rgba(25,25,30,0.9));
-      border-radius:14px; padding:12px; border:1px solid rgba(255,255,255,0.03); display:flex; flex-direction:column; justify-content:space-between;
-      transition: transform .18s cubic-bezier(.2,.9,.3,1), box-shadow .18s;
-    }
-    .item-card:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(0,0,0,0.45); border-color: rgba(255,255,255,0.06); }
-
-    .item-preview { width:100%; height:120px; border-radius:10px; overflow:hidden; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.03); margin-bottom:10px; }
-    .item-preview img { width:100%; height:100%; object-fit:cover; display:block; user-select:none; pointer-events:none; }
-    .item-preview .placeholder { font-size:36px; opacity:0.5; }
-
-    .item-card h4 { margin:0 0 8px 0; font-size:15px; }
-    .item-price { color: var(--gold); font-weight:700; margin-bottom:8px; font-size:13px; text-shadow: 0 0 6px rgba(255,215,0,0.08); }
-
-    .item-btn { width:100%; padding:10px; border-radius:10px; border:none; cursor:pointer; font-weight:800; font-size:13px; }
-    .btn-buy { background: linear-gradient(135deg,#ff9800,#f57c00); color:#fff; }
-    .btn-equip { background: linear-gradient(135deg,#2196f3,#1976d2); color:#fff; }
-    .btn-equipped { background: linear-gradient(135deg,#4caf50,#2e7d32); color:#fff; cursor:default; box-shadow: inset 0 2px 6px rgba(0,0,0,0.2); }
-
-    #loading, #light-status { position: absolute; bottom:20px; padding:8px 12px; border-radius:10px; font-weight:700; z-index:330; background: rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.04); }
-    #loading { right:20px; animation: pulse 1.6s infinite; }
-    @keyframes pulse { 0%{opacity:0.7}50%{opacity:1}100%{opacity:0.7} }
-    #light-status { left:20px; }
-
-    /* Responsive */
-    @media (max-width:720px) {
-      #inv-body { flex-direction:column; gap:10px; }
-      #inv-sidebar { width:100%; max-height:36%; border-right:none; border-bottom:1px solid rgba(255,255,255,0.03); }
-      #inv-content { width:100%; height:60%; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); overflow-y:auto; }
-      #inventory-button { right: 70px; top:12px; }
-      #settings-button { right:14px; top:12px; }
-      #coin-display { top:12px; left:12px; padding:8px 10px; font-size:14px; }
-    }
-
-    /* small debug overlay (hidden by default) */
-    #debug-overlay { position: absolute; left:10px; bottom:80px; z-index: 450; background: rgba(0,0,0,0.6); color:#fff; font-size:12px; padding:8px 10px; border-radius:8px; display:none; max-width:300px; }
-    #debug-overlay.visible { display:block; }
-  </style>
+        /* --- ESTADOS --- */
+        #loading, #light-status {
+            position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); font-weight: bold;
+        }
+        #loading { right: 20px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
+        #light-status { left: 20px; transition: 0.3s; }
+    </style>
 </head>
 <body>
-  <div id="coin-display">🪙 <span id="coin-amount">0</span></div>
+    <div id="coin-display">🪙 <span id="coin-amount">0</span></div>
+    
+    <div id="inventory-button" class="top-btn" title="Inventario y Tienda">🎒</div>
+    <div id="settings-button" class="top-btn" title="Ajustes">⚙️</div>
 
-  <div id="inventory-button" class="top-btn" title="Inventario y Tienda">🎒</div>
-  <div id="settings-button" class="top-btn" title="Ajustes">⚙️</div>
-
-  <div id="settings-panel">
-    <div id="quality-indicator">Calidad Alta</div>
-    <label><span>Modo humilde</span><input id="performance-mode" type="checkbox"></label>
-    <label><span>Mostrar debug (rutas)</span><input id="debug-toggle" type="checkbox"></label>
-  </div>
-
-  <div id="inventory-modal" aria-hidden="true">
-    <div id="inv-header">
-      <h2>🎒 Inventario y Tienda</h2>
-      <button id="close-inv" aria-label="Cerrar">✖</button>
+    <div id="settings-panel">
+        <div id="quality-indicator">Calidad Alta</div>
+        <label>
+            <span>Modo humilde</span>
+            <input type="checkbox" id="performance-mode">
+        </label>
     </div>
 
-    <div id="inv-body">
-      <div id="inv-sidebar"></div>
-      <div id="inv-content"></div>
+    <div id="inventory-modal">
+        <div id="inv-header">
+            <h2>🎒 Inventario y Tienda</h2>
+            <button id="close-inv">✖</button>
+        </div>
+        <div id="inv-body">
+            <div id="inv-sidebar"></div>
+            <div id="inv-content"></div>
+        </div>
     </div>
-  </div>
 
-  <div id="loading">Preparando habitación...</div>
-  <div id="light-status">💡 Luz encendida</div>
-  <div id="debug-overlay" role="status" aria-live="polite"></div>
+    <div id="loading">Preparando habitación...</div>
+    <div id="light-status">💡 Luz encendida</div>
 
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
-    }
-  }
-  </script>
-
-  <script type="module">
-  import * as THREE from 'three';
-  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-  import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
-  import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
-
-  /* ========== Datos y persistencia ========== */
-  let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
-  document.getElementById('coin-amount').innerText = playerCoins;
-
-  // Cargar inventario guardado o usar defaults
-  let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || structuredClone(defaultInventoryConfig);
-
-  // Asegura compatibilidad y campos preview: conserva orden e información original
-  for (const catKey in defaultInventoryConfig) {
-    if (!inventoryData[catKey]) inventoryData[catKey] = structuredClone(defaultInventoryConfig[catKey]);
-    inventoryData[catKey].emoji = defaultInventoryConfig[catKey].emoji;
-    inventoryData[catKey].label = defaultInventoryConfig[catKey].label;
-
-    for (const itemKey in defaultInventoryConfig[catKey].items) {
-      const defItem = defaultInventoryConfig[catKey].items[itemKey];
-      if (!inventoryData[catKey].items[itemKey]) inventoryData[catKey].items[itemKey] = structuredClone(defItem);
-      else {
-        // mantener propiedades del usuario pero asegurar rutas a modelos y nombres
-        inventoryData[catKey].items[itemKey].file = defItem.file || inventoryData[catKey].items[itemKey].file;
-        inventoryData[catKey].items[itemKey].name = inventoryData[catKey].items[itemKey].name || defItem.name;
-        if (defItem.baseFile) inventoryData[catKey].items[itemKey].baseFile = defItem.baseFile;
-      }
-      // Si no hay preview, intentamos inferir un nombre local (basename) para compatibilidad
-      if (!inventoryData[catKey].items[itemKey].preview) {
-        const defPreview = defItem.preview || null;
-        if (defPreview) inventoryData[catKey].items[itemKey].preview = defPreview;
-        else {
-          // preferir nombre simple: itemKey.png (por compatibilidad con tu petición)
-          inventoryData[catKey].items[itemKey].preview = itemKey + '.png';
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
         }
-      }
-    }
-  }
+    </script>
 
-  function saveGame() {
-    localStorage.setItem('room_coins', playerCoins);
-    localStorage.setItem('room_inventory', JSON.stringify(inventoryData));
-    document.getElementById('coin-amount').innerText = playerCoins;
-  }
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
+        // Importar datos desde archivo externo
+        import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
-  /* ========== Escena Three.js ========== */
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x050508);
+        // --- SISTEMA DE DATOS E INVENTARIO ---
+        let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
+        document.getElementById('coin-amount').innerText = playerCoins;
 
-  const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.5, 200);
-  camera.position.set(0, 6, 14);
+        // Cargar o inicializar progreso
+        let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-  renderer.setSize(innerWidth, innerHeight);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  document.body.appendChild(renderer.domElement);
+        if (inventoryData.base_foco) delete inventoryData.base_foco;
 
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.target.set(0, 6, 0);
-  controls.maxPolarAngle = Math.PI / 2 - 0.05;
-  controls.minDistance = 2.5; controls.maxDistance = 16;
+        // Sincronizar objetos nuevos y forzar actualización de rutas y emojis
+        for (let cat in defaultInventoryConfig) {
+            if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
+            
+            inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
+            inventoryData[cat].label = defaultInventoryConfig[cat].label;
 
-  const effect = new OutlineEffect(renderer, { defaultThickness: 0.0008, defaultColor: [0.05, 0.05, 0.08], defaultAlpha: 0.85, defaultKeepAlive: true });
-
-  const ambient = new THREE.AmbientLight(0xffffff, 0.3); scene.add(ambient);
-  const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemi.position.set(0, 20, 0); scene.add(hemi);
-  const mainLight = new THREE.SpotLight(0xffeedd, 6); mainLight.position.set(2, 22, 2); mainLight.castShadow = true; scene.add(mainLight); scene.add(mainLight.target);
-
-  const loader = new GLTFLoader();
-  const loadedSlotMeshes = {};
-  let focoMesh = null, switchMesh = null;
-
-  function applyMaterialLogic(model, categoryKey) {
-    const low = document.getElementById('performance-mode').checked;
-    model.traverse(node => {
-      if (node.isMesh) {
-        if (categoryKey === 'foco') {
-          node.castShadow = false; node.receiveShadow = false;
-          if (node.material) { node.material.emissive = new THREE.Color(0xffeedd); node.material.emissiveIntensity = (localStorage.getItem('lightState') !== 'off') ? 1.5 : 0; }
-        } else {
-          node.castShadow = !low; node.receiveShadow = !low;
-          if (node.material) { node.material.side = THREE.DoubleSide; node.material.needsUpdate = true; }
+            for(let item in defaultInventoryConfig[cat].items) {
+                if(!inventoryData[cat].items[item]) {
+                    inventoryData[cat].items[item] = defaultInventoryConfig[cat].items[item];
+                } else {
+                    inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file;
+                    inventoryData[cat].items[item].name = defaultInventoryConfig[cat].items[item].name;
+                    if(defaultInventoryConfig[cat].items[item].baseFile) {
+                        inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile;
+                    }
+                }
+                // Añadir campo preview si no existe (generado automáticamente)
+                if (!inventoryData[cat].items[item].preview) {
+                    // Suponemos que las imágenes de preview están en la misma carpeta con extensión .png
+                    inventoryData[cat].items[item].preview = `https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/${item}.png`;
+                }
+            }
         }
-      }
-    });
-  }
 
-  function loadItemForSlot(categoryKey, itemFile, isInitial = false) {
-    if (!itemFile) return;
-    if (loadedSlotMeshes[categoryKey]) {
-      try { scene.remove(loadedSlotMeshes[categoryKey]); } catch (e) {}
-    }
-    loader.load(itemFile, gltf => {
-      const model = gltf.scene;
-      applyMaterialLogic(model, categoryKey);
-      if (categoryKey === 'foco') focoMesh = model;
-      if (categoryKey === 'interruptor') switchMesh = model;
-      scene.add(model);
-      loadedSlotMeshes[categoryKey] = model;
-      if (isInitial) checkLoading();
-    }, undefined, err => {
-      console.warn('Error cargando GLB', itemFile, err);
-      if (isInitial) checkLoading();
-    });
-  }
-
-  // cargar equipados inicialmente
-  let modelsToLoad = 0, modelsLoaded = 0;
-  for (const k in inventoryData) modelsToLoad++;
-  modelsToLoad += 1; // margen
-  function checkLoading() {
-    modelsLoaded++;
-    document.getElementById('loading').innerText = `Cargando: ${modelsLoaded}/${modelsToLoad}`;
-    if (modelsLoaded >= modelsToLoad) document.getElementById('loading').style.display = 'none';
-  }
-
-  for (const cat in inventoryData) {
-    const equipped = inventoryData[cat].equipped;
-    const item = inventoryData[cat].items?.[equipped];
-    if (item && item.file) loadItemForSlot(cat, item.file, true);
-    if (cat === 'foco' && item && item.baseFile) loadItemForSlot('base_foco', item.baseFile, true);
-  }
-
-  /* ========== Iluminación y interacción ========== */
-  let lightOn = localStorage.getItem('lightState') !== 'off';
-  function updateLighting() {
-    if (lightOn) { mainLight.visible = true; ambient.intensity = document.getElementById('performance-mode').checked ? 0.8 : 0.3; document.getElementById('light-status').innerText = '💡 Luz encendida'; }
-    else { mainLight.visible = false; ambient.intensity = 0.02; document.getElementById('light-status').innerText = '💡 Luz apagada'; }
-    // actualizar emissive en foco si existe
-    if (focoMesh) focoMesh.traverse(n => { if (n.isMesh && n.material) n.material.emissiveIntensity = lightOn ? 1.5 : 0; });
-  }
-  updateLighting();
-
-  function toggleLight() {
-    lightOn = !lightOn;
-    localStorage.setItem('lightState', lightOn ? 'on' : 'off');
-    updateLighting();
-  }
-
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
-  function handleInteraction(e) {
-    const rect = renderer.domElement.getBoundingClientRect();
-    const x = (e.touches ? e.touches[0].clientX : e.clientX);
-    const y = (e.touches ? e.touches[0].clientY : e.clientY);
-    mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
-    raycaster.setFromCamera(mouse, camera);
-    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) toggleLight();
-  }
-
-  renderer.domElement.addEventListener('click', handleInteraction);
-  renderer.domElement.addEventListener('touchstart', (e) => {
-    if (document.getElementById('inventory-modal').classList.contains('visible')) return;
-    handleInteraction(e);
-  }, { passive: true });
-
-  /* ========== Calidad ========== */
-  const perfCheck = document.getElementById('performance-mode');
-  perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
-  function updateQuality() {
-    const low = perfCheck.checked;
-    renderer.shadowMap.enabled = !low;
-    renderer.setPixelRatio(low ? 1 : Math.min(devicePixelRatio, 2));
-    document.getElementById('quality-indicator').textContent = low ? 'Modo Humilde' : 'Calidad Alta';
-    localStorage.setItem('performanceMode', low ? 'true' : 'false');
-    updateLighting();
-  }
-  perfCheck.addEventListener('change', updateQuality);
-
-  /* ========== Loader de miniaturas robusto ========== */
-
-  // recibe la cadena que viene en inventoryData[item].preview o item.file y construye candidatos
-  function basename(path) {
-    return path ? path.split('/').pop().split('?')[0].split('#')[0] : '';
-  }
-
-  function buildPreviewCandidates(orig) {
-    if (!orig) return [];
-    const s = orig.trim();
-    const c = [];
-    // 1) si es absoluto con protocolo -> usar tal cual
-    if (/^https?:\/\//i.test(s) || s.startsWith('//')) {
-      c.push(s);
-      // intentar el basename en local
-      const b = basename(s);
-      if (b) {
-        c.push('./' + b);
-        c.push('images/' + b);
-        c.push('./images/' + b);
-        c.push('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/' + b);
-        c.push('https://raw.githubusercontent.com/Archinime/ArchiPapu/main/' + b);
-      }
-    } else if (s.startsWith('/')) {
-      // path absoluto en servidor
-      c.push(s);
-      const b = basename(s); if (b) { c.push('./' + b); c.push('images/' + b); c.push('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/' + b); }
-    } else {
-      // nombre simple o relativo (favor preferir local)
-      // si es algo como ./file.png o images/file.png, probar tal cual primero
-      if (s.startsWith('./') || s.includes('/')) {
-        c.push(s);
-        const b = basename(s); if (b) {
-          c.push('./' + b);
-          c.push('images/' + b);
-          c.push('./images/' + b);
-          c.push('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/' + b);
-          c.push('https://raw.githubusercontent.com/Archinime/ArchiPapu/main/' + b);
+        function saveGame() {
+            localStorage.setItem('room_coins', playerCoins);
+            localStorage.setItem('room_inventory', JSON.stringify(inventoryData));
+            document.getElementById('coin-amount').innerText = playerCoins;
         }
-      } else {
-        // nombre simple: prioridad local
-        c.push('./' + s);
-        c.push('images/' + s);
-        c.push('./images/' + s);
-        c.push(s); // tambien probar sin prefijo
-        c.push('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/' + s);
-        c.push('https://raw.githubusercontent.com/Archinime/ArchiPapu/main/' + s);
-      }
-    }
-    // dedupe while preserving order
-    return [...new Map(c.map(url => [url, url])).values()];
-  }
 
-  // setImageWithFallback: itera candidatos hasta que uno carga; si fallan coloca placeholder
-  function setImageWithFallback(imgElement, origSrc, debugCallback) {
-    const candidates = buildPreviewCandidates(origSrc);
-    if (!candidates.length) {
-      const parent = imgElement.parentNode; if (parent) parent.innerHTML = '<span class="placeholder">📦</span>'; return;
-    }
-    let idx = 0;
-    const parent = imgElement.parentNode;
-    const tryNext = () => {
-      if (idx >= candidates.length) {
-        // falló todo
-        if (parent) parent.innerHTML = '<span class="placeholder">📦</span>';
-        debugCallback && debugCallback(origSrc, candidates, idx, false);
-        return;
-      }
-      const next = candidates[idx++];
-      // asignar src y esperar onload/onerror
-      imgElement.onload = () => { debugCallback && debugCallback(origSrc, candidates, idx - 1, true); };
-      imgElement.onerror = () => { 
-        // crear nuevo img para reiniciar estado y probar siguiente
-        const newImg = document.createElement('img');
-        newImg.alt = imgElement.alt || 'preview';
-        newImg.decoding = 'async';
-        if (parent) parent.replaceChild(newImg, imgElement);
-        imgElement = newImg;
-        tryNext();
-      };
-      // importante: NO establecer crossOrigin ni referrerPolicy por defecto
-      try { imgElement.src = next; } catch (e) { imgElement.onerror(); }
-    };
-    tryNext();
-  }
+        const loadedSlotMeshes = {};
+        let switchMesh = null;
+        let focoMesh = null;
 
-  /* ========== UI / Inventario ========== */
-  let currentCategory = 'cama';
-  let openGroup = 'muebles';
-  const debugOverlay = document.getElementById('debug-overlay');
-  const debugToggle = document.getElementById('debug-toggle');
+        // --- Detección de dispositivo ---
+        const ua = navigator.userAgent;
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+        const width = window.innerWidth;
+        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
 
-  function renderInventory() {
-    const sidebar = document.getElementById('inv-sidebar');
-    const content = document.getElementById('inv-content');
-    sidebar.innerHTML = ''; content.innerHTML = '';
+        // --- Escena y Cámara ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050508); 
 
-    // Sidebar groups (mantener orden definido por inventoryGroups)
-    for (const group of inventoryGroups) {
-      const gDiv = document.createElement('div'); gDiv.className = 'inv-group';
-      const gBtn = document.createElement('button'); gBtn.className = 'group-btn';
-      gBtn.innerHTML = `<span>${group.emoji} ${group.label}</span><span style="transform:${openGroup === group.id ? 'rotate(90deg)' : 'rotate(0)'}">▶</span>`;
-      gBtn.onclick = () => { openGroup = (openGroup === group.id ? null : group.id); renderInventory(); };
-      gDiv.appendChild(gBtn);
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
+        let camPosY = 6, camPosZ = 14, targetY = 6;
+        if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
+        camera.position.set(0, camPosY, camPosZ);
 
-      const gContent = document.createElement('div'); gContent.className = `group-content ${openGroup === group.id ? 'open' : ''}`;
-      for (const catKey of group.categories) {
-        const cat = inventoryData[catKey]; if (!cat) continue;
-        const btn = document.createElement('button'); btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
-        btn.innerHTML = `<span style="font-size:18px">${cat.emoji}</span><span>${cat.label}</span>`;
-        btn.onclick = () => { currentCategory = catKey; renderInventory(); };
-        gContent.appendChild(btn);
-      }
-      gDiv.appendChild(gContent);
-      sidebar.appendChild(gDiv);
-    }
+        // --- RENDERIZADOR ---
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping; 
+        renderer.toneMappingExposure = 1.0;
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
 
-    // Content: items for currentCategory — respetando orden de keys (inserción original)
-    const catData = inventoryData[currentCategory];
-    if (!catData) return;
+        const effect = new OutlineEffect(renderer, {
+            defaultThickness: 0.0008, defaultColor: [0.05, 0.05, 0.08], defaultAlpha: 0.85, defaultKeepAlive: true
+        });
 
-    for (const itemId of Object.keys(catData.items)) {
-      const item = catData.items[itemId];
-      const isEquipped = catData.equipped === itemId;
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.target.set(0, targetY, 0);
+        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+        controls.minDistance = 2.5; controls.maxDistance = 16;
+        controls.enablePan = false;
 
-      const card = document.createElement('div'); card.className = 'item-card';
-      const previewDiv = document.createElement('div'); previewDiv.className = 'item-preview';
-      const img = document.createElement('img'); img.alt = item.name || 'item'; img.decoding = 'async';
+        // --- LUCES ---
+        const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambient);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
+        
+        const mainLight = new THREE.SpotLight(0xffeedd, 6);
+        mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.set(2048, 2048);
+        mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
+        scene.add(mainLight); scene.add(mainLight.target);
 
-      // loader debug callback para mostrar intentos en overlay si está activo
-      const debugFn = (orig, candidates, triedIndex, success) => {
-        if (!debugToggle.checked) { debugOverlay.classList.remove('visible'); return; }
-        debugOverlay.classList.add('visible');
-        const tried = candidates.slice(0, Math.min(triedIndex + (success?1:0), candidates.length));
-        debugOverlay.innerText = `Preview: ${orig}\nIntentos:\n- ${tried.join('\n- ')}\n${success ? '✅ cargado' : '❌ falló todo'}`;
-      };
+        let lightOn = localStorage.getItem('lightState') !== 'off';
+        const perfCheck = document.getElementById('performance-mode');
+        perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
 
-      // establecer previews: preferir campo preview, luego file
-      const previewSrc = item.preview || item.file || itemId + '.png';
-      setImageWithFallback(img, previewSrc, debugFn);
-      previewDiv.appendChild(img);
+        function applyMaterialLogic(model, categoryKey) {
+            const isLow = perfCheck.checked;
+            const isFoco = categoryKey === 'foco';
+            
+            model.traverse((node) => {
+                if (node.isMesh) {
+                    if (isFoco) {
+                        node.castShadow = false; node.receiveShadow = false;
+                        if (node.material) {
+                            node.material.emissive = new THREE.Color(0xffeedd);
+                            node.material.emissiveIntensity = lightOn ? 1.5 : 0;
+                        }
+                    } else {
+                        node.castShadow = !isLow; node.receiveShadow = !isLow;
+                        if(node.material) {
+                            node.material.shadowSide = THREE.FrontSide;
+                            if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
+                                node.material.shadowSide = THREE.BackSide;
+                            }
+                            node.material.side = THREE.DoubleSide;
+                            node.material.needsUpdate = true;
+                        }
+                    }
+                }
+            });
+        }
 
-      const title = document.createElement('h4'); title.textContent = item.name || 'Sin nombre';
-      const price = document.createElement('div'); price.className = 'item-price'; price.textContent = item.owned ? 'Adquirido' : `🪙 ${item.price}`;
+        // --- CARGA DE MODELOS ---
+        const loader = new GLTFLoader();
+        let modelsLoaded = 0;
+        let totalModelsToLoad = Object.keys(inventoryData).length + 1; // +1 porque el foco carga su base también
 
-      const btn = document.createElement('button');
-      if (isEquipped) { btn.className = 'item-btn btn-equipped'; btn.disabled = true; btn.textContent = 'Equipado ✓'; }
-      else if (item.owned) { btn.className = 'item-btn btn-equip'; btn.textContent = 'Equipar'; btn.addEventListener('click', () => equipItem(currentCategory, itemId)); }
-      else { btn.className = 'item-btn btn-buy'; btn.textContent = `Comprar 🪙${item.price}`; btn.addEventListener('click', () => buyItem(currentCategory, itemId)); }
+        function checkLoading() {
+            modelsLoaded++;
+            document.getElementById('loading').innerText = `Cargando: ${modelsLoaded}/${totalModelsToLoad}`;
+            if (modelsLoaded >= totalModelsToLoad) {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
 
-      card.appendChild(previewDiv);
-      card.appendChild(title);
-      card.appendChild(price);
-      card.appendChild(btn);
+        function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
+            if (!itemFile) return;
 
-      content.appendChild(card);
-    }
-  }
+            if (loadedSlotMeshes[categoryKey]) {
+                scene.remove(loadedSlotMeshes[categoryKey]);
+            }
 
-  function equipItem(category, itemId) {
-    inventoryData[category].equipped = itemId;
-    saveGame();
-    renderInventory();
-    const itemData = inventoryData[category].items[itemId];
-    loadItemForSlot(category, itemData.file, false);
-    if (category === 'foco' && itemData.baseFile) loadItemForSlot('base_foco', itemData.baseFile, false);
-  }
+            loader.load(itemFile, (gltf) => {
+                const model = gltf.scene;
+                applyMaterialLogic(model, categoryKey);
+                
+                // Lógica especial para Foco y Luz
+                if (categoryKey === 'foco') {
+                    focoMesh = model;
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = new THREE.Vector3(); box.getCenter(center);
+                    mainLight.position.copy(center); mainLight.position.y -= 0.2; 
+                }
+                
+                // Lógica especial para Interruptor
+                if (categoryKey === 'interruptor') switchMesh = model;
 
-  function buyItem(category, itemId) {
-    const item = inventoryData[category].items[itemId];
-    if (playerCoins >= (item.price || 0)) {
-      playerCoins -= item.price || 0;
-      item.owned = true;
-      saveGame();
-      renderInventory();
-    } else {
-      alert('No tienes suficientes monedas.');
-    }
-  }
+                scene.add(model);
+                loadedSlotMeshes[categoryKey] = model; 
+                if(isInitialLoad) checkLoading();
+            }, undefined, (e) => { 
+                console.error(`Falta el modelo para [${categoryKey}]:`, itemFile); 
+                if(isInitialLoad) checkLoading();
+            });
+        }
 
-  /* ========== Eventos UI ========== */
-  document.getElementById('inventory-button').onclick = () => { document.getElementById('inventory-modal').classList.add('visible'); renderInventory(); };
-  document.getElementById('close-inv').onclick = () => { document.getElementById('inventory-modal').classList.remove('visible'); debugOverlay.classList.remove('visible'); };
-  document.getElementById('settings-button').onclick = () => { document.getElementById('settings-panel').classList.toggle('visible'); };
-  debugToggle.addEventListener('change', () => { if (!debugToggle.checked) debugOverlay.classList.remove('visible'); });
+        // Cargar todos los objetos equipados al inicio
+        for (let cat in inventoryData) {
+            let equippedItemId = inventoryData[cat].equipped;
+            let itemData = inventoryData[cat].items[equippedItemId];
+            
+            if (itemData && itemData.file) {
+                loadItemForSlot(cat, itemData.file, true);
+            }
+            
+            // Si es el foco, también cargamos su base automáticamente
+            if (cat === 'foco' && itemData && itemData.baseFile) {
+                loadItemForSlot('base_foco', itemData.baseFile, true);
+            }
+        }
 
-  /* ========== Animación & resize ========== */
-  function animate() { requestAnimationFrame(animate); controls.update(); effect.render(scene, camera); }
-  animate();
+        // --- SISTEMA DE ILUMINACIÓN ---
+        function updateLighting() {
+            const isLow = perfCheck.checked;
+            if (lightOn) {
+                mainLight.visible = true;
+                ambient.intensity = isLow ? 0.8 : 0.3; hemiLight.intensity = isLow ? 0.8 : 0.4;
+                document.getElementById('light-status').innerText = '💡 Luz encendida';
+                if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 1.5; });
+            } else {
+                mainLight.visible = false;
+                ambient.intensity = 0.02; hemiLight.intensity = 0.05; 
+                document.getElementById('light-status').innerText = '💡 Luz apagada';
+                if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; });
+            }
+        }
 
-  window.addEventListener('resize', () => {
-    camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth, innerHeight); effect.setSize(innerWidth, innerHeight);
-  });
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        function toggleLight() {
+            lightOn = !lightOn;
+            localStorage.setItem('lightState', lightOn ? 'on' : 'off'); updateLighting();
+        }
 
-  updateQuality(); // aplicar calidad inicial
-  </script>
+        function handleInteraction(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            const x = event.touches ? event.touches[0].clientX : event.clientX;
+            const y = event.touches ? event.touches[0].clientY : event.clientY;
+            mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
+                toggleLight();
+            }
+        }
+        
+        renderer.domElement.addEventListener('click', handleInteraction);
+        renderer.domElement.addEventListener('touchstart', (e) => { 
+            if(document.getElementById('inventory-modal').classList.contains('visible')) return;
+            handleInteraction(e); 
+        }, {passive: true});
+
+        // --- Calidad / Modo Humilde ---
+        function updateQuality() {
+            const isLow = perfCheck.checked;
+            renderer.shadowMap.enabled = !isLow;
+            renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
+            document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
+            scene.traverse(n => { 
+                if(n.isMesh) { 
+                    if (focoMesh && (n === focoMesh || focoMesh.children.includes(n))) return;
+                    n.castShadow = !isLow; n.receiveShadow = !isLow; 
+                    if(n.material) n.material.needsUpdate = true; 
+                }
+            });
+            localStorage.setItem('performanceMode', isLow);
+            updateLighting(); 
+        }
+        perfCheck.addEventListener('change', updateQuality);
+
+        // --- LÓGICA DE INTERFAZ DEL INVENTARIO ---
+        let currentCategory = 'cama';
+        let openGroup = 'muebles';
+
+        function renderInventory() {
+            const sidebar = document.getElementById('inv-sidebar');
+            const content = document.getElementById('inv-content');
+            sidebar.innerHTML = ''; content.innerHTML = '';
+
+            // Renderizar Grupos y Subcategorías (Acordeón Animado)
+            inventoryGroups.forEach(group => {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'inv-group';
+
+                const groupBtn = document.createElement('button');
+                groupBtn.className = 'group-btn';
+                groupBtn.innerHTML = `<span>${group.emoji} ${group.label}</span> <span style="transition:0.3s; transform: ${openGroup === group.id ? 'rotate(90deg)' : 'rotate(0deg)'}">▶</span>`;
+                groupBtn.onclick = () => {
+                    openGroup = openGroup === group.id ? null : group.id;
+                    renderInventory();
+                };
+                groupDiv.appendChild(groupBtn);
+
+                const groupContent = document.createElement('div');
+                groupContent.className = `group-content ${openGroup === group.id ? 'open' : ''}`;
+
+                group.categories.forEach(catKey => {
+                    const catData = inventoryData[catKey];
+                    if(!catData) return;
+                    
+                    const btn = document.createElement('button');
+                    btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
+                    btn.innerHTML = `<span class="cat-icon-emoji">${catData.emoji}</span> <span>${catData.label}</span>`;
+                    btn.onclick = () => { currentCategory = catKey; renderInventory(); };
+                    groupContent.appendChild(btn);
+                });
+
+                groupDiv.appendChild(groupContent);
+                sidebar.appendChild(groupDiv);
+            });
+
+            // Renderizar Ítems de la categoría seleccionada con imagen de preview
+            const catData = inventoryData[currentCategory];
+            if (!catData) return;
+            
+            for (let itemId in catData.items) {
+                const item = catData.items[itemId];
+                const isEquipped = catData.equipped === itemId;
+                
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                
+                // Contenedor de imagen de preview
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'item-preview';
+                const img = document.createElement('img');
+                img.src = item.preview || 'https://via.placeholder.com/150?text=Sin+imagen';
+                img.alt = item.name;
+                img.onerror = () => {
+                    // Si la imagen no carga, mostrar un emoji como placeholder
+                    previewDiv.innerHTML = '<span class="placeholder">📦</span>';
+                };
+                previewDiv.appendChild(img);
+                
+                let btnHTML = '';
+                if (isEquipped) {
+                    btnHTML = `<button class="item-btn btn-equipped" disabled>Equipado ✓</button>`;
+                } else if (item.owned) {
+                    btnHTML = `<button class="item-btn btn-equip" data-id="${itemId}">Equipar</button>`;
+                } else {
+                    btnHTML = `<button class="item-btn btn-buy" data-id="${itemId}">Comprar 🪙${item.price}</button>`;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        ${previewDiv.outerHTML}
+                        <h4>${item.name}</h4>
+                        <div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div>
+                    </div>
+                    ${btnHTML}
+                `;
+                
+                // Reemplazar el previewDiv con el elemento real para que funcione onerror
+                const finalCard = card;
+                const previewContainer = finalCard.querySelector('.item-preview');
+                if (previewContainer) {
+                    previewContainer.innerHTML = ''; // Limpiar
+                    previewContainer.appendChild(img);
+                }
+                
+                content.appendChild(finalCard);
+            }
+
+            document.querySelectorAll('.btn-equip').forEach(b => {
+                b.onclick = (e) => equipItem(currentCategory, e.target.getAttribute('data-id'));
+            });
+            document.querySelectorAll('.btn-buy').forEach(b => {
+                b.onclick = (e) => buyItem(currentCategory, e.target.getAttribute('data-id'));
+            });
+        }
+
+        function equipItem(category, itemId) {
+            inventoryData[category].equipped = itemId;
+            saveGame();
+            renderInventory(); 
+            
+            const itemData = inventoryData[category].items[itemId];
+            loadItemForSlot(category, itemData.file, false);
+
+            if (category === 'foco' && itemData.baseFile) {
+                loadItemForSlot('base_foco', itemData.baseFile, false);
+            }
+        }
+
+        function buyItem(category, itemId) {
+            let item = inventoryData[category].items[itemId];
+            if (playerCoins >= item.price) {
+                playerCoins -= item.price;
+                item.owned = true;
+                saveGame();
+                renderInventory();
+            } else {
+                alert("No tienes suficientes monedas.");
+            }
+        }
+
+        // Eventos UI
+        document.getElementById('inventory-button').onclick = () => {
+            document.getElementById('inventory-modal').classList.add('visible');
+            renderInventory();
+        };
+        document.getElementById('close-inv').onclick = () => {
+            document.getElementById('inventory-modal').classList.remove('visible');
+        };
+        document.getElementById('settings-button').onclick = () => {
+            document.getElementById('settings-panel').classList.toggle('visible');
+        };
+
+        // --- Animación y Resize ---
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            effect.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            effect.setSize(window.innerWidth, window.innerHeight); 
+        });
+
+        updateQuality();
+    </script>
 </body>
 </html>
