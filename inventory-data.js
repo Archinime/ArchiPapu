@@ -68,7 +68,15 @@ export const defaultInventoryConfig = {
     cama: { 
         label: "Cama", emoji: "🛏️", equipped: "base", 
         items: { 
-            "base": { name: "Cama Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama.glb", price: 0, owned: true },
+
+            "base": { 
+                name: "Puerta Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama_estandar.avif"
+            } 
+
             "cama_brillante": { 
                 name: "Cama Brillante", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama_brillante.glb", 
