@@ -193,7 +193,8 @@ export const defaultInventoryConfig = {
                 name: "Cortinas Estándar", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cortinas.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cortinas_estandar.avif"
             } 
         } 
     },
