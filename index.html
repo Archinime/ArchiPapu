@@ -154,7 +154,7 @@
         .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
         .cat-icon-emoji { font-size: 18px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
         
-        /* CONTENIDO DE ÍTEMS (IMAGEN O EMOJI) */
+        /* CONTENIDO DE ÍTEMS */
         #inv-content {
             width: 70%; overflow-y: auto; display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -282,215 +282,232 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
         
-        // Importar datos desde archivo externo
         import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
         // --- SISTEMA DE DATOS E INVENTARIO ---
-        let playerCoins = parseInt(localStorage.getItem('room_coins')) || [cite_start]1000; [cite: 154, 155]
+        let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
         document.getElementById('coin-amount').innerText = playerCoins;
 
-        // Cargar o inicializar progreso
-        [cite_start]let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig; [cite: 155, 156]
+        let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
+        if (inventoryData.base_foco) delete inventoryData.base_foco;
 
-        [cite_start]if (inventoryData.base_foco) delete inventoryData.base_foco; [cite: 156]
-
-        // Sincronizar objetos nuevos y forzar actualización de rutas, emojis y previews
+        // Sincronizar objetos nuevos y verificar integridad
         for (let cat in defaultInventoryConfig) {
             if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
-            [cite_start]inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji; [cite: 156, 157]
-            [cite_start]inventoryData[cat].label = defaultInventoryConfig[cat].label; [cite: 157]
+            inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
+            inventoryData[cat].label = defaultInventoryConfig[cat].label;
+
+            // Verificar si el objeto equipado sigue existiendo, si no, restaurar al por defecto
+            if (!inventoryData[cat].items[inventoryData[cat].equipped]) {
+                inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
+            }
 
             for(let item in defaultInventoryConfig[cat].items) {
                 if(!inventoryData[cat].items[item]) {
-                    [cite_start]inventoryData[cat].items[item] = defaultInventoryConfig[cat].items[item]; [cite: 157, 158]
+                    inventoryData[cat].items[item] = defaultInventoryConfig[cat].items[item];
                 } else {
-                    [cite_start]inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file; [cite: 158]
-                    [cite_start]inventoryData[cat].items[item].name = defaultInventoryConfig[cat].items[item].name; [cite: 158, 159]
+                    inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file;
+                    inventoryData[cat].items[item].name = defaultInventoryConfig[cat].items[item].name;
                     if(defaultInventoryConfig[cat].items[item].baseFile) {
-                        [cite_start]inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile; [cite: 159]
+                        inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile;
                     }
-                    // Copiar preview si existe en la configuración por defecto
                     if(defaultInventoryConfig[cat].items[item].preview) {
-                        [cite_start]inventoryData[cat].items[item].preview = defaultInventoryConfig[cat].items[item].preview; [cite: 160]
+                        inventoryData[cat].items[item].preview = defaultInventoryConfig[cat].items[item].preview;
                     }
                 }
             }
         }
 
         function saveGame() {
-            [cite_start]localStorage.setItem('room_coins', playerCoins); [cite: 161]
-            [cite_start]localStorage.setItem('room_inventory', JSON.stringify(inventoryData)); [cite: 161, 162]
-            [cite_start]document.getElementById('coin-amount').innerText = playerCoins; [cite: 162]
+            localStorage.setItem('room_coins', playerCoins);
+            localStorage.setItem('room_inventory', JSON.stringify(inventoryData));
+            document.getElementById('coin-amount').innerText = playerCoins;
         }
 
-        [cite_start]const loadedSlotMeshes = {}; [cite: 162]
-        [cite_start]let switchMesh = null; [cite: 162, 163]
-        [cite_start]let focoMesh = null; [cite: 163]
+        const loadedSlotMeshes = {};
+        let switchMesh = null;
+        let focoMesh = null;
 
         // --- Detección de dispositivo ---
-        [cite_start]const ua = navigator.userAgent; [cite: 163]
-        [cite_start]const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua); [cite: 163, 164]
-        [cite_start]const width = window.innerWidth; [cite: 164]
-        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? [cite_start]'tablet' : 'desktop'; [cite: 164, 165]
+        const ua = navigator.userAgent;
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+        const width = window.innerWidth;
+        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
 
         // --- Escena y Cámara ---
-        [cite_start]const scene = new THREE.Scene(); [cite: 166]
-        [cite_start]scene.background = new THREE.Color(0x050508);  [cite: 166, 167]
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050508); 
 
-        [cite_start]const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200); [cite: 167]
-        [cite_start]let camPosY = 6, camPosZ = 14, targetY = 6; [cite: 167, 168]
-        if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; [cite_start]} [cite: 168, 169]
-        [cite_start]camera.position.set(0, camPosY, camPosZ); [cite: 169]
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
+        let camPosY = 6, camPosZ = 14, targetY = 6;
+        if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
+        camera.position.set(0, camPosY, camPosZ);
 
         // --- RENDERIZADOR ---
-        [cite_start]const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" }); [cite: 170]
-        [cite_start]renderer.setSize(window.innerWidth, window.innerHeight); [cite: 170, 171]
-        [cite_start]renderer.shadowMap.enabled = true; [cite: 171]
-        [cite_start]renderer.shadowMap.type = THREE.PCFSoftShadowMap;  [cite: 171]
-        [cite_start]renderer.outputEncoding = THREE.sRGBEncoding; [cite: 171]
-        [cite_start]renderer.toneMapping = THREE.ACESFilmicToneMapping;  [cite: 171]
-        [cite_start]renderer.toneMappingExposure = 1.0; [cite: 171]
-        [cite_start]renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); [cite: 171]
-        [cite_start]document.body.appendChild(renderer.domElement); [cite: 171]
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping; 
+        renderer.toneMappingExposure = 1.0;
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
 
         const effect = new OutlineEffect(renderer, {
             defaultThickness: 0.0008, defaultColor: [0.05, 0.05, 0.08], defaultAlpha: 0.85, defaultKeepAlive: true
-        [cite_start]}); [cite: 171, 172, 173]
+        });
 
-        [cite_start]const controls = new OrbitControls(camera, renderer.domElement); [cite: 173]
-        [cite_start]controls.enableDamping = true; [cite: 173]
-        [cite_start]controls.target.set(0, targetY, 0); [cite: 173]
-        [cite_start]controls.maxPolarAngle = Math.PI / 2 - 0.05; [cite: 173]
-        [cite_start]controls.minDistance = 2.5; controls.maxDistance = 16; [cite: 173, 174]
-        [cite_start]controls.enablePan = false; [cite: 174]
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.target.set(0, targetY, 0);
+        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+        controls.minDistance = 2.5; controls.maxDistance = 16;
+        controls.enablePan = false;
 
         // --- LUCES ---
-        [cite_start]const ambient = new THREE.AmbientLight(0xffffff, 0.3); [cite: 174]
-        [cite_start]scene.add(ambient); [cite: 174, 175]
-        [cite_start]const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight); [cite: 175]
+        const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambient);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
         
-        [cite_start]const mainLight = new THREE.SpotLight(0xffeedd, 6); [cite: 175]
-        [cite_start]mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60; [cite: 175, 176]
-        [cite_start]mainLight.castShadow = true; [cite: 176]
-        [cite_start]mainLight.shadow.mapSize.set(2048, 2048); [cite: 176, 177]
-        [cite_start]mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4;  [cite: 177]
-        [cite_start]scene.add(mainLight); scene.add(mainLight.target); [cite: 177]
+        const mainLight = new THREE.SpotLight(0xffeedd, 6);
+        mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.set(2048, 2048);
+        mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
+        scene.add(mainLight); scene.add(mainLight.target);
 
-        [cite_start]let lightOn = localStorage.getItem('lightState') !== 'off'; [cite: 177, 178]
-        [cite_start]const perfCheck = document.getElementById('performance-mode'); [cite: 178]
-        [cite_start]perfCheck.checked = localStorage.getItem('performanceMode') === 'true'; [cite: 178]
+        let lightOn = localStorage.getItem('lightState') !== 'off';
+        const perfCheck = document.getElementById('performance-mode');
+        perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
 
         function applyMaterialLogic(model, categoryKey) {
-            [cite_start]const isLow = perfCheck.checked; [cite: 178, 179]
-            [cite_start]const isFoco = categoryKey === 'foco'; [cite: 179, 180]
+            if(!model) return;
+            const isLow = perfCheck.checked;
+            const isFoco = categoryKey === 'foco';
             
             model.traverse((node) => {
                 if (node.isMesh) {
                     if (isFoco) {
-                        [cite_start]node.castShadow = false; node.receiveShadow = false; [cite: 180]
-                       
+                        node.castShadow = false; node.receiveShadow = false;
                         if (node.material) {
-                            [cite_start]node.material.emissive = new THREE.Color(0xffeedd); [cite: 180, 181]
-                            node.material.emissiveIntensity = lightOn ? [cite_start]1.5 : 0; [cite: 181]
+                            node.material.emissive = new THREE.Color(0xffeedd);
+                            node.material.emissiveIntensity = lightOn ? 1.5 : 0;
                         }
                     } else {
-                        [cite_start]node.castShadow = !isLow; node.receiveShadow = !isLow; [cite: 182]
+                        node.castShadow = !isLow; node.receiveShadow = !isLow;
                         if(node.material) {
-                            [cite_start]node.material.shadowSide = THREE.FrontSide; [cite: 182]
-  
+                            node.material.shadowSide = THREE.FrontSide;
                             if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
-                                [cite_start]node.material.shadowSide = THREE.BackSide; [cite: 182, 183]
+                                node.material.shadowSide = THREE.BackSide;
                             }
-         
-                            [cite_start]node.material.side = THREE.DoubleSide; [cite: 183, 184]
-                            [cite_start]node.material.needsUpdate = true; [cite: 184]
+                            node.material.side = THREE.DoubleSide;
+                            node.material.needsUpdate = true;
                         }
                     }
                 }
             });
-        [cite_start]} [cite: 184, 185, 186]
+        }
 
-        // --- CARGA DE MODELOS ---
-        [cite_start]const loader = new GLTFLoader(); [cite: 186]
-        [cite_start]let modelsLoaded = 0; [cite: 186, 187]
-        [cite_start]let totalModelsToLoad = Object.keys(inventoryData).length + 1; [cite: 187]
+        // --- CÁLCULO DINÁMICO DE CARGA (Para arreglar la pantalla de carga infinita) ---
+        let totalModelsToLoad = 0;
+        let modelsLoaded = 0;
+
+        for (let cat in inventoryData) {
+            let equippedItemId = inventoryData[cat].equipped;
+            if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
+                let itemData = inventoryData[cat].items[equippedItemId];
+                if (itemData.file) totalModelsToLoad++;
+                if (cat === 'foco' && itemData.baseFile) totalModelsToLoad++;
+            }
+        }
 
         function checkLoading() {
-            [cite_start]modelsLoaded++; [cite: 188]
-            [cite_start]document.getElementById('loading').innerText = `Cargando: ${modelsLoaded}/${totalModelsToLoad}`; [cite: 188, 189]
-            if (modelsLoaded >= totalModelsToLoad) {
-                [cite_start]document.getElementById('loading').style.display = 'none'; [cite: 189]
+            modelsLoaded++;
+            const loadingEl = document.getElementById('loading');
+            if(loadingEl) {
+                loadingEl.innerText = `Cargando: ${modelsLoaded}/${totalModelsToLoad}`;
+                if (modelsLoaded >= totalModelsToLoad) {
+                    loadingEl.style.display = 'none';
+                }
             }
-        [cite_start]} [cite: 189, 190]
+        }
+
+        if(totalModelsToLoad === 0 && document.getElementById('loading')) {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // --- CARGA DE MODELOS ---
+        const loader = new GLTFLoader();
 
         function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
-            [cite_start]if (!itemFile) return; [cite: 190]
+            if (!itemFile) return;
             if (loadedSlotMeshes[categoryKey]) {
-                [cite_start]scene.remove(loadedSlotMeshes[categoryKey]); [cite: 190, 191]
-            [cite_start]} [cite: 191, 192]
+                scene.remove(loadedSlotMeshes[categoryKey]);
+            }
 
             loader.load(itemFile, (gltf) => {
-                [cite_start]const model = gltf.scene; [cite: 192]
-                [cite_start]applyMaterialLogic(model, categoryKey); [cite: 192]
+                const model = gltf.scene;
+                applyMaterialLogic(model, categoryKey);
                 
                 if (categoryKey === 'foco') {
-                    [cite_start]focoMesh = model; [cite: 192, 193]
-                    [cite_start]const box = new THREE.Box3().setFromObject(model); [cite: 193]
-                    [cite_start]const center = new THREE.Vector3(); box.getCenter(center); [cite: 193]
-                    [cite_start]mainLight.position.copy(center); mainLight.position.y -= 0.2;  [cite: 193, 194]
+                    focoMesh = model;
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = new THREE.Vector3(); box.getCenter(center);
+                    mainLight.position.copy(center); mainLight.position.y -= 0.2; 
                 }
                 
-                [cite_start]if (categoryKey === 'interruptor') switchMesh = model; [cite: 194]
+                if (categoryKey === 'interruptor') switchMesh = model;
 
-                [cite_start]scene.add(model); [cite: 194]
-      
-                [cite_start]loadedSlotMeshes[categoryKey] = model;  [cite: 194, 195]
-                [cite_start]if(isInitialLoad) checkLoading(); [cite: 195]
+                scene.add(model);
+                loadedSlotMeshes[categoryKey] = model; 
+                if(isInitialLoad) checkLoading();
             }, undefined, (e) => { 
-                [cite_start]console.error(`Falta el modelo para [${categoryKey}]:`, itemFile);  [cite: 195]
-                [cite_start]if(isInitialLoad) checkLoading(); [cite: 195]
-            [cite_start]}); [cite: 195, 196]
+                console.error(`Error cargando modelo [${categoryKey}]:`, itemFile); 
+                if(isInitialLoad) checkLoading();
+            });
         }
 
         // Cargar todos los objetos equipados al inicio
         for (let cat in inventoryData) {
-            [cite_start]let equippedItemId = inventoryData[cat].equipped; [cite: 196]
-            [cite_start]let itemData = inventoryData[cat].items[equippedItemId]; [cite: 196, 197]
-            
-            if (itemData && itemData.file) {
-                [cite_start]loadItemForSlot(cat, itemData.file, true); [cite: 197]
-            [cite_start]} [cite: 197, 198]
-            
-            if (cat === 'foco' && itemData && itemData.baseFile) {
-                [cite_start]loadItemForSlot('base_foco', itemData.baseFile, true); [cite: 198]
+            let equippedItemId = inventoryData[cat].equipped;
+            if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
+                let itemData = inventoryData[cat].items[equippedItemId];
+                
+                if (itemData.file) {
+                    loadItemForSlot(cat, itemData.file, true);
+                }
+                if (cat === 'foco' && itemData.baseFile) {
+                    loadItemForSlot('base_foco', itemData.baseFile, true);
+                }
             }
-        [cite_start]} [cite: 198, 199]
+        }
 
         // --- SISTEMA DE ILUMINACIÓN ---
         function updateLighting() {
-            [cite_start]const isLow = perfCheck.checked; [cite: 199]
+            const isLow = perfCheck.checked;
             if (lightOn) {
-                [cite_start]mainLight.visible = true; [cite: 199, 200]
-                ambient.intensity = isLow ? 0.8 : 0.3; hemiLight.intensity = isLow ? [cite_start]0.8 : 0.4; [cite: 200, 201]
-                [cite_start]document.getElementById('light-status').innerText = '💡 Luz encendida'; [cite: 201]
-                [cite_start]if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 1.5; }); [cite: 201, 202]
+                mainLight.visible = true;
+                ambient.intensity = isLow ? 0.8 : 0.3; hemiLight.intensity = isLow ? 0.8 : 0.4;
+                document.getElementById('light-status').innerText = '💡 Luz encendida';
+                if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 1.5; });
             } else {
-                [cite_start]mainLight.visible = false; [cite: 202, 203]
-                [cite_start]ambient.intensity = 0.02; hemiLight.intensity = 0.05;  [cite: 203, 204]
-                [cite_start]document.getElementById('light-status').innerText = '💡 Luz apagada'; [cite: 204]
-                [cite_start]if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; }); [cite: 204, 205]
+                mainLight.visible = false;
+                ambient.intensity = 0.02; hemiLight.intensity = 0.05; 
+                document.getElementById('light-status').innerText = '💡 Luz apagada';
+                if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; });
             }
-        [cite_start]} [cite: 205, 206]
-
-        [cite_start]const raycaster = new THREE.Raycaster(); [cite: 206]
-        [cite_start]const mouse = new THREE.Vector2(); [cite: 206, 207]
-        
-        function toggleLight() {
-            [cite_start]lightOn = !lightOn; [cite: 207]
-            [cite_start]localStorage.setItem('lightState', lightOn ? 'on' : 'off'); updateLighting(); [cite: 207, 208]
         }
 
-        // --- NUEVAS FUNCIONES PARA LOS POSTERS ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        function toggleLight() {
+            lightOn = !lightOn;
+            localStorage.setItem('lightState', lightOn ? 'on' : 'off'); updateLighting();
+        }
+
+        // --- FUNCIONES PARA LOS POSTERS ---
         const posterViewModal = document.getElementById('poster-view-modal');
         const posterEnlargedImage = document.getElementById('poster-enlarged-image');
         const closePosterBtn = document.getElementById('close-poster-view');
@@ -511,17 +528,17 @@
 
         // --- SISTEMA DE INTERACCIÓN GENERAL ---
         function handleInteraction(event) {
-            [cite_start]const rect = renderer.domElement.getBoundingClientRect(); [cite: 208]
-            [cite_start]const x = event.touches ? event.touches[0].clientX : event.clientX; [cite: 208, 209]
-            [cite_start]const y = event.touches ? event.touches[0].clientY : event.clientY; [cite: 209]
-            [cite_start]mouse.x = ((x - rect.left) / rect.width) * 2 - 1; [cite: 209, 210]
-            [cite_start]mouse.y = -((y - rect.top) / rect.height) * 2 + 1; [cite: 210, 211]
-            [cite_start]raycaster.setFromCamera(mouse, camera); [cite: 211]
+            const rect = renderer.domElement.getBoundingClientRect();
+            const x = event.touches ? event.touches[0].clientX : event.clientX;
+            const y = event.touches ? event.touches[0].clientY : event.clientY;
+            mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
 
             // Chequeo de Luz
             if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
-                [cite_start]toggleLight(); [cite: 211, 212]
-                return; // Cortar aquí para no clickear un póster por accidente tras la luz
+                toggleLight();
+                return; 
             }
 
             // Chequeo de Pósters Dinámicos
@@ -532,204 +549,191 @@
                     const intersects = raycaster.intersectObject(posterMesh, true);
                     if (intersects.length > 0) {
                         openPosterPreview(cat);
-                        break; // Abrir solo uno y detener el bucle
+                        break;
                     }
                 }
             }
         }
         
-        [cite_start]renderer.domElement.addEventListener('click', handleInteraction); [cite: 213]
-        [cite_start]renderer.domElement.addEventListener('touchstart', (e) => {  [cite: 213]
-            [cite_start]if(document.getElementById('inventory-modal').classList.contains('visible')) return; [cite: 214]
-            [cite_start]handleInteraction(e);  [cite: 214]
-        [cite_start]}, {passive: true}); [cite: 214]
+        renderer.domElement.addEventListener('click', handleInteraction);
+        renderer.domElement.addEventListener('touchstart', (e) => { 
+            if(document.getElementById('inventory-modal').classList.contains('visible')) return;
+            handleInteraction(e); 
+        }, {passive: true});
 
         // --- Calidad / Modo Humilde ---
         function updateQuality() {
-            [cite_start]const isLow = perfCheck.checked; [cite: 214, 215]
-            [cite_start]renderer.shadowMap.enabled = !isLow; [cite: 215]
-            [cite_start]renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2)); [cite: 215, 216]
-            document.getElementById('quality-indicator').textContent = isLow ? [cite_start]'Modo Humilde' : 'Calidad Alta'; [cite: 216]
-            [cite_start]scene.traverse(n => {  [cite: 216]
-                [cite_start]if(n.isMesh) {  [cite: 216, 217]
-                    [cite_start]if (focoMesh && (n === focoMesh || focoMesh.children.includes(n))) return; [cite: 217]
-                    [cite_start]n.castShadow = !isLow; n.receiveShadow = !isLow;  [cite: 217]
-                    [cite_start]if(n.material) n.material.needsUpdate = true;  [cite: 217]
-                }
-            });
-            [cite_start]localStorage.setItem('performanceMode', isLow); [cite: 218, 219]
-            [cite_start]updateLighting();  [cite: 219]
-        [cite_start]} [cite: 219]
-        [cite_start]perfCheck.addEventListener('change', updateQuality); [cite: 219]
+            const isLow = perfCheck.checked;
+            renderer.shadowMap.enabled = !isLow;
+            renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
+            document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
+            
+            // Reaplicar materiales a los objetos cargados sin romper el foco
+            for (let cat in loadedSlotMeshes) {
+                applyMaterialLogic(loadedSlotMeshes[cat], cat);
+            }
+            
+            localStorage.setItem('performanceMode', isLow);
+            updateLighting(); 
+        }
+        perfCheck.addEventListener('change', updateQuality);
 
         // --- LÓGICA DE INTERFAZ DEL INVENTARIO ---
-        [cite_start]let currentCategory = 'cama'; [cite: 219, 220]
-        [cite_start]let openGroup = 'muebles'; [cite: 220, 221]
+        let currentCategory = 'cama';
+        let openGroup = 'muebles';
 
         function renderInventory() {
-            [cite_start]const sidebar = document.getElementById('inv-sidebar'); [cite: 221]
-            [cite_start]const content = document.getElementById('inv-content'); [cite: 221, 222]
-            [cite_start]sidebar.innerHTML = ''; content.innerHTML = ''; [cite: 222]
+            const sidebar = document.getElementById('inv-sidebar');
+            const content = document.getElementById('inv-content');
+            sidebar.innerHTML = ''; content.innerHTML = '';
 
-            // Renderizar Grupos y Subcategorías (Acordeón Animado)
             inventoryGroups.forEach(group => {
-                [cite_start]const groupDiv = document.createElement('div'); [cite: 223]
-                [cite_start]groupDiv.className = 'inv-group'; [cite: 223]
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'inv-group';
 
-                [cite_start]const groupBtn = document.createElement('button'); [cite: 223]
-                [cite_start]groupBtn.className = 'group-btn'; [cite: 223]
-      
-                [cite_start]groupBtn.innerHTML = `<span>${group.emoji} ${group.label}</span> <span style="transition:0.3s; transform: ${openGroup === group.id ? 'rotate(90deg)' : 'rotate(0deg)'}">▶</span>`; [cite: 223, 224]
+                const groupBtn = document.createElement('button');
+                groupBtn.className = 'group-btn';
+                groupBtn.innerHTML = `<span>${group.emoji} ${group.label}</span> <span style="transition:0.3s; transform: ${openGroup === group.id ? 'rotate(90deg)' : 'rotate(0deg)'}">▶</span>`;
                 groupBtn.onclick = () => {
-                    [cite_start]openGroup = openGroup === group.id ? null : group.id; [cite: 224]
-                    [cite_start]renderInventory(); [cite: 224]
-                [cite_start]}; [cite: 224, 225]
-                [cite_start]groupDiv.appendChild(groupBtn); [cite: 225]
+                    openGroup = openGroup === group.id ? null : group.id;
+                    renderInventory();
+                };
+                groupDiv.appendChild(groupBtn);
 
-                [cite_start]const groupContent = document.createElement('div'); [cite: 225]
-                groupContent.className = `group-content ${openGroup === group.id ? [cite_start]'open' : ''}`; [cite: 225]
+                const groupContent = document.createElement('div');
+                groupContent.className = `group-content ${openGroup === group.id ? 'open' : ''}`;
 
                 group.categories.forEach(catKey => {
-                    [cite_start]const catData = inventoryData[catKey]; [cite: 225, 226]
-                    [cite_start]if(!catData) return; [cite: 226]
+                    const catData = inventoryData[catKey];
+                    if(!catData) return;
                     
-                    [cite_start]const btn = document.createElement('button'); [cite: 226]
-                    btn.className = `cat-btn ${catKey === currentCategory ? [cite_start]'active' : ''}`; [cite: 226, 227]
-                    [cite_start]btn.innerHTML = `<span class="cat-icon-emoji">${catData.emoji}</span> <span>${catData.label}</span>`; [cite: 227]
-                    btn.onclick = () => { currentCategory = catKey; renderInventory(); [cite_start]}; [cite: 227, 228]
-                    [cite_start]groupContent.appendChild(btn); [cite: 228]
-                [cite_start]}); [cite: 228]
+                    const btn = document.createElement('button');
+                    btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
+                    btn.innerHTML = `<span class="cat-icon-emoji">${catData.emoji}</span> <span>${catData.label}</span>`;
+                    btn.onclick = () => { currentCategory = catKey; renderInventory(); };
+                    groupContent.appendChild(btn);
+                });
 
-                [cite_start]groupDiv.appendChild(groupContent); [cite: 228]
-                [cite_start]sidebar.appendChild(groupDiv); [cite: 228]
-            [cite_start]}); [cite: 228]
+                groupDiv.appendChild(groupContent);
+                sidebar.appendChild(groupDiv);
+            });
 
-            // Renderizar Ítems de la categoría seleccionada (con imagen si tiene preview, sino emoji)
-            [cite_start]const catData = inventoryData[currentCategory]; [cite: 228, 229]
-            [cite_start]if (!catData) return; [cite: 229, 230]
+            const catData = inventoryData[currentCategory];
+            if (!catData) return;
             
             for (let itemId in catData.items) {
-                [cite_start]const item = catData.items[itemId]; [cite: 230]
-                [cite_start]const isEquipped = catData.equipped === itemId; [cite: 230, 231]
+                const item = catData.items[itemId];
+                const isEquipped = catData.equipped === itemId;
                 
-                [cite_start]const card = document.createElement('div'); [cite: 231]
-                [cite_start]card.className = 'item-card'; [cite: 231]
+                const card = document.createElement('div');
+                card.className = 'item-card';
 
-                // Contenedor de preview: imagen si existe, si no, emoji de la categoría
-                [cite_start]const previewDiv = document.createElement('div'); [cite: 231, 232]
-                [cite_start]previewDiv.className = 'item-preview'; [cite: 232, 233]
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'item-preview';
                 
                 if (item.preview) {
-                    [cite_start]const img = document.createElement('img'); [cite: 233]
-                    [cite_start]img.src = item.preview; [cite: 233, 234]
-                    [cite_start]img.alt = item.name; [cite: 234]
-                    img.onerror = () => {
-                        // Si falla la imagen, mostrar emoji
-                        [cite_start]previewDiv.innerHTML = `<span>${catData.emoji}</span>`; [cite: 234, 235]
-                    [cite_start]}; [cite: 235]
-                    [cite_start]previewDiv.appendChild(img); [cite: 235]
+                    const img = document.createElement('img');
+                    img.src = item.preview;
+                    img.alt = item.name;
+                    img.onerror = () => { previewDiv.innerHTML = `<span>${catData.emoji}</span>`; };
+                    previewDiv.appendChild(img);
                 } else {
-                    [cite_start]previewDiv.innerHTML = `<span>${catData.emoji}</span>`; [cite: 235]
-                [cite_start]} [cite: 235, 236]
+                    previewDiv.innerHTML = `<span>${catData.emoji}</span>`;
+                }
                 
-                [cite_start]let btnHTML = ''; [cite: 236]
+                let btnHTML = '';
                 if (isEquipped) {
-                    [cite_start]btnHTML = `<button class="item-btn btn-equipped" disabled>Equipado ✓</button>`; [cite: 236, 237]
+                    btnHTML = `<button class="item-btn btn-equipped" disabled>Equipado ✓</button>`;
                 } else if (item.owned) {
-                    [cite_start]btnHTML = `<button class="item-btn btn-equip" data-id="${itemId}">Equipar</button>`; [cite: 237, 238]
+                    btnHTML = `<button class="item-btn btn-equip" data-id="${itemId}">Equipar</button>`;
                 } else {
-                    [cite_start]btnHTML = `<button class="item-btn btn-buy" data-id="${itemId}">Comprar 🪙${item.price}</button>`; [cite: 238, 239]
-                [cite_start]} [cite: 239, 240]
+                    btnHTML = `<button class="item-btn btn-buy" data-id="${itemId}">Comprar 🪙${item.price}</button>`;
+                }
 
                 card.innerHTML = `
                     <div>
                         ${previewDiv.outerHTML}
                         <h4>${item.name}</h4>
-              
                         <div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div>
                     </div>
                     ${btnHTML}
-                [cite_start]`; [cite: 240, 241, 242]
+                `;
 
-                // Reemplazar el previewDiv con el elemento real para que funcione onerror
-                [cite_start]const finalCard = card; [cite: 242, 243]
-                [cite_start]const previewContainer = finalCard.querySelector('.item-preview'); [cite: 243, 244]
+                // Re-bind onerror después del innerHTML
+                const previewContainer = card.querySelector('.item-preview');
                 if (previewContainer && item.preview) {
-                    [cite_start]previewContainer.innerHTML = ''; [cite: 244]
-                    // Limpiar
-                    [cite_start]const img = document.createElement('img'); [cite: 244, 245]
-                    [cite_start]img.src = item.preview; [cite: 245, 246]
-                    [cite_start]img.alt = item.name; [cite: 246]
-                    img.onerror = () => {
-                        [cite_start]previewContainer.innerHTML = `<span>${catData.emoji}</span>`; [cite: 246]
-                    [cite_start]}; [cite: 246, 247]
-                    [cite_start]previewContainer.appendChild(img); [cite: 247]
-                [cite_start]} [cite: 247]
+                    previewContainer.innerHTML = '';
+                    const img = document.createElement('img');
+                    img.src = item.preview;
+                    img.alt = item.name;
+                    img.onerror = () => { previewContainer.innerHTML = `<span>${catData.emoji}</span>`; };
+                    previewContainer.appendChild(img);
+                }
                 
-                [cite_start]content.appendChild(finalCard); [cite: 247]
-            [cite_start]} [cite: 247, 248]
+                content.appendChild(card);
+            }
 
             document.querySelectorAll('.btn-equip').forEach(b => {
-                [cite_start]b.onclick = (e) => equipItem(currentCategory, e.target.getAttribute('data-id')); [cite: 248]
-            [cite_start]}); [cite: 248, 249]
+                b.onclick = (e) => equipItem(currentCategory, e.target.getAttribute('data-id'));
+            });
             document.querySelectorAll('.btn-buy').forEach(b => {
-                [cite_start]b.onclick = (e) => buyItem(currentCategory, e.target.getAttribute('data-id')); [cite: 249]
-            [cite_start]}); [cite: 249, 250]
-        [cite_start]} [cite: 250]
+                b.onclick = (e) => buyItem(currentCategory, e.target.getAttribute('data-id'));
+            });
+        }
 
         function equipItem(category, itemId) {
-            [cite_start]inventoryData[category].equipped = itemId; [cite: 250]
-            [cite_start]saveGame(); [cite: 250, 251]
-            [cite_start]renderInventory();  [cite: 251]
+            inventoryData[category].equipped = itemId;
+            saveGame();
+            renderInventory(); 
             
-            [cite_start]const itemData = inventoryData[category].items[itemId]; [cite: 251]
-            [cite_start]loadItemForSlot(category, itemData.file, false); [cite: 251]
+            const itemData = inventoryData[category].items[itemId];
+            loadItemForSlot(category, itemData.file, false);
 
             if (category === 'foco' && itemData.baseFile) {
-                [cite_start]loadItemForSlot('base_foco', itemData.baseFile, false); [cite: 251]
-            [cite_start]} [cite: 251, 252]
-        [cite_start]} [cite: 252]
+                loadItemForSlot('base_foco', itemData.baseFile, false);
+            }
+        }
 
         function buyItem(category, itemId) {
-            [cite_start]let item = inventoryData[category].items[itemId]; [cite: 252]
+            let item = inventoryData[category].items[itemId];
             if (playerCoins >= item.price) {
-                [cite_start]playerCoins -= item.price; [cite: 252, 253]
-                [cite_start]item.owned = true; [cite: 253, 254]
-                [cite_start]saveGame(); [cite: 254]
-                [cite_start]renderInventory(); [cite: 254]
+                playerCoins -= item.price;
+                item.owned = true;
+                saveGame();
+                renderInventory();
             } else {
-                [cite_start]alert("No tienes suficientes monedas."); [cite: 254]
-            [cite_start]} [cite: 254, 255]
-        [cite_start]} [cite: 255]
+                alert("No tienes suficientes monedas.");
+            }
+        }
 
         // Eventos UI
         document.getElementById('inventory-button').onclick = () => {
-            [cite_start]document.getElementById('inventory-modal').classList.add('visible'); [cite: 255]
-            [cite_start]renderInventory(); [cite: 255, 256]
-        [cite_start]}; [cite: 256]
+            document.getElementById('inventory-modal').classList.add('visible');
+            renderInventory();
+        };
         document.getElementById('close-inv').onclick = () => {
-            [cite_start]document.getElementById('inventory-modal').classList.remove('visible'); [cite: 256]
-        [cite_start]}; [cite: 256, 257]
+            document.getElementById('inventory-modal').classList.remove('visible');
+        };
         document.getElementById('settings-button').onclick = () => {
-            [cite_start]document.getElementById('settings-panel').classList.toggle('visible'); [cite: 257]
-        [cite_start]}; [cite: 257, 258]
+            document.getElementById('settings-panel').classList.toggle('visible');
+        };
 
         // --- Animación y Resize ---
         function animate() {
-            [cite_start]requestAnimationFrame(animate); [cite: 258]
-            [cite_start]controls.update(); [cite: 258, 259]
-            [cite_start]effect.render(scene, camera); [cite: 259]
-        [cite_start]} [cite: 259]
-        [cite_start]animate(); [cite: 259]
+            requestAnimationFrame(animate);
+            controls.update();
+            effect.render(scene, camera);
+        }
+        animate();
         
         window.addEventListener('resize', () => {
-            [cite_start]camera.aspect = window.innerWidth / window.innerHeight; [cite: 259, 260]
-            [cite_start]camera.updateProjectionMatrix(); [cite: 260]
-            [cite_start]renderer.setSize(window.innerWidth, window.innerHeight); [cite: 260]
-            [cite_start]effect.setSize(window.innerWidth, window.innerHeight);  [cite: 260]
-        [cite_start]}); [cite: 260, 261]
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            effect.setSize(window.innerWidth, window.innerHeight); 
+        });
         
-        [cite_start]updateQuality(); [cite: 261]
+        updateQuality();
     </script>
 </body>
 </html>
