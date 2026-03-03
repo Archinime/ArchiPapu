@@ -2,99 +2,417 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Habitación 3D - Con datos externos</title>
+    <title>Archinime CMS - Editor de Habitación</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* (mismos estilos que en el index.txt original, se omiten por brevedad, pero debes copiarlos igual) */
-        body { margin:0; overflow:hidden; font-family:Arial; background:#111; }
-        /* ... todo el CSS original ... */
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#0c0c14; font-family:'Outfit', sans-serif; color:#eee; padding:20px; }
+        .container { max-width:1400px; margin:0 auto; }
+        h1 { color:#fff; margin-bottom:10px; }
+        h1 i { color:#7c3aed; }
+        .bar {
+            background:#1a1a24; border-radius:40px; padding:15px 25px;
+            display:flex; flex-wrap:wrap; gap:15px; align-items:center;
+            margin-bottom:30px; border:1px solid #2a2a36;
+        }
+        .btn {
+            background:#2a2a36; border:none; padding:10px 20px; border-radius:30px;
+            color:#fff; font-weight:600; cursor:pointer; transition:0.2s;
+            display:inline-flex; align-items:center; gap:8px;
+        }
+        .btn-primary { background:#7c3aed; }
+        .btn-primary:hover { background:#8b5cf6; }
+        .btn-outline { background:transparent; border:1px solid #3d3d5a; }
+        .btn-outline:hover { background:#2a2a36; }
+        .grid { display:grid; grid-template-columns:300px 1fr; gap:20px; }
+        .panel { background:#16161f; border-radius:28px; padding:20px; border:1px solid #252531; }
+        .group { margin-bottom:15px; }
+        .group-header {
+            background:#1e1e2a; padding:15px; border-radius:18px;
+            cursor:pointer; display:flex; justify-content:space-between;
+            font-weight:600; border-left:4px solid #7c3aed;
+        }
+        .group-content { display:none; padding:10px 0; }
+        .group-content.open { display:block; }
+        .cat-item {
+            display:flex; align-items:center; padding:12px; margin:5px 0;
+            background:#1e1e2a; border-radius:14px; cursor:pointer;
+        }
+        .cat-item.active { border:2px solid #7c3aed; background:#26263a; }
+        .cat-item .emoji { font-size:1.4rem; margin-right:10px; }
+        .cat-item .label { flex:1; }
+        .item-card {
+            background:#1e1e2a; border-radius:18px; padding:20px; margin-bottom:20px;
+            border:1px solid #2f2f3f; position:relative;
+        }
+        .item-card h4 { margin-bottom:15px; color:#b9b9ff; }
+        .form-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:15px; margin-bottom:15px; }
+        .form-group label { display:block; font-size:0.75rem; color:#aaa; margin-bottom:5px; }
+        .form-group input, .form-group select {
+            width:100%; background:#0c0c14; border:1px solid #2f2f3f; border-radius:12px;
+            padding:10px; color:#fff;
+        }
+        .delete-item { position:absolute; top:15px; right:15px; color:#f43f5e; background:none; border:none; cursor:pointer; }
+        .toast {
+            position:fixed; bottom:30px; right:30px; background:#1e293b; color:#fff;
+            padding:15px 25px; border-radius:50px; box-shadow:0 10px 20px #000;
+            transform:translateY(100px); opacity:0; transition:0.3s;
+        }
+        .toast.show { transform:translateY(0); opacity:1; }
     </style>
 </head>
 <body>
-    <div id="coin-display">🪙 <span id="coin-amount">0</span></div>
-    <div id="inventory-button" class="top-btn" title="Inventario y Tienda">🎒</div>
-    <div id="settings-button" class="top-btn" title="Ajustes">⚙️</div>
-    <div id="settings-panel">...</div>
-    <div id="inventory-modal">...</div>
-    <div id="loading">Preparando habitación...</div>
-    <div id="light-status">💡 Luz encendida</div>
+<div class="container">
+    <h1><i class="fas fa-cubes"></i> Archinime CMS · Editor de Inventario</h1>
+    <div class="bar">
+        <button class="btn btn-primary" id="saveToLocal"><i class="fas fa-save"></i> Guardar ahora</button>
+        <button class="btn btn-outline" id="exportJson"><i class="fas fa-download"></i> Exportar JSON</button>
+        <button class="btn btn-outline" id="importJson"><i class="fas fa-upload"></i> Importar JSON</button>
+        <button class="btn btn-outline" id="resetDefault"><i class="fas fa-undo"></i> Restaurar default</button>
+        <span style="flex:1"></span>
+        <button class="btn btn-outline" id="firebaseSync"><i class="fab fa-firebase"></i> Sincronizar con Firebase</button>
+    </div>
 
-    <!-- Import map (igual) -->
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
-            }
+    <div class="grid">
+        <!-- Lista de categorías -->
+        <div class="panel">
+            <h3 style="margin-bottom:15px;"><i class="fas fa-tags"></i> Categorías</h3>
+            <div id="groupsContainer"></div>
+            <button class="btn" style="width:100%; margin-top:20px;" id="addCategory"><i class="fas fa-plus"></i> Nueva categoría</button>
+        </div>
+
+        <!-- Editor de categoría -->
+        <div class="panel" id="editorPanel">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3 id="currentCatTitle">Selecciona una categoría</h3>
+                <button class="btn-outline" id="deleteCategory" style="color:#f43f5e;"><i class="fas fa-trash"></i> Eliminar</button>
+            </div>
+
+            <div id="categoryForm" style="display:none;">
+                <div class="form-row">
+                    <div class="form-group"><label>Clave</label><input type="text" id="catKey" readonly disabled></div>
+                    <div class="form-group"><label>Label</label><input type="text" id="catLabel" placeholder="Ej: Cama"></div>
+                    <div class="form-group"><label>Emoji</label><input type="text" id="catEmoji" placeholder="🛏️"></div>
+                    <div class="form-group"><label>Grupo</label>
+                        <select id="catGroup">
+                            <option value="estructura">Estructura</option>
+                            <option value="iluminacion">Iluminación</option>
+                            <option value="muebles">Muebles</option>
+                            <option value="textiles">Textiles</option>
+                            <option value="posters">Pósters</option>
+                            <option value="deco_mueble">Deco Mueble</option>
+                            <option value="deco_escritorio">Deco Escritorio</option>
+                            <option value="deco_piso">Deco Piso</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin:20px 0; display:flex; gap:10px;">
+                    <h4>Objetos</h4>
+                    <button class="btn-outline" id="addItemBtn"><i class="fas fa-plus"></i> Nuevo objeto</button>
+                </div>
+                <div id="itemsContainer"></div>
+            </div>
+            <div id="noSelection" style="text-align:center; padding:50px; color:#555;">← Selecciona una categoría</div>
+        </div>
+    </div>
+</div>
+<div class="toast" id="toast"><i class="fas fa-check-circle"></i> <span>Guardado</span></div>
+
+<script type="module">
+    import { defaultInventoryConfig, inventoryGroups, loadInventory, saveInventory } from './inventario.js';
+
+    // Estado
+    let inventoryData = loadInventory(); // carga automática desde localStorage
+    let groups = JSON.parse(JSON.stringify(inventoryGroups)); // copia editable
+    let currentCategoryKey = null;
+    let openGroups = ['muebles'];
+
+    // Referencias DOM
+    const groupsContainer = document.getElementById('groupsContainer');
+    const editorPanel = document.getElementById('editorPanel');
+    const categoryForm = document.getElementById('categoryForm');
+    const noSelection = document.getElementById('noSelection');
+    const currentCatTitle = document.getElementById('currentCatTitle');
+
+    // Renderizar grupos
+    function renderGroups() {
+        let html = '';
+        groups.forEach(group => {
+            const isOpen = openGroups.includes(group.id);
+            html += `<div class="group">
+                <div class="group-header" data-group="${group.id}">
+                    <span>${group.emoji} ${group.label}</span>
+                    <i class="fas fa-chevron-right" style="transform: rotate(${isOpen ? '90deg' : '0deg'});"></i>
+                </div>
+                <div class="group-content ${isOpen ? 'open' : ''}">`;
+            group.categories.forEach(catKey => {
+                const cat = inventoryData[catKey];
+                if (!cat) return;
+                const active = (currentCategoryKey === catKey) ? 'active' : '';
+                html += `<div class="cat-item ${active}" data-cat="${catKey}">
+                    <span class="emoji">${cat.emoji || '📦'}</span>
+                    <span class="label">${cat.label || catKey}</span>
+                </div>`;
+            });
+            html += `</div></div>`;
+        });
+        groupsContainer.innerHTML = html;
+
+        // Eventos
+        document.querySelectorAll('.group-header').forEach(h => {
+            h.addEventListener('click', e => {
+                const gid = h.dataset.group;
+                if (openGroups.includes(gid)) openGroups = openGroups.filter(g => g !== gid);
+                else openGroups.push(gid);
+                renderGroups();
+            });
+        });
+        document.querySelectorAll('.cat-item').forEach(el => {
+            el.addEventListener('click', () => selectCategory(el.dataset.cat));
+        });
+    }
+
+    function selectCategory(catKey) {
+        currentCategoryKey = catKey;
+        renderGroups();
+        const cat = inventoryData[catKey];
+        if (!cat) return;
+        categoryForm.style.display = 'block';
+        noSelection.style.display = 'none';
+        currentCatTitle.innerText = cat.label || catKey;
+
+        document.getElementById('catKey').value = catKey;
+        document.getElementById('catLabel').value = cat.label || '';
+        document.getElementById('catEmoji').value = cat.emoji || '📦';
+        // grupo actual
+        let grupoActual = groups.find(g => g.categories.includes(catKey))?.id || 'muebles';
+        document.getElementById('catGroup').value = grupoActual;
+
+        renderItems(catKey);
+    }
+
+    function renderItems(catKey) {
+        const cat = inventoryData[catKey];
+        if (!cat) return;
+        let itemsHtml = '';
+        for (let [itemId, item] of Object.entries(cat.items)) {
+            itemsHtml += `
+                <div class="item-card" data-item="${itemId}">
+                    <button class="delete-item" onclick="window.deleteItem('${catKey}','${itemId}')"><i class="fas fa-times-circle"></i></button>
+                    <h4>${item.name} <span style="color:#7c8db0;font-size:0.8rem;">(${itemId})</span></h4>
+                    <div class="form-row">
+                        <div class="form-group"><label>Nombre</label><input type="text" class="item-name" value="${item.name.replace(/"/g, '&quot;')}"></div>
+                        <div class="form-group"><label>Precio</label><input type="number" class="item-price" value="${item.price}"></div>
+                        <div class="form-group"><label>¿Comprado?</label>
+                            <select class="item-owned">
+                                <option value="true" ${item.owned ? 'selected' : ''}>Sí</option>
+                                <option value="false" ${!item.owned ? 'selected' : ''}>No</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Modelo .glb</label><input type="text" class="item-file" value="${item.file || ''}"></div>
+                        <div class="form-group"><label>BaseFile (solo foco)</label><input type="text" class="item-basefile" value="${item.baseFile || ''}"></div>
+                        <div class="form-group"><label>Preview imagen</label><input type="text" class="item-preview" value="${item.preview || ''}"></div>
+                    </div>
+                </div>
+            `;
         }
-    </script>
+        document.getElementById('itemsContainer').innerHTML = itemsHtml;
 
-    <script type="module">
-        // Importar datos y funciones desde inventario.js (debe estar en la misma carpeta)
-        import { defaultInventoryConfig, inventoryGroups, loadInventory, saveInventory, loadCoins, saveCoins } from './inventario.js';
+        // Auto-guardado al cambiar inputs
+        document.querySelectorAll('.item-card').forEach(card => {
+            const itemId = card.dataset.item;
+            card.querySelectorAll('input, select').forEach(inp => {
+                inp.addEventListener('change', () => updateItemFromCard(catKey, itemId, card));
+                inp.addEventListener('blur', () => updateItemFromCard(catKey, itemId, card));
+            });
+        });
+    }
 
-        // ============================================================
-        // INICIALIZAR DATOS
-        // ============================================================
-        let inventoryData = loadInventory();  // carga desde localStorage o usa default
-        let playerCoins = loadCoins();
-        document.getElementById('coin-amount').innerText = playerCoins;
+    function updateItemFromCard(catKey, itemId, card) {
+        const cat = inventoryData[catKey];
+        if (!cat || !cat.items[itemId]) return;
+        const item = cat.items[itemId];
+        item.name = card.querySelector('.item-name')?.value || item.name;
+        item.price = parseInt(card.querySelector('.item-price')?.value) || 0;
+        item.owned = card.querySelector('.item-owned')?.value === 'true';
+        item.file = card.querySelector('.item-file')?.value || '';
+        item.baseFile = card.querySelector('.item-basefile')?.value || undefined;
+        item.preview = card.querySelector('.item-preview')?.value || '';
+        saveToLocalAndNotify();
+    }
 
-        // Función para guardar todo (coins + inventario)
-        function saveGame() {
-            saveCoins(playerCoins);
+    window.deleteItem = (catKey, itemId) => {
+        if (!confirm('Eliminar objeto?')) return;
+        delete inventoryData[catKey].items[itemId];
+        if (inventoryData[catKey].equipped === itemId) {
+            const first = Object.keys(inventoryData[catKey].items)[0];
+            inventoryData[catKey].equipped = first || null;
+        }
+        renderItems(catKey);
+        saveToLocalAndNotify();
+    };
+
+    // Guardar cambios de categoría
+    document.getElementById('catGroup').addEventListener('change', () => {
+        if (!currentCategoryKey) return;
+        const newGroup = document.getElementById('catGroup').value;
+        // remover de grupos anteriores
+        groups.forEach(g => {
+            const idx = g.categories.indexOf(currentCategoryKey);
+            if (idx >= 0) g.categories.splice(idx, 1);
+        });
+        const target = groups.find(g => g.id === newGroup);
+        if (target && !target.categories.includes(currentCategoryKey)) {
+            target.categories.push(currentCategoryKey);
+        }
+        renderGroups();
+        saveToLocalAndNotify();
+    });
+
+    document.getElementById('catLabel').addEventListener('blur', () => {
+        if (!currentCategoryKey) return;
+        inventoryData[currentCategoryKey].label = document.getElementById('catLabel').value;
+        saveToLocalAndNotify();
+        currentCatTitle.innerText = inventoryData[currentCategoryKey].label;
+    });
+    document.getElementById('catEmoji').addEventListener('blur', () => {
+        if (!currentCategoryKey) return;
+        inventoryData[currentCategoryKey].emoji = document.getElementById('catEmoji').value;
+        saveToLocalAndNotify();
+    });
+
+    document.getElementById('addItemBtn').addEventListener('click', () => {
+        if (!currentCategoryKey) return;
+        const newId = 'item_' + Date.now();
+        inventoryData[currentCategoryKey].items[newId] = {
+            name: 'Nuevo objeto',
+            file: '',
+            price: 0,
+            owned: false,
+            preview: ''
+        };
+        renderItems(currentCategoryKey);
+        saveToLocalAndNotify();
+    });
+
+    document.getElementById('addCategory').addEventListener('click', () => {
+        const newKey = 'nueva_' + Date.now();
+        inventoryData[newKey] = {
+            label: 'Nueva Categoría',
+            emoji: '📦',
+            equipped: 'base',
+            items: {
+                base: { name: 'Modelo base', file: '', price: 0, owned: true, preview: '' }
+            }
+        };
+        groups.find(g => g.id === 'muebles').categories.push(newKey);
+        renderGroups();
+        selectCategory(newKey);
+        saveToLocalAndNotify();
+    });
+
+    document.getElementById('deleteCategory').addEventListener('click', () => {
+        if (!currentCategoryKey || !confirm('¿Eliminar categoría?')) return;
+        groups.forEach(g => {
+            const idx = g.categories.indexOf(currentCategoryKey);
+            if (idx >= 0) g.categories.splice(idx, 1);
+        });
+        delete inventoryData[currentCategoryKey];
+        currentCategoryKey = null;
+        categoryForm.style.display = 'none';
+        noSelection.style.display = 'block';
+        renderGroups();
+        saveToLocalAndNotify();
+    });
+
+    // Guardado local y notificación
+    function saveToLocalAndNotify() {
+        saveInventory(inventoryData);
+        showToast('Datos guardados en localStorage');
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.querySelector('span').innerText = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    // Botones
+    document.getElementById('saveToLocal').addEventListener('click', () => {
+        saveInventory(inventoryData);
+        showToast('Guardado manual');
+    });
+
+    document.getElementById('exportJson').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(inventoryData, null, 2)], {type:'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'inventario.json';
+        a.click();
+    });
+
+    document.getElementById('importJson').addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+        input.onchange = e => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    inventoryData = JSON.parse(reader.result);
+                    saveInventory(inventoryData);
+                    // reconstruir grupos (simplificado: mantener grupos, pero añadir nuevas claves)
+                    // por simplicidad, recargamos grupos originales y añadimos las categorías nuevas a 'muebles'
+                    groups = JSON.parse(JSON.stringify(inventoryGroups));
+                    for (let catKey in inventoryData) {
+                        let found = groups.some(g => g.categories.includes(catKey));
+                        if (!found) groups.find(g => g.id === 'muebles').categories.push(catKey);
+                    }
+                    renderGroups();
+                    if (currentCategoryKey) selectCategory(currentCategoryKey);
+                    showToast('Importado correctamente');
+                } catch (err) {
+                    alert('JSON inválido');
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    });
+
+    document.getElementById('resetDefault').addEventListener('click', () => {
+        if (confirm('¿Restaurar configuración de fábrica?')) {
+            inventoryData = JSON.parse(JSON.stringify(defaultInventoryConfig));
+            groups = JSON.parse(JSON.stringify(inventoryGroups));
             saveInventory(inventoryData);
-            document.getElementById('coin-amount').innerText = playerCoins;
+            renderGroups();
+            if (currentCategoryKey) selectCategory(currentCategoryKey);
+            showToast('Restaurado');
         }
+    });
 
-        // ============================================================
-        // RESTO DEL CÓDIGO 3D (casi idéntico al original, pero usando inventoryData)
-        // ============================================================
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-        import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
+    // Firebase (opcional)
+    document.getElementById('firebaseSync').addEventListener('click', async () => {
+        // Aquí puedes integrar las funciones de Firebase del archivo inventario.js
+        // Por ahora solo un aviso
+        alert('Para usar Firebase, descomenta el código en inventario.js y configura tus credenciales. Luego implementa syncFromFirebase y syncToFirebase aquí.');
+    });
 
-        // ... (todo el código de Three.js, luces, etc. igual que en el index.txt original)
-        // Pero debes reemplazar la parte donde se define defaultInventoryConfig por el import.
-        // También la parte de renderInventory() debe usar inventoryGroups importado.
-        // Aquí te pongo solo las modificaciones clave:
-
-        // Ejemplo de la función equipItem modificada para guardar:
-        function equipItem(category, itemId) {
-            inventoryData[category].equipped = itemId;
-            saveGame();  // <-- guarda automático
-            renderInventory(); 
-            
-            const itemData = inventoryData[category].items[itemId];
-            loadItemForSlot(category, itemData.file, false);
-            if (category === 'foco' && itemData.baseFile) {
-                loadItemForSlot('base_foco', itemData.baseFile, false);
-            }
-        }
-
-        function buyItem(category, itemId) {
-            let item = inventoryData[category].items[itemId];
-            if (playerCoins >= item.price) {
-                playerCoins -= item.price;
-                item.owned = true;
-                saveGame();  // <-- guarda automático
-                renderInventory();
-            } else {
-                alert("No tienes suficientes monedas.");
-            }
-        }
-
-        // Al cargar modelos, también se puede forzar el guardado si se modifica algo (no necesario)
-
-        // En resumen, donde estaba la definición de inventoryData, ahora se usa la variable importada.
-        // El resto del código 3D (cámaras, luces, animación) se mantiene igual.
-
-        // ============================================================
-        // NOTA: Para que funcione, debes copiar TODO el código Three.js original 
-        // desde el index.txt y pegarlo aquí, pero eliminando la parte donde se declara 
-        // defaultInventoryConfig y playerCoins, y usando los importados.
-        // ============================================================
-    </script>
+    // Inicializar
+    renderGroups();
+    if (Object.keys(inventoryData).length > 0) {
+        const primera = Object.keys(inventoryData)[0];
+        selectCategory(primera);
+    } else {
+        noSelection.style.display = 'block';
+        categoryForm.style.display = 'none';
+    }
+</script>
 </body>
 </html>
