@@ -220,7 +220,8 @@ export const defaultInventoryConfig = {
                 name: "Póster 1 Estándar", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_1.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_hero_academy.avif"
             } 
         } 
     },
