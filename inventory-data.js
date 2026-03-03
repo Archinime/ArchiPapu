@@ -27,8 +27,32 @@ export const defaultInventoryConfig = {
         } 
     },
 
-    techo: { label: "Techo", emoji: "🛖", equipped: "base", items: { "base": { name: "Techo Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo.glb", price: 0, owned: true } } },
-    puerta: { label: "Puerta", emoji: "🚪", equipped: "base", items: { "base": { name: "Puerta Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta.glb", price: 0, owned: true } } },
+    techo: { 
+        label: "Techo", emoji: "🛖", equipped: "base", 
+        items: { 
+            "base": { 
+                name: "Techo Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo_estandar.png"
+            } 
+        } 
+    },
+
+    puerta: { 
+        label: "Puerta", emoji: "🛖", equipped: "base", 
+        items: { 
+            "base": { 
+                name: "Puerta Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta_estandar.png"
+            } 
+        } 
+    },
+
     
     // Iluminación
     interruptor: { label: "Interruptor", emoji: "🎛️", equipped: "base", items: { "base": { name: "Interruptor Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/interruptor.glb", price: 0, owned: true } } },
