@@ -153,7 +153,8 @@ export const defaultInventoryConfig = {
                 name: "Mueble 1 Estándar", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble1.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble_estandar.avif"
             } 
         } 
     },
