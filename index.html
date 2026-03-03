@@ -296,7 +296,7 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
-        // Importar datos desde archivo externo
+        // Importar datos desde archivo externo (asegúrate de que la ruta sea correcta)
         import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
         // --- SISTEMA DE DATOS E INVENTARIO ---
@@ -591,56 +591,84 @@
                 const item = catData.items[itemId];
                 const isEquipped = catData.equipped === itemId;
                 
+                // Crear la tarjeta usando métodos del DOM para conservar eventos
                 const card = document.createElement('div');
                 card.className = 'item-card';
-                
-                // Contenedor de imagen de preview
+
+                // Contenedor de preview
                 const previewDiv = document.createElement('div');
                 previewDiv.className = 'item-preview';
+
+                // Crear imagen
                 const img = document.createElement('img');
-                img.src = item.preview || 'https://via.placeholder.com/150?text=Sin+imagen';
                 img.alt = item.name;
-                img.onerror = () => {
-                    // Si la imagen no carga, mostrar un emoji como placeholder
-                    previewDiv.innerHTML = '<span class="placeholder">📦</span>';
-                };
+                img.style.display = 'none'; // Ocultar hasta que cargue o falle
                 previewDiv.appendChild(img);
-                
-                let btnHTML = '';
-                if (isEquipped) {
-                    btnHTML = `<button class="item-btn btn-equipped" disabled>Equipado ✓</button>`;
-                } else if (item.owned) {
-                    btnHTML = `<button class="item-btn btn-equip" data-id="${itemId}">Equipar</button>`;
+
+                // Placeholder (emoji)
+                const placeholderSpan = document.createElement('span');
+                placeholderSpan.className = 'placeholder';
+                placeholderSpan.textContent = '📦';
+                placeholderSpan.style.display = 'none';
+                previewDiv.appendChild(placeholderSpan);
+
+                // Función para mostrar placeholder si la imagen falla
+                const showPlaceholder = () => {
+                    img.style.display = 'none';
+                    placeholderSpan.style.display = 'block';
+                };
+
+                // Función para mostrar imagen si carga bien
+                const showImage = () => {
+                    img.style.display = 'block';
+                    placeholderSpan.style.display = 'none';
+                };
+
+                img.onload = showImage;
+                img.onerror = showPlaceholder;
+
+                // Iniciar carga de la imagen
+                if (item.preview) {
+                    img.src = item.preview;
                 } else {
-                    btnHTML = `<button class="item-btn btn-buy" data-id="${itemId}">Comprar 🪙${item.price}</button>`;
+                    // Si no hay preview, mostrar placeholder directamente
+                    showPlaceholder();
                 }
 
-                card.innerHTML = `
-                    <div>
-                        ${previewDiv.outerHTML}
-                        <h4>${item.name}</h4>
-                        <div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div>
-                    </div>
-                    ${btnHTML}
-                `;
-                
-                // Reemplazar el previewDiv con el elemento real para que funcione onerror
-                const finalCard = card;
-                const previewContainer = finalCard.querySelector('.item-preview');
-                if (previewContainer) {
-                    previewContainer.innerHTML = ''; // Limpiar
-                    previewContainer.appendChild(img);
+                card.appendChild(previewDiv);
+
+                // Título y precio
+                const title = document.createElement('h4');
+                title.textContent = item.name;
+                card.appendChild(title);
+
+                const priceDiv = document.createElement('div');
+                priceDiv.className = 'item-price';
+                priceDiv.textContent = item.owned ? 'Adquirido' : `🪙 ${item.price}`;
+                card.appendChild(priceDiv);
+
+                // Botón
+                const btn = document.createElement('button');
+                btn.className = 'item-btn';
+                if (isEquipped) {
+                    btn.classList.add('btn-equipped');
+                    btn.disabled = true;
+                    btn.textContent = 'Equipado ✓';
+                } else if (item.owned) {
+                    btn.classList.add('btn-equip');
+                    btn.textContent = 'Equipar';
+                    btn.dataset.id = itemId;
+                    btn.onclick = () => equipItem(currentCategory, itemId);
+                } else {
+                    btn.classList.add('btn-buy');
+                    btn.textContent = `Comprar 🪙${item.price}`;
+                    btn.dataset.id = itemId;
+                    btn.onclick = () => buyItem(currentCategory, itemId);
                 }
-                
-                content.appendChild(finalCard);
+                card.appendChild(btn);
+
+                content.appendChild(card);
             }
-
-            document.querySelectorAll('.btn-equip').forEach(b => {
-                b.onclick = (e) => equipItem(currentCategory, e.target.getAttribute('data-id'));
-            });
-            document.querySelectorAll('.btn-buy').forEach(b => {
-                b.onclick = (e) => buyItem(currentCategory, e.target.getAttribute('data-id'));
-            });
         }
 
         function equipItem(category, itemId) {
