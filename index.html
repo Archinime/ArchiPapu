@@ -148,19 +148,80 @@
         .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
         .cat-icon-emoji { font-size: 18px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
         
-        /* CONTENIDO DE ÍTEMS */
-        #inv-content { width: 70%; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; align-content: start; padding-right: 5px; }
-        .item-card { 
-            background: linear-gradient(145deg, rgba(40,40,50,0.9), rgba(25,25,30,0.9)); 
-            padding: 18px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.05); 
-            text-align: center; display: flex; flex-direction: column; justify-content: space-between;
+        /* CONTENIDO DE ÍTEMS CON IMÁGENES DE PREVIEW */
+        #inv-content {
+            width: 70%;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            align-content: start;
+            padding-right: 5px;
+        }
+        .item-card {
+            background: linear-gradient(145deg, rgba(40,40,50,0.9), rgba(25,25,30,0.9));
+            padding: 15px;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.05);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
-        .item-card:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 10px 25px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.2); }
-        .item-card h4 { margin: 0 0 10px 0; font-size: 16px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
-        .item-price { color: #FFD700; font-weight: bold; margin-bottom: 15px; font-size: 14px; text-shadow: 0 0 5px rgba(255, 215, 0, 0.3); }
-        .item-btn { padding: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+        .item-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            border-color: rgba(255,255,255,0.2);
+        }
+        .item-preview {
+            width: 100%;
+            height: 120px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .item-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .item-preview .placeholder {
+            font-size: 40px;
+            opacity: 0.5;
+        }
+        .item-card h4 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+        .item-price {
+            color: #FFD700;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+        }
+        .item-btn {
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
         
         .btn-buy { background: linear-gradient(135deg, #FF9800, #F57C00); color: white; box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3); }
         .btn-buy:hover { background: linear-gradient(135deg, #FFB74D, #FF9800); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(255, 152, 0, 0.4); }
@@ -181,6 +242,7 @@
             #inv-sidebar { width: 100%; height: 35%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; padding-right: 0; }
             #inv-content { width: 100%; height: 65%; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); padding-right: 0; }
             .item-card { padding: 12px; }
+            .item-preview { height: 100px; }
         }
 
         /* --- ESTADOS --- */
@@ -262,8 +324,8 @@
             silla: { label: "Silla", emoji: "🪑", equipped: "base", items: { "base": { name: "Silla Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/silla.glb", price: 0, owned: true } } },
             pc: { label: "Setup PC", emoji: "🖥️", equipped: "base", items: { "base": { name: "PC Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pc.glb", price: 0, owned: true } } },
             tele: { label: "Televisor", emoji: "📺", equipped: "base", items: { "base": { name: "Televisor Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele.glb", price: 0, owned: true } } },
-            mueble1: { label: "Mueble 1", emoji: "🗄️", equipped: "base", items: { "base": { name: "Mueble 1 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble1.glb", price: 0, owned: true } } },
-            mueble2: { label: "Mueble 2", emoji: "🗄️", equipped: "base", items: { "base": { name: "Mueble 2 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble2.glb", price: 0, owned: true } } },
+            mueble1: { label: "Mueble", emoji: "🗄️", equipped: "base", items: { "base": { name: "Mueble 1 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble1.glb", price: 0, owned: true } } },
+            mueble2: { label: "Escritorio", emoji: "🗄️", equipped: "base", items: { "base": { name: "Mueble 2 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble2.glb", price: 0, owned: true } } },
             
             // Textiles
             alfombra: { label: "Alfombra", emoji: "🔲", equipped: "base", items: { "base": { name: "Alfombra Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/alfombra.glb", price: 0, owned: true } } },
@@ -329,6 +391,11 @@
                     if(defaultInventoryConfig[cat].items[item].baseFile) {
                         inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile;
                     }
+                }
+                // Añadir campo preview si no existe (generado automáticamente)
+                if (!inventoryData[cat].items[item].preview) {
+                    // Suponemos que las imágenes de preview están en la misma carpeta con extensión .png
+                    inventoryData[cat].items[item].preview = `https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/${item}.png`;
                 }
             }
         }
@@ -583,14 +650,28 @@
                 sidebar.appendChild(groupDiv);
             });
 
-            // Renderizar Ítems de la categoría seleccionada
+            // Renderizar Ítems de la categoría seleccionada con imagen de preview
             const catData = inventoryData[currentCategory];
+            if (!catData) return;
+            
             for (let itemId in catData.items) {
                 const item = catData.items[itemId];
                 const isEquipped = catData.equipped === itemId;
                 
                 const card = document.createElement('div');
                 card.className = 'item-card';
+                
+                // Contenedor de imagen de preview
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'item-preview';
+                const img = document.createElement('img');
+                img.src = item.preview || 'https://via.placeholder.com/150?text=Sin+imagen';
+                img.alt = item.name;
+                img.onerror = () => {
+                    // Si la imagen no carga, mostrar un emoji como placeholder
+                    previewDiv.innerHTML = '<span class="placeholder">📦</span>';
+                };
+                previewDiv.appendChild(img);
                 
                 let btnHTML = '';
                 if (isEquipped) {
@@ -603,12 +684,22 @@
 
                 card.innerHTML = `
                     <div>
+                        ${previewDiv.outerHTML}
                         <h4>${item.name}</h4>
                         <div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div>
                     </div>
                     ${btnHTML}
                 `;
-                content.appendChild(card);
+                
+                // Reemplazar el previewDiv con el elemento real para que funcione onerror
+                const finalCard = card;
+                const previewContainer = finalCard.querySelector('.item-preview');
+                if (previewContainer) {
+                    previewContainer.innerHTML = ''; // Limpiar
+                    previewContainer.appendChild(img);
+                }
+                
+                content.appendChild(finalCard);
             }
 
             document.querySelectorAll('.btn-equip').forEach(b => {
