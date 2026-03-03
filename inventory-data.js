@@ -13,7 +13,20 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-    paredes: { label: "Paredes", emoji: "🧱", equipped: "base", items: { "base": { name: "Paredes Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/paredes.glb", price: 0, owned: true } } },
+
+    paredes: { 
+        label: "Paredes", emoji: "🧱", equipped: "base", 
+        items: { 
+            "base": { 
+                name: "Piso Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/paredes.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/paredes_estandar.png"
+            } 
+        } 
+    },
+
     techo: { label: "Techo", emoji: "🛖", equipped: "base", items: { "base": { name: "Techo Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo.glb", price: 0, owned: true } } },
     puerta: { label: "Puerta", emoji: "🚪", equipped: "base", items: { "base": { name: "Puerta Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta.glb", price: 0, owned: true } } },
     
