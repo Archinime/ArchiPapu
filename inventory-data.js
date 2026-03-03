@@ -180,7 +180,8 @@ export const defaultInventoryConfig = {
                 name: "Alfombra Estándar", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/alfombra.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/alfombra_estandar.avif"
             } 
         } 
     },
