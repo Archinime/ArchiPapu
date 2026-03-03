@@ -21,7 +21,13 @@ export const defaultInventoryConfig = {
         label: "Cama", emoji: "🛏️", equipped: "base", 
         items: { 
             "base": { name: "Cama Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama.glb", price: 0, owned: true },
-            "cama_brillante": { name: "Cama Brillante", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama_brillante.glb", price: 500, owned: false }
+            "cama_brillante": { 
+                name: "Cama Brillante", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama_brillante.glb", 
+                price: 500, 
+                owned: false,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama_brillante.png"
+            }
         } 
     },
     silla: { label: "Silla", emoji: "🪑", equipped: "base", items: { "base": { name: "Silla Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/silla.glb", price: 0, owned: true } } },

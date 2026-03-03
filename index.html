@@ -148,7 +148,7 @@
         .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
         .cat-icon-emoji { font-size: 18px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
         
-        /* CONTENIDO DE ÍTEMS (SIN IMÁGENES, SOLO EMOJI) */
+        /* CONTENIDO DE ÍTEMS (IMAGEN O EMOJI) */
         #inv-content {
             width: 70%;
             overflow-y: auto;
@@ -186,6 +186,12 @@
             align-items: center;
             justify-content: center;
             border: 1px solid rgba(255,255,255,0.1);
+        }
+        .item-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
         .item-preview span {
             font-size: 48px;
@@ -304,7 +310,7 @@
 
         if (inventoryData.base_foco) delete inventoryData.base_foco;
 
-        // Sincronizar objetos nuevos y forzar actualización de rutas y emojis
+        // Sincronizar objetos nuevos y forzar actualización de rutas, emojis y previews
         for (let cat in defaultInventoryConfig) {
             if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
             
@@ -320,8 +326,11 @@
                     if(defaultInventoryConfig[cat].items[item].baseFile) {
                         inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile;
                     }
+                    // Copiar preview si existe en la configuración por defecto
+                    if(defaultInventoryConfig[cat].items[item].preview) {
+                        inventoryData[cat].items[item].preview = defaultInventoryConfig[cat].items[item].preview;
+                    }
                 }
-                // NOTA: Se eliminó la generación automática de previews
             }
         }
 
@@ -575,7 +584,7 @@
                 sidebar.appendChild(groupDiv);
             });
 
-            // Renderizar Ítems de la categoría seleccionada (sin imágenes, solo emoji)
+            // Renderizar Ítems de la categoría seleccionada (con imagen si tiene preview, sino emoji)
             const catData = inventoryData[currentCategory];
             if (!catData) return;
             
@@ -586,10 +595,22 @@
                 const card = document.createElement('div');
                 card.className = 'item-card';
                 
-                // Vista previa con emoji de la categoría en lugar de imagen
+                // Contenedor de preview: imagen si existe, si no, emoji de la categoría
                 const previewDiv = document.createElement('div');
                 previewDiv.className = 'item-preview';
-                previewDiv.innerHTML = `<span>${catData.emoji}</span>`;
+                
+                if (item.preview) {
+                    const img = document.createElement('img');
+                    img.src = item.preview;
+                    img.alt = item.name;
+                    img.onerror = () => {
+                        // Si falla la imagen, mostrar emoji
+                        previewDiv.innerHTML = `<span>${catData.emoji}</span>`;
+                    };
+                    previewDiv.appendChild(img);
+                } else {
+                    previewDiv.innerHTML = `<span>${catData.emoji}</span>`;
+                }
                 
                 let btnHTML = '';
                 if (isEquipped) {
@@ -609,7 +630,21 @@
                     ${btnHTML}
                 `;
                 
-                content.appendChild(card);
+                // Reemplazar el previewDiv con el elemento real para que funcione onerror
+                const finalCard = card;
+                const previewContainer = finalCard.querySelector('.item-preview');
+                if (previewContainer && item.preview) {
+                    previewContainer.innerHTML = ''; // Limpiar
+                    const img = document.createElement('img');
+                    img.src = item.preview;
+                    img.alt = item.name;
+                    img.onerror = () => {
+                        previewContainer.innerHTML = `<span>${catData.emoji}</span>`;
+                    };
+                    previewContainer.appendChild(img);
+                }
+                
+                content.appendChild(finalCard);
             }
 
             document.querySelectorAll('.btn-equip').forEach(b => {
