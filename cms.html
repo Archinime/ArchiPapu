@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archinime CMS - Editor de Habitación 3D</title>
+    <link rel="icon" href="https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/Logo_Archinime.avif" type="image/avif">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0b0c10;
+            font-family: 'Outfit', sans-serif;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        h1 { font-weight: 700; font-size: 2rem; margin-bottom: 10px; color: #fff; letter-spacing: -0.5px; }
+        h1 i { color: #7c3aed; margin-right: 10px; }
+        .subtitle { color: #94a3b8; margin-bottom: 30px; border-left: 4px solid #7c3aed; padding-left: 15px; }
+
+        /* GitHub bar */
+        .github-bar {
+            background: #1e1e2f;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+            border: 1px solid #2d2d3a;
+        }
+        .github-field {
+            flex: 1 1 180px;
+        }
+        .github-field label {
+            display: block;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #a0a0c0;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .github-field input {
+            width: 100%;
+            background: #0f0f1a;
+            border: 1px solid #2d2d3a;
+            border-radius: 12px;
+            padding: 12px 15px;
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+        .github-field input:focus { outline: none; border-color: #7c3aed; }
+        .btn {
+            background: #2d2d3a;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+        .btn-primary {
+            background: #7c3aed;
+            box-shadow: 0 8px 20px -8px #7c3aed;
+        }
+        .btn-primary:hover { background: #8b5cf6; transform: translateY(-2px); }
+        .btn-outline { background: transparent; border: 1px solid #3d3d5a; }
+        .btn-outline:hover { background: #2d2d3a; }
+
+        /* Panel principal */
+        .main-panel {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+        .categories-panel {
+            flex: 1 1 380px;
+            background: #15151f;
+            border-radius: 28px;
+            padding: 20px;
+            border: 1px solid #262636;
+            height: fit-content;
+        }
+        .editor-panel {
+            flex: 2 1 600px;
+            background: #15151f;
+            border-radius: 28px;
+            padding: 25px;
+            border: 1px solid #262636;
+        }
+
+        /* Grupos acordeón */
+        .group-card {
+            margin-bottom: 15px;
+            background: #1d1d2b;
+            border-radius: 18px;
+            overflow: hidden;
+        }
+        .group-header {
+            background: #222233;
+            padding: 16px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            border-left: 4px solid #7c3aed;
+        }
+        .group-header i { transition: transform 0.3s; color: #7c3aed; }
+        .group-content {
+            display: none;
+            padding: 10px;
+        }
+        .group-content.open { display: block; }
+
+        .cat-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            margin: 5px 0;
+            background: #2a2a3a;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: 1px solid transparent;
+        }
+        .cat-item.active {
+            border-color: #7c3aed;
+            background: #32324a;
+            box-shadow: 0 0 15px #7c3aed33;
+        }
+        .cat-item .emoji { font-size: 1.4rem; margin-right: 12px; width: 30px; text-align: center; }
+        .cat-item .label { flex: 1; font-weight: 500; }
+        .cat-item .key { color: #7c8db0; font-size: 0.7rem; font-family: monospace; background: #1d1d2b; padding: 4px 8px; border-radius: 20px; }
+        .cat-item i { color: #f43f5e; opacity: 0.5; margin-left: 10px; }
+        .cat-item i:hover { opacity: 1; }
+
+        /* Formulario de categoría */
+        .form-row {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .form-group {
+            flex: 1 1 200px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #a0a0c0;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            background: #1d1d2b;
+            border: 1px solid #33334a;
+            border-radius: 14px;
+            padding: 12px 15px;
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+        .form-group input:focus { border-color: #7c3aed; outline: none; }
+
+        .item-list {
+            margin-top: 30px;
+            border-top: 1px solid #262636;
+            padding-top: 25px;
+        }
+        .item-card {
+            background: #1d1d2b;
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #2d2d3a;
+            position: relative;
+        }
+        .item-card h4 { margin-bottom: 15px; color: #b9b9ff; font-size: 1rem; display: flex; gap: 10px; align-items: center; }
+        .item-card .delete-item {
+            position: absolute; top: 20px; right: 20px;
+            background: none; border: none; color: #f43f5e; font-size: 1.2rem; cursor: pointer;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
+            gap: 15px;
+        }
+
+        .btn-add {
+            background: transparent;
+            border: 2px dashed #3d3d5a;
+            width: 100%;
+            padding: 18px;
+            border-radius: 20px;
+            color: #b9b9ff;
+            font-weight: 600;
+            margin: 20px 0;
+            cursor: pointer;
+        }
+        .btn-add:hover { background: #1d1d2b; }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 30px 0 20px;
+        }
+
+        pre {
+            background: #0b0b12;
+            padding: 20px;
+            border-radius: 16px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            border: 1px solid #262636;
+            color: #b0d0ff;
+            max-height: 400px;
+        }
+
+        #toast {
+            position: fixed; bottom: 30px; right: 30px;
+            background: #1e293b; color: white; padding: 15px 25px;
+            border-radius: 50px; box-shadow: 0 15px 30px #00000080;
+            display: flex; align-items: center; gap: 12px;
+            transform: translateY(100px); opacity: 0;
+            transition: 0.3s;
+            z-index: 9999;
+        }
+        #toast.show { transform: translateY(0); opacity: 1; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1><i class="fas fa-cubes"></i> Archinime CMS · Editor de Habitación 3D</h1>
+    <div class="subtitle">Gestiona categorías, modelos, precios y sincroniza con GitHub.</div>
+
+    <!-- BARRA GITHUB (simple con token) -->
+    <div class="github-bar">
+        <div class="github-field">
+            <label><i class="fab fa-github"></i> Token (classic)</label>
+            <input type="password" id="githubToken" placeholder="ghp_xxxxxxxx" value="">
+        </div>
+        <div class="github-field">
+            <label>Repositorio</label>
+            <input type="text" id="githubRepo" placeholder="Archinime/ArchiPapu" value="Archinime/ArchiPapu">
+        </div>
+        <div class="github-field">
+            <label>Ruta (JSON)</label>
+            <input type="text" id="githubPath" placeholder="inventario.json" value="inventario.json">
+        </div>
+        <div class="github-field">
+            <label>Rama</label>
+            <input type="text" id="githubBranch" placeholder="main" value="main">
+        </div>
+        <button class="btn btn-primary" id="commitToGitHub"><i class="fab fa-github"></i> Commit a GitHub</button>
+        <button class="btn btn-outline" id="exportJsonBtn"><i class="fas fa-download"></i> Exportar JSON</button>
+        <button class="btn btn-outline" id="resetDefaultBtn"><i class="fas fa-undo-alt"></i> Restaurar</button>
+    </div>
+
+    <div class="main-panel">
+        <!-- LISTA DE CATEGORÍAS (ACORDEONES) -->
+        <div class="categories-panel">
+            <h3 style="margin-bottom: 20px; display: flex; gap: 10px;"><i class="fas fa-tags"></i> Categorías</h3>
+            <div id="groupsContainer"></div>
+            <button class="btn-add" id="addCategoryBtn"><i class="fas fa-plus-circle"></i> NUEVA CATEGORÍA</button>
+        </div>
+
+        <!-- EDITOR DE CATEGORÍA / ITEMS -->
+        <div class="editor-panel">
+            <div id="editorHeader" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="currentCategoryTitle">Selecciona una categoría</h2>
+                <button class="btn-outline" id="deleteCategoryBtn" style="color:#f43f5e;"><i class="fas fa-trash"></i> Eliminar</button>
+            </div>
+
+            <div id="categoryForm" style="display: none;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Clave única</label>
+                        <input type="text" id="catKey" readonly disabled value="categoria" style="background:#0b0b12;">
+                    </div>
+                    <div class="form-group">
+                        <label>Label visible</label>
+                        <input type="text" id="catLabel" placeholder="Ej: Cama">
+                    </div>
+                    <div class="form-group">
+                        <label>Emoji</label>
+                        <input type="text" id="catEmoji" placeholder="🛏️">
+                    </div>
+                    <div class="form-group">
+                        <label>Grupo (carpeta)</label>
+                        <select id="catGroup">
+                            <option value="estructura">Estructura</option>
+                            <option value="iluminacion">Iluminación</option>
+                            <option value="muebles">Muebles</option>
+                            <option value="textiles">Textiles</option>
+                            <option value="posters">Pósters</option>
+                            <option value="deco_mueble">Decoración Mueble</option>
+                            <option value="deco_escritorio">Decoración Escritorio</option>
+                            <option value="deco_piso">Decoración Piso</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="item-list">
+                    <h4><i class="fas fa-box"></i> Objetos de esta categoría  <button class="btn-outline" id="addItemBtn" style="margin-left: auto; padding: 8px 16px;"><i class="fas fa-plus"></i> Nuevo objeto</button></h4>
+                    
+                    <div id="itemsContainer"></div>
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-top: 30px;">
+                    <button class="btn-primary" id="saveCategoryBtn"><i class="fas fa-save"></i> Guardar cambios local</button>
+                </div>
+            </div>
+            <div id="noSelectionMsg" style="text-align: center; padding: 60px 20px; color: #5f6b8a;">← Selecciona o crea una categoría</div>
+        </div>
+    </div>
+
+    <!-- VISTA PREVIEW DEL JSON GENERADO -->
+    <div style="margin-top: 30px; background: #15151f; border-radius: 28px; padding: 25px;">
+        <h3 style="margin-bottom: 15px;"><i class="fas fa-code"></i> Vista previa del inventario (defaultInventoryConfig)</h3>
+        <pre id="jsonPreview">Cargando...</pre>
+        <button class="btn-outline" id="copyJsonBtn" style="margin-top: 15px;"><i class="fas fa-copy"></i> Copiar al portapapeles</button>
+    </div>
+</div>
+
+<div id="toast"><i class="fas fa-check-circle"></i> <span>Listo</span></div>
+
+<script>
+    // ------------------------------------------------------------------
+    // DATOS INICIALES (copia exacta del defaultInventoryConfig de la habitación)
+    const DEFAULT_INVENTORY = {
+        piso: { label: "Piso", emoji: "🟫", equipped: "base", items: { "base": { name: "Piso Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/piso.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        paredes: { label: "Paredes", emoji: "🧱", equipped: "base", items: { "base": { name: "Paredes Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/paredes.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        techo: { label: "Techo", emoji: "🛖", equipped: "base", items: { "base": { name: "Techo Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        puerta: { label: "Puerta", emoji: "🚪", equipped: "base", items: { "base": { name: "Puerta Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        interruptor: { label: "Interruptor", emoji: "🎛️", equipped: "base", items: { "base": { name: "Interruptor Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/interruptor.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        foco: { label: "Foco", emoji: "💡", equipped: "base", items: { "base": { name: "Foco Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco.glb", baseFile: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/base_foco.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" }, "foco_brillante": { name: "Foco Brillante", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco.glb", baseFile: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/base_foco.glb", price: 250, owned: false, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/foco_brillante.png" } } },
+        cama: { label: "Cama", emoji: "🛏️", equipped: "base", items: { "base": { name: "Cama Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" }, "cama_brillante": { name: "Cama Brillante", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama_brillante.glb", price: 500, owned: false, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/cama_brillante.png" } } },
+        silla: { label: "Silla", emoji: "🪑", equipped: "base", items: { "base": { name: "Silla Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/silla.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        pc: { label: "Setup PC", emoji: "🖥️", equipped: "base", items: { "base": { name: "PC Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pc.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        tele: { label: "Televisor", emoji: "📺", equipped: "base", items: { "base": { name: "Televisor Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        mueble1: { label: "Mueble", emoji: "🗄️", equipped: "base", items: { "base": { name: "Mueble 1 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble1.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        mueble2: { label: "Escritorio", emoji: "🗄️", equipped: "base", items: { "base": { name: "Mueble 2 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble2.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        alfombra: { label: "Alfombra", emoji: "🔲", equipped: "base", items: { "base": { name: "Alfombra Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/alfombra.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        cortinas: { label: "Cortinas", emoji: "🪟", equipped: "base", items: { "base": { name: "Cortinas Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cortinas.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        mousepad: { label: "Mouse Pad", emoji: "🖱️", equipped: "base", items: { "base": { name: "Mouse Pad Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/maouse_pad.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        poster_1: { label: "Póster 1", emoji: "🖼️", equipped: "base", items: { "base": { name: "Póster 1 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_1.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        poster_2: { label: "Póster 2", emoji: "🖼️", equipped: "base", items: { "base": { name: "Póster 2 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_2.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        poster_3: { label: "Póster 3", emoji: "🖼️", equipped: "base", items: { "base": { name: "Póster 3 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_3.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        poster_4: { label: "Póster 4", emoji: "🖼️", equipped: "base", items: { "base": { name: "Póster 4 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_4.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        deco_piso: { label: "Adorno Piso", emoji: "🎍", equipped: "base", items: { "base": { name: "Deco Piso", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_piso.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        deco_escritorio: { label: "Decoración 1", emoji: "🎍", equipped: "base", items: { "base": { name: "Deco Escritorio", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_escritorio.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        deco_mueble_2: { label: "Decoración 2", emoji: "🎍", equipped: "base", items: { "base": { name: "Libros", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_2.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        deco_2_mueble_2: { label: "Decoración 3", emoji: "🎍", equipped: "base", items: { "base": { name: "Reloj", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_2.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        deco_mueble_1: { label: "Decoración 1", emoji: "🎍", equipped: "base", items: { "base": { name: "Adorno 1", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_1.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        deco_2_mueble_1: { label: "Decoración 2", emoji: "🎍", equipped: "base", items: { "base": { name: "Adorno 2", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_1.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        deco_3_mueble_1: { label: "Decoración 3", emoji: "🎍", equipped: "base", items: { "base": { name: "Adorno 3", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_3_mueble_1.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        deco_4_mueble_1: { label: "Decoración 4", emoji: "🎍", equipped: "base", items: { "base": { name: "Adorno 4", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_4_mueble_1.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } },
+        deco_5_mueble_1: { label: "Decoración 5", emoji: "🎍", equipped: "base", items: { "base": { name: "Adorno 5", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_5_mueble_1.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/base.png" } } }
+    };
+
+    // Grupos (igual que en el inventario)
+    const INVENTORY_GROUPS = [
+        { id: 'estructura', label: 'Estructura', emoji: '🏠', categories: ['piso', 'paredes', 'techo', 'puerta'] },
+        { id: 'iluminacion', label: 'Iluminación', emoji: '💡', categories: ['interruptor', 'foco'] },
+        { id: 'muebles', label: 'Muebles', emoji: '🛋️', categories: ['cama', 'silla', 'pc', 'tele', 'mueble1', 'mueble2'] },
+        { id: 'textiles', label: 'Textiles', emoji: '🧶', categories: ['alfombra', 'cortinas', 'mousepad'] },
+        { id: 'posters', label: 'Pósters', emoji: '🖼️', categories: ['poster_1', 'poster_2', 'poster_3', 'poster_4'] },
+        { id: 'deco_mueble', label: 'Decoración del Mueble', emoji: '🎍', categories: ['deco_mueble_1', 'deco_2_mueble_1', 'deco_3_mueble_1', 'deco_4_mueble_1', 'deco_5_mueble_1'] },
+        { id: 'deco_escritorio', label: 'Decoración del Escritorio', emoji: '🎍', categories: ['deco_escritorio', 'deco_mueble_2', 'deco_2_mueble_2'] },
+        { id: 'deco_piso', label: 'Decoración del Piso', emoji: '🎍', categories: ['deco_piso'] }
+    ];
+
+    // Estado global
+    let inventoryData = JSON.parse(JSON.stringify(DEFAULT_INVENTORY)); // copia editable
+    let currentCategoryKey = null;
+    let openGroups = ['muebles']; // grupos abiertos por defecto
+
+    // Elementos DOM
+    const groupsContainer = document.getElementById('groupsContainer');
+    const categoryForm = document.getElementById('categoryForm');
+    const noSelectionMsg = document.getElementById('noSelectionMsg');
+    const catKey = document.getElementById('catKey');
+    const catLabel = document.getElementById('catLabel');
+    const catEmoji = document.getElementById('catEmoji');
+    const catGroup = document.getElementById('catGroup');
+    const itemsContainer = document.getElementById('itemsContainer');
+    const jsonPreview = document.getElementById('jsonPreview');
+    const currentCategoryTitle = document.getElementById('currentCategoryTitle');
+
+    // Funciones de render
+    function renderGroups() {
+        let html = '';
+        INVENTORY_GROUPS.forEach(group => {
+            const isOpen = openGroups.includes(group.id);
+            html += `<div class="group-card">
+                <div class="group-header" data-group="${group.id}">
+                    <span>${group.emoji} ${group.label}</span>
+                    <i class="fas fa-chevron-right" style="transform: rotate(${isOpen ? '90deg' : '0deg'});"></i>
+                </div>
+                <div class="group-content ${isOpen ? 'open' : ''}">`;
+            
+            group.categories.forEach(catKey => {
+                const cat = inventoryData[catKey];
+                if (!cat) return;
+                const activeClass = (currentCategoryKey === catKey) ? 'active' : '';
+                html += `<div class="cat-item ${activeClass}" data-category="${catKey}">
+                    <span class="emoji">${cat.emoji || '📦'}</span>
+                    <span class="label">${cat.label || catKey}</span>
+                    <span class="key">${catKey}</span>
+                    <i class="fas fa-trash delete-cat" data-cat="${catKey}" style="display: none;"></i>
+                </div>`;
+            });
+
+            html += `</div></div>`;
+        });
+        groupsContainer.innerHTML = html;
+
+        // Asignar eventos a cabeceras de grupo
+        document.querySelectorAll('.group-header').forEach(header => {
+            header.addEventListener('click', (e) => {
+                const groupId = header.dataset.group;
+                if (openGroups.includes(groupId)) {
+                    openGroups = openGroups.filter(g => g !== groupId);
+                } else {
+                    openGroups.push(groupId);
+                }
+                renderGroups();
+            });
+        });
+
+        // Eventos a categorías
+        document.querySelectorAll('.cat-item').forEach(el => {
+            el.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-cat')) return;
+                const cat = el.dataset.category;
+                selectCategory(cat);
+            });
+        });
+    }
+
+    function selectCategory(catKey) {
+        currentCategoryKey = catKey;
+        renderGroups(); // para actualizar clase active
+        const cat = inventoryData[catKey];
+        if (!cat) return;
+
+        // Mostrar formulario
+        categoryForm.style.display = 'block';
+        noSelectionMsg.style.display = 'none';
+        currentCategoryTitle.innerText = `Editando: ${cat.label || catKey}`;
+
+        // Rellenar campos
+        document.getElementById('catKey').value = catKey;
+        document.getElementById('catLabel').value = cat.label || '';
+        document.getElementById('catEmoji').value = cat.emoji || '📦';
+        // determinar grupo actual
+        let grupoActual = '';
+        for (let g of INVENTORY_GROUPS) {
+            if (g.categories.includes(catKey)) { grupoActual = g.id; break; }
+        }
+        document.getElementById('catGroup').value = grupoActual || 'muebles';
+
+        renderItems(catKey);
+    }
+
+    function renderItems(catKey) {
+        const cat = inventoryData[catKey];
+        if (!cat) return;
+        let itemsHtml = '';
+        for (let [itemId, item] of Object.entries(cat.items)) {
+            itemsHtml += `
+                <div class="item-card" data-item="${itemId}">
+                    <button class="delete-item" onclick="deleteItem('${catKey}','${itemId}')"><i class="fas fa-times-circle"></i></button>
+                    <h4>${item.name} <span style="color:#7c8db0; font-size:0.8rem;">(${itemId})</span></h4>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Item ID</label>
+                            <input type="text" value="${itemId}" disabled class="item-id" style="background:#0b0b12;">
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" value="${item.name.replace(/"/g, '&quot;')}" class="item-name" placeholder="Nombre">
+                        </div>
+                        <div class="form-group">
+                            <label>Precio</label>
+                            <input type="number" value="${item.price}" class="item-price">
+                        </div>
+                        <div class="form-group">
+                            <label>¿Comprado?</label>
+                            <select class="item-owned">
+                                <option value="true" ${item.owned ? 'selected' : ''}>Sí</option>
+                                <option value="false" ${!item.owned ? 'selected' : ''}>No</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Archivo .glb</label>
+                            <input type="text" value="${item.file || ''}" class="item-file" placeholder="URL">
+                        </div>
+                        <div class="form-group">
+                            <label>BaseFile (solo foco)</label>
+                            <input type="text" value="${item.baseFile || ''}" class="item-basefile" placeholder="URL (opcional)">
+                        </div>
+                        <div class="form-group">
+                            <label>Preview imagen</label>
+                            <input type="text" value="${item.preview || ''}" class="item-preview" placeholder="URL imagen">
+                        </div>
+                        <div class="form-group">
+                            <label>Equipado (ID)</label>
+                            <input type="text" value="${cat.equipped === itemId ? '✔ equipado' : ''}" disabled style="background:#0b0b12;">
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        itemsContainer.innerHTML = itemsHtml;
+
+        // Añadir listeners para guardar cambios automáticos en inputs (podría ser con botón, pero lo haremos al vuelo)
+        document.querySelectorAll('.item-card').forEach(card => {
+            const itemId = card.dataset.item;
+            const inputs = card.querySelectorAll('input, select');
+            inputs.forEach(inp => {
+                inp.addEventListener('change', () => {
+                    updateItemFromCard(catKey, itemId, card);
+                });
+                inp.addEventListener('blur', () => {
+                    updateItemFromCard(catKey, itemId, card);
+                });
+            });
+        });
+    }
+
+    function updateItemFromCard(catKey, itemId, card) {
+        const cat = inventoryData[catKey];
+        if (!cat || !cat.items[itemId]) return;
+        const item = cat.items[itemId];
+        item.name = card.querySelector('.item-name')?.value || item.name;
+        item.price = parseInt(card.querySelector('.item-price')?.value) || 0;
+        item.owned = card.querySelector('.item-owned')?.value === 'true';
+        item.file = card.querySelector('.item-file')?.value || '';
+        item.baseFile = card.querySelector('.item-basefile')?.value || undefined;
+        item.preview = card.querySelector('.item-preview')?.value || '';
+        updatePreviewJson();
+        showToast('Item actualizado');
+    }
+
+    // Eliminar item
+    window.deleteItem = (catKey, itemId) => {
+        if (!confirm('Eliminar este objeto?')) return;
+        delete inventoryData[catKey].items[itemId];
+        // Si el equipado era ese, reasignar al primero disponible
+        if (inventoryData[catKey].equipped === itemId) {
+            const firstKey = Object.keys(inventoryData[catKey].items)[0];
+            inventoryData[catKey].equipped = firstKey || null;
+        }
+        renderItems(catKey);
+        updatePreviewJson();
+        showToast('Objeto eliminado');
+    };
+
+    // Guardar cambios de categoría
+    document.getElementById('saveCategoryBtn').addEventListener('click', () => {
+        if (!currentCategoryKey) return;
+        const cat = inventoryData[currentCategoryKey];
+        cat.label = catLabel.value;
+        cat.emoji = catEmoji.value;
+
+        // Mover de grupo si es necesario
+        const newGroup = catGroup.value;
+        // quitar de grupos anteriores
+        INVENTORY_GROUPS.forEach(g => {
+            const idx = g.categories.indexOf(currentCategoryKey);
+            if (idx >= 0) g.categories.splice(idx, 1);
+        });
+        // añadir a nuevo grupo
+        const targetGroup = INVENTORY_GROUPS.find(g => g.id === newGroup);
+        if (targetGroup && !targetGroup.categories.includes(currentCategoryKey)) {
+            targetGroup.categories.push(currentCategoryKey);
+        }
+        renderGroups();
+        updatePreviewJson();
+        showToast('Categoría actualizada');
+    });
+
+    // Añadir nuevo item
+    document.getElementById('addItemBtn').addEventListener('click', () => {
+        if (!currentCategoryKey) return;
+        const cat = inventoryData[currentCategoryKey];
+        const newId = 'item_' + Date.now();
+        cat.items[newId] = {
+            name: 'Nuevo objeto',
+            file: '',
+            price: 0,
+            owned: false,
+            preview: 'https://via.placeholder.com/150'
+        };
+        renderItems(currentCategoryKey);
+        updatePreviewJson();
+    });
+
+    // Añadir nueva categoría
+    document.getElementById('addCategoryBtn').addEventListener('click', () => {
+        const newKey = 'nueva_' + Date.now();
+        inventoryData[newKey] = {
+            label: 'Nueva Categoría',
+            emoji: '📦',
+            equipped: 'base',
+            items: {
+                base: { name: 'Modelo base', file: '', price: 0, owned: true, preview: '' }
+            }
+        };
+        // Asignar a grupo 'muebles' por defecto
+        INVENTORY_GROUPS.find(g => g.id === 'muebles').categories.push(newKey);
+        renderGroups();
+        selectCategory(newKey);
+        updatePreviewJson();
+        showToast('Categoría creada');
+    });
+
+    // Eliminar categoría
+    document.getElementById('deleteCategoryBtn').addEventListener('click', () => {
+        if (!currentCategoryKey || !confirm(`¿Eliminar categoría ${currentCategoryKey}?`)) return;
+        // Eliminar de grupos
+        INVENTORY_GROUPS.forEach(g => {
+            const idx = g.categories.indexOf(currentCategoryKey);
+            if (idx >= 0) g.categories.splice(idx, 1);
+        });
+        delete inventoryData[currentCategoryKey];
+        currentCategoryKey = null;
+        categoryForm.style.display = 'none';
+        noSelectionMsg.style.display = 'block';
+        renderGroups();
+        updatePreviewJson();
+        showToast('Categoría eliminada');
+    });
+
+    // Vista previa JSON
+    function updatePreviewJson() {
+        jsonPreview.innerText = JSON.stringify(inventoryData, null, 2);
+    }
+
+    // Exportar JSON (descarga)
+    document.getElementById('exportJsonBtn').addEventListener('click', () => {
+        const dataStr = JSON.stringify(inventoryData, null, 2);
+        const blob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'inventario_habitacion.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('JSON descargado');
+    });
+
+    // Copiar al portapapeles
+    document.getElementById('copyJsonBtn').addEventListener('click', () => {
+        navigator.clipboard.writeText(JSON.stringify(inventoryData, null, 2)).then(() => {
+            showToast('Copiado al portapapeles');
+        });
+    });
+
+    // Restaurar datos por defecto
+    document.getElementById('resetDefaultBtn').addEventListener('click', () => {
+        if (confirm('¿Restaurar configuración de fábrica? Se perderán cambios.')) {
+            inventoryData = JSON.parse(JSON.stringify(DEFAULT_INVENTORY));
+            // reconstruir grupos a partir de los originales
+            INVENTORY_GROUPS.forEach((g, idx) => {
+                // restaurar categorías de los defaults (podría ser más fino, pero lo haremos simple)
+                if (idx === 0) g.categories = ['piso', 'paredes', 'techo', 'puerta'];
+                else if (idx === 1) g.categories = ['interruptor', 'foco'];
+                else if (idx === 2) g.categories = ['cama', 'silla', 'pc', 'tele', 'mueble1', 'mueble2'];
+                else if (idx === 3) g.categories = ['alfombra', 'cortinas', 'mousepad'];
+                else if (idx === 4) g.categories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
+                else if (idx === 5) g.categories = ['deco_mueble_1', 'deco_2_mueble_1', 'deco_3_mueble_1', 'deco_4_mueble_1', 'deco_5_mueble_1'];
+                else if (idx === 6) g.categories = ['deco_escritorio', 'deco_mueble_2', 'deco_2_mueble_2'];
+                else if (idx === 7) g.categories = ['deco_piso'];
+            });
+            renderGroups();
+            if (currentCategoryKey) selectCategory(currentCategoryKey);
+            updatePreviewJson();
+            showToast('Datos restaurados');
+        }
+    });
+
+    // Commit a GitHub (usando API)
+    document.getElementById('commitToGitHub').addEventListener('click', async () => {
+        const token = document.getElementById('githubToken').value.trim();
+        const repo = document.getElementById('githubRepo').value.trim();
+        const path = document.getElementById('githubPath').value.trim();
+        const branch = document.getElementById('githubBranch').value.trim();
+        if (!token || !repo || !path) {
+            alert('Completa token, repo y ruta');
+            return;
+        }
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(inventoryData, null, 2)))); // base64
+        const url = `https://api.github.com/repos/${repo}/contents/${path}`;
+
+        try {
+            // Obtener sha si existe
+            let sha = null;
+            const getResp = await fetch(`${url}?ref=${branch}`, {
+                headers: { Authorization: `token ${token}` }
+            });
+            if (getResp.ok) {
+                const data = await getResp.json();
+                sha = data.sha;
+            }
+
+            const body = {
+                message: 'Actualizar inventario desde CMS',
+                content: content,
+                branch: branch
+            };
+            if (sha) body.sha = sha;
+
+            const putResp = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    Authorization: `token ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            });
+
+            if (putResp.ok) {
+                showToast('✅ Commit realizado en GitHub');
+            } else {
+                const err = await putResp.json();
+                alert('Error: ' + err.message);
+            }
+        } catch (e) {
+            alert('Error de red: ' + e.message);
+        }
+    });
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.querySelector('span').innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // Inicializar
+    renderGroups();
+    updatePreviewJson();
+    // Seleccionar primera categoría por defecto (opcional)
+    setTimeout(() => {
+        const firstCat = INVENTORY_GROUPS[0]?.categories[0];
+        if (firstCat) selectCategory(firstCat);
+    }, 200);
+</script>
+</body>
+</html>
