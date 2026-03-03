@@ -217,7 +217,7 @@ export const defaultInventoryConfig = {
         label: "Póster 1", emoji: "🖼️", equipped: "base", 
         items: { 
             "base": { 
-                name: "Póster 1 Estándar", 
+                name: "All Might", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_1.glb", 
                 price: 0, 
                 owned: true,
@@ -230,7 +230,7 @@ export const defaultInventoryConfig = {
         label: "Póster 2", emoji: "🖼️", equipped: "base", 
         items: { 
             "base": { 
-                name: "Póster 2 Estándar", 
+                name: "Pikachu", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_2.glb", 
                 price: 0, 
                 owned: true,
@@ -243,7 +243,7 @@ export const defaultInventoryConfig = {
         label: "Póster 3", emoji: "🖼️", equipped: "base", 
         items: { 
             "base": { 
-                name: "Póster 3 Estándar", 
+                name: "Fondo", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_3.glb", 
                 price: 0, 
                 owned: true,
@@ -256,7 +256,7 @@ export const defaultInventoryConfig = {
         label: "Póster 4", emoji: "🖼️", equipped: "base", 
         items: { 
             "base": { 
-                name: "Póster 4 Estándar", 
+                name: "Boku no Hero", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_4.glb", 
                 price: 0, 
                 owned: true,
@@ -270,7 +270,7 @@ export const defaultInventoryConfig = {
         label: "Adorno Piso", emoji: "🎍", equipped: "base", 
         items: { 
             "base": { 
-                name: "Deco Piso", 
+                name: "CocaCola", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_piso.glb", 
                 price: 0, 
                 owned: true,
@@ -284,7 +284,7 @@ export const defaultInventoryConfig = {
         label: "Decoración 1", emoji: "🎍", equipped: "base", 
         items: { 
             "base": { 
-                name: "Deco Escritorio", 
+                name: "CocaCola", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_escritorio.glb", 
                 price: 0, 
                 owned: true,
@@ -297,7 +297,7 @@ export const defaultInventoryConfig = {
         label: "Decoración 2", emoji: "🎍", equipped: "base", 
         items: { 
             "base": { 
-                name: "Libros", 
+                name: "CocaCola", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_2.glb", 
                 price: 0, 
                 owned: true,
@@ -310,7 +310,7 @@ export const defaultInventoryConfig = {
         label: "Decoración 3", emoji: "🎍", equipped: "base", 
         items: { 
             "base": { 
-                name: "Reloj", 
+                name: "Libros", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_2.glb", 
                 price: 0, 
                 owned: true,
@@ -324,7 +324,7 @@ export const defaultInventoryConfig = {
         label: "Decoración 1", emoji: "🎍", equipped: "base", 
         items: { 
             "base": { 
-                name: "Adorno 1", 
+                name: "CocaCola", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_1.glb", 
                 price: 0, 
                 owned: true,
@@ -337,7 +337,7 @@ export const defaultInventoryConfig = {
         label: "Decoración 2", emoji: "🎍", equipped: "base", 
         items: { 
             "base": { 
-                name: "Adorno 2", 
+                name: "Reproductor DVD", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_1.glb", 
                 price: 0, 
                 owned: true,
@@ -350,7 +350,7 @@ export const defaultInventoryConfig = {
         label: "Decoración 3", emoji: "🎍", equipped: "base", 
         items: { 
             "base": { 
-                name: "Adorno 3", 
+                name: "Reproductor DVD", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_3_mueble_1.glb", 
                 price: 0, 
                 owned: true,
@@ -363,10 +363,11 @@ export const defaultInventoryConfig = {
         label: "Decoración 4", emoji: "🎍", equipped: "base", 
         items: { 
             "base": { 
-                name: "Adorno 4", 
+                name: "Libros", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.avif" 
             } 
         } 
     },
@@ -375,10 +376,11 @@ export const defaultInventoryConfig = {
         label: "Decoración 5", emoji: "🎍", equipped: "base", 
         items: { 
             "base": { 
-                name: "Adorno 5", 
+                name: "Libros", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.avif" 
             } 
         } 
     }
