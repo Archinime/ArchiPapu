@@ -140,7 +140,8 @@ export const defaultInventoryConfig = {
                 name: "Televisor Estándar", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele.glb", 
                 price: 0, 
-                owned: true 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele_estandar.avif"
             } 
         } 
     },
