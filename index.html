@@ -148,7 +148,7 @@
         .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
         .cat-icon-emoji { font-size: 18px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
         
-        /* CONTENIDO DE ÍTEMS CON IMÁGENES DE PREVIEW */
+        /* CONTENIDO DE ÍTEMS (SIN IMÁGENES, SOLO EMOJI) */
         #inv-content {
             width: 70%;
             overflow-y: auto;
@@ -187,15 +187,10 @@
             justify-content: center;
             border: 1px solid rgba(255,255,255,0.1);
         }
-        .item-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-        .item-preview .placeholder {
-            font-size: 40px;
-            opacity: 0.5;
+        .item-preview span {
+            font-size: 48px;
+            line-height: 120px;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
         }
         .item-card h4 {
             margin: 0 0 8px 0;
@@ -243,6 +238,7 @@
             #inv-content { width: 100%; height: 65%; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); padding-right: 0; }
             .item-card { padding: 12px; }
             .item-preview { height: 100px; }
+            .item-preview span { font-size: 40px; line-height: 100px; }
         }
 
         /* --- ESTADOS --- */
@@ -296,7 +292,7 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
-        // Importar datos desde archivo externo (asegúrate de que la ruta sea correcta)
+        // Importar datos desde archivo externo
         import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
         // --- SISTEMA DE DATOS E INVENTARIO ---
@@ -325,11 +321,7 @@
                         inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile;
                     }
                 }
-                // Añadir campo preview si no existe (generado automáticamente)
-                if (!inventoryData[cat].items[item].preview) {
-                    // Suponemos que las imágenes de preview están en la misma carpeta con extensión .png
-                    inventoryData[cat].items[item].preview = `https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/previews/${item}.png`;
-                }
+                // NOTA: Se eliminó la generación automática de previews
             }
         }
 
@@ -583,7 +575,7 @@
                 sidebar.appendChild(groupDiv);
             });
 
-            // Renderizar Ítems de la categoría seleccionada con imagen de preview
+            // Renderizar Ítems de la categoría seleccionada (sin imágenes, solo emoji)
             const catData = inventoryData[currentCategory];
             if (!catData) return;
             
@@ -591,84 +583,41 @@
                 const item = catData.items[itemId];
                 const isEquipped = catData.equipped === itemId;
                 
-                // Crear la tarjeta usando métodos del DOM para conservar eventos
                 const card = document.createElement('div');
                 card.className = 'item-card';
-
-                // Contenedor de preview
+                
+                // Vista previa con emoji de la categoría en lugar de imagen
                 const previewDiv = document.createElement('div');
                 previewDiv.className = 'item-preview';
-
-                // Crear imagen
-                const img = document.createElement('img');
-                img.alt = item.name;
-                img.style.display = 'none'; // Ocultar hasta que cargue o falle
-                previewDiv.appendChild(img);
-
-                // Placeholder (emoji)
-                const placeholderSpan = document.createElement('span');
-                placeholderSpan.className = 'placeholder';
-                placeholderSpan.textContent = '📦';
-                placeholderSpan.style.display = 'none';
-                previewDiv.appendChild(placeholderSpan);
-
-                // Función para mostrar placeholder si la imagen falla
-                const showPlaceholder = () => {
-                    img.style.display = 'none';
-                    placeholderSpan.style.display = 'block';
-                };
-
-                // Función para mostrar imagen si carga bien
-                const showImage = () => {
-                    img.style.display = 'block';
-                    placeholderSpan.style.display = 'none';
-                };
-
-                img.onload = showImage;
-                img.onerror = showPlaceholder;
-
-                // Iniciar carga de la imagen
-                if (item.preview) {
-                    img.src = item.preview;
-                } else {
-                    // Si no hay preview, mostrar placeholder directamente
-                    showPlaceholder();
-                }
-
-                card.appendChild(previewDiv);
-
-                // Título y precio
-                const title = document.createElement('h4');
-                title.textContent = item.name;
-                card.appendChild(title);
-
-                const priceDiv = document.createElement('div');
-                priceDiv.className = 'item-price';
-                priceDiv.textContent = item.owned ? 'Adquirido' : `🪙 ${item.price}`;
-                card.appendChild(priceDiv);
-
-                // Botón
-                const btn = document.createElement('button');
-                btn.className = 'item-btn';
+                previewDiv.innerHTML = `<span>${catData.emoji}</span>`;
+                
+                let btnHTML = '';
                 if (isEquipped) {
-                    btn.classList.add('btn-equipped');
-                    btn.disabled = true;
-                    btn.textContent = 'Equipado ✓';
+                    btnHTML = `<button class="item-btn btn-equipped" disabled>Equipado ✓</button>`;
                 } else if (item.owned) {
-                    btn.classList.add('btn-equip');
-                    btn.textContent = 'Equipar';
-                    btn.dataset.id = itemId;
-                    btn.onclick = () => equipItem(currentCategory, itemId);
+                    btnHTML = `<button class="item-btn btn-equip" data-id="${itemId}">Equipar</button>`;
                 } else {
-                    btn.classList.add('btn-buy');
-                    btn.textContent = `Comprar 🪙${item.price}`;
-                    btn.dataset.id = itemId;
-                    btn.onclick = () => buyItem(currentCategory, itemId);
+                    btnHTML = `<button class="item-btn btn-buy" data-id="${itemId}">Comprar 🪙${item.price}</button>`;
                 }
-                card.appendChild(btn);
 
+                card.innerHTML = `
+                    <div>
+                        ${previewDiv.outerHTML}
+                        <h4>${item.name}</h4>
+                        <div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div>
+                    </div>
+                    ${btnHTML}
+                `;
+                
                 content.appendChild(card);
             }
+
+            document.querySelectorAll('.btn-equip').forEach(b => {
+                b.onclick = (e) => equipItem(currentCategory, e.target.getAttribute('data-id'));
+            });
+            document.querySelectorAll('.btn-buy').forEach(b => {
+                b.onclick = (e) => buyItem(currentCategory, e.target.getAttribute('data-id'));
+            });
         }
 
         function equipItem(category, itemId) {
