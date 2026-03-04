@@ -417,9 +417,9 @@
         mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
         scene.add(mainLight); scene.add(mainLight.target);
 
-        // Luz direccional extra para Lunari (frontal)
-        const lunariLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        lunariLight.position.set(0, 5, 10);
+        // Luz direccional cálida para Lunari (color piel natural)
+        const lunariLight = new THREE.DirectionalLight(0xffccaa, 1.0);
+        lunariLight.position.set(2, 6, 10); // desde un lado para dar volumen
         lunariLight.target.position.set(0, 5, 0);
         scene.add(lunariLight);
         scene.add(lunariLight.target);
