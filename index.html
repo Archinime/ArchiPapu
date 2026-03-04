@@ -103,7 +103,9 @@
         }
 
         /* --- MODAL INVENTARIO / TIENDA --- */
-        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes modalFadeIn { from { opacity: 0;
+            transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0);
+        } }
         
         #inventory-modal {
             display: none;
@@ -116,15 +118,20 @@
         }
         #inventory-modal.visible { display: flex; animation: modalFadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1); }
         
-        #inv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        #inv-header { display: flex;
+            justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;
+        }
         #inv-header h2 { margin: 0; font-size: 24px; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        #close-inv { cursor: pointer; font-size: 24px; background: rgba(255,255,255,0.1); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; transition: 0.2s; }
+        #close-inv { cursor: pointer; font-size: 24px; background: rgba(255,255,255,0.1); border: none; color: white;
+            width: 40px; height: 40px; border-radius: 50%; transition: 0.2s; }
         #close-inv:hover { background: rgba(255,50,50,0.6); transform: rotate(90deg); }
         
-        #inv-body { display: flex; flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
+        #inv-body { display: flex;
+            flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
         
         /* SISTEMA DE CATEGORÍAS ACORDEÓN */
-        #inv-sidebar { width: 30%; border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding-right: 10px; }
+        #inv-sidebar { width: 30%;
+            border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding-right: 10px; }
         
         .inv-group { margin-bottom: 10px; }
         .group-btn {
@@ -146,17 +153,22 @@
         .group-content.open { display: flex; }
 
         .cat-btn { 
-            width: 100%; text-align: left; padding: 10px 15px; background: transparent; 
+            width: 100%;
+            text-align: left; padding: 10px 15px; background: transparent; 
             color: #bbb; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 4px; 
-            font-size: 14px; transition: 0.2s; display: flex; align-items: center; gap: 10px;
+            font-size: 14px;
+            transition: 0.2s; display: flex; align-items: center; gap: 10px;
         }
         .cat-btn:hover { background: rgba(255,255,255,0.08); color: white; padding-left: 18px; }
-        .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
+        .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white;
+            font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+        }
         .cat-icon-emoji { font-size: 18px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
         
         /* CONTENIDO DE ÍTEMS */
         #inv-content {
-            width: 70%; overflow-y: auto; display: grid;
+            width: 70%;
+            overflow-y: auto; display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 15px; align-content: start; padding-right: 5px;
         }
@@ -164,18 +176,22 @@
             background: linear-gradient(145deg, rgba(40,40,50,0.9), rgba(25,25,30,0.9));
             padding: 15px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.05);
             text-align: center; display: flex; flex-direction: column;
-            justify-content: space-between; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            justify-content: space-between;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         .item-card:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 10px 25px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.2); }
         .item-preview {
-            width: 100%; height: 120px; background: rgba(0,0,0,0.3); border-radius: 12px; margin-bottom: 12px;
+            width: 100%;
+            height: 120px; background: rgba(0,0,0,0.3); border-radius: 12px; margin-bottom: 12px;
             overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1);
         }
         .item-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .item-preview span { font-size: 48px; line-height: 120px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
         .item-card h4 { margin: 0 0 8px 0; font-size: 16px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
-        .item-price { color: #FFD700; font-weight: bold; margin-bottom: 15px; font-size: 14px; text-shadow: 0 0 5px rgba(255, 215, 0, 0.3); }
+        .item-price { color: #FFD700; font-weight: bold;
+            margin-bottom: 15px; font-size: 14px; text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+        }
         .item-btn {
             padding: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
         }
@@ -186,26 +202,32 @@
         .btn-equip { background: linear-gradient(135deg, #2196F3, #1976D2); color: white; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3); }
         .btn-equip:hover { background: linear-gradient(135deg, #64B5F6, #2196F3); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(33, 150, 243, 0.4); }
         
-        .btn-equipped { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; cursor: default; box-shadow: inset 0 2px 5px rgba(0,0,0,0.2), 0 0 10px rgba(76, 175, 80, 0.4); border: 1px solid rgba(129, 199, 132, 0.5); }
+        .btn-equipped { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; cursor: default; box-shadow: inset 0 2px 5px rgba(0,0,0,0.2), 0 0 10px rgba(76, 175, 80, 0.4);
+            border: 1px solid rgba(129, 199, 132, 0.5); }
 
         /* --- MODAL PARA VER POSTERS --- */
         #poster-view-modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 2000;
-            justify-content: center; align-items: center; flex-direction: column;
+            justify-content: center; align-items: center;
+            flex-direction: column;
             opacity: 0; transition: opacity 0.3s ease;
         }
         #poster-view-modal.visible { display: flex; opacity: 1; }
         #poster-view-modal img {
-            max-width: 90%; max-height: 85%; border-radius: 15px;
+            max-width: 90%;
+            max-height: 85%; border-radius: 15px;
             box-shadow: 0 15px 40px rgba(0,0,0,0.8); object-fit: contain;
             transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         #poster-view-modal.visible img { transform: scale(1); }
         #close-poster-view {
-            position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1);
+            position: absolute;
+            top: 20px; right: 20px; background: rgba(255,255,255,0.1);
             border: none; color: white; font-size: 30px; cursor: pointer; width: 50px;
-            height: 50px; border-radius: 50%; transition: 0.2s; display: flex;
+            height: 50px; border-radius: 50%;
+            transition: 0.2s; display: flex;
             align-items: center; justify-content: center;
         }
         #close-poster-view:hover { background: rgba(255,50,50,0.8); transform: rotate(90deg); }
@@ -227,7 +249,9 @@
 
         /* --- ESTADOS --- */
         #loading, #light-status {
-            position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); font-weight: bold;
+            position: absolute;
+            bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1); font-weight: bold;
         }
         #loading { right: 20px; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
@@ -379,7 +403,7 @@
             if(!model) return;
             const isLow = perfCheck.checked;
             const isFoco = categoryKey === 'foco';
-            
+
             model.traverse((node) => {
                 if (node.isMesh) {
                     if (isFoco) {
@@ -416,9 +440,6 @@
             }
         }
 
-        // Añadimos el personaje al contador de carga
-        totalModelsToLoad++;  // Por el personaje lunari_durmiendo
-
         function checkLoading() {
             modelsLoaded++;
             const loadingEl = document.getElementById('loading');
@@ -437,8 +458,27 @@
         // --- CARGA DE MODELOS ---
         const loader = new GLTFLoader();
 
+        // --- CARGA DE PERSONAJE ANIMADO ---
+        let mixer = null;
+        const clock = new THREE.Clock();
+        
+        loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/lunari_duerme.glb', (gltf) => {
+            const model = gltf.scene;
+            applyMaterialLogic(model, 'personaje'); 
+            scene.add(model);
+            
+            if (gltf.animations && gltf.animations.length > 0) {
+                mixer = new THREE.AnimationMixer(model);
+                const action = mixer.clipAction(gltf.animations[0]);
+                action.play();
+            }
+        }, undefined, (error) => {
+            console.error('Error cargando el personaje animado:', error);
+        });
+
         function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             if (!itemFile) return;
+
             if (loadedSlotMeshes[categoryKey]) {
                 scene.remove(loadedSlotMeshes[categoryKey]);
             }
@@ -459,6 +499,7 @@
                 scene.add(model);
                 loadedSlotMeshes[categoryKey] = model; 
                 if(isInitialLoad) checkLoading();
+            
             }, undefined, (e) => { 
                 console.error(`Error cargando modelo [${categoryKey}]:`, itemFile); 
                 if(isInitialLoad) checkLoading();
@@ -470,7 +511,6 @@
             let equippedItemId = inventoryData[cat].equipped;
             if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
                 let itemData = inventoryData[cat].items[equippedItemId];
-                
                 if (itemData.file) {
                     loadItemForSlot(cat, itemData.file, true);
                 }
@@ -479,21 +519,6 @@
                 }
             }
         }
-
-        // --- Cargar el personaje (lunari_durmiendo) ---
-        const personajeURL = "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/lunari_durmiendo.glb";
-        loader.load(personajeURL, (gltf) => {
-            const personaje = gltf.scene;
-            // Aplicar la misma lógica de materiales (sombras, modo humilde)
-            applyMaterialLogic(personaje, 'personaje'); // Usamos un key inventado
-            scene.add(personaje);
-            // No lo guardamos en loadedSlotMeshes porque no es intercambiable, pero si quieres tener referencia:
-            // loadedSlotMeshes['personaje'] = personaje;
-            checkLoading(); // Notificar que se cargó
-        }, undefined, (e) => {
-            console.error("Error cargando el personaje:", e);
-            checkLoading(); // Aún así contamos como cargado para que desaparezca el loading
-        });
 
         // --- SISTEMA DE ILUMINACIÓN ---
         function updateLighting() {
@@ -535,7 +560,7 @@
 
         closePosterBtn.onclick = () => posterViewModal.classList.remove('visible');
         posterViewModal.onclick = (e) => { 
-            if (e.target === posterViewModal) posterViewModal.classList.remove('visible'); 
+            if (e.target === posterViewModal) posterViewModal.classList.remove('visible');
         };
 
         // --- SISTEMA DE INTERACCIÓN GENERAL ---
@@ -543,6 +568,7 @@
             const rect = renderer.domElement.getBoundingClientRect();
             const x = event.touches ? event.touches[0].clientX : event.clientX;
             const y = event.touches ? event.touches[0].clientY : event.clientY;
+
             mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
@@ -579,13 +605,11 @@
             renderer.shadowMap.enabled = !isLow;
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-            
+
             // Reaplicar materiales a los objetos cargados sin romper el foco
             for (let cat in loadedSlotMeshes) {
                 applyMaterialLogic(loadedSlotMeshes[cat], cat);
             }
-            // También aplicar al personaje si se quiere, pero como no está en loadedSlotMeshes, lo hacemos aparte:
-            // Si guardamos referencia, se podría hacer. Por ahora asumimos que el personaje ya tiene applyMaterialLogic aplicado al cargar.
             
             localStorage.setItem('performanceMode', isLow);
             updateLighting(); 
@@ -612,6 +636,7 @@
                     openGroup = openGroup === group.id ? null : group.id;
                     renderInventory();
                 };
+           
                 groupDiv.appendChild(groupBtn);
 
                 const groupContent = document.createElement('div');
@@ -619,6 +644,7 @@
 
                 group.categories.forEach(catKey => {
                     const catData = inventoryData[catKey];
+          
                     if(!catData) return;
                     
                     const btn = document.createElement('button');
@@ -644,7 +670,6 @@
 
                 const previewDiv = document.createElement('div');
                 previewDiv.className = 'item-preview';
-                
                 if (item.preview) {
                     const img = document.createElement('img');
                     img.src = item.preview;
@@ -668,11 +693,11 @@
                     <div>
                         ${previewDiv.outerHTML}
                         <h4>${item.name}</h4>
+              
                         <div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div>
                     </div>
                     ${btnHTML}
                 `;
-
                 // Re-bind onerror después del innerHTML
                 const previewContainer = card.querySelector('.item-preview');
                 if (previewContainer && item.preview) {
@@ -735,11 +760,13 @@
         // --- Animación y Resize ---
         function animate() {
             requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            if (mixer) mixer.update(delta);
             controls.update();
-            renderer.render(scene, camera);
+            renderer.render(scene, camera); // Renderizamos sin el OutlineEffect
         }
         animate();
-        
+
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
