@@ -380,7 +380,7 @@
         // --- Escena, Cámara y Reloj (Para Animaciones) ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050508); 
-        const clock = new THREE.Clock(); // NECESARIO PARA LUNARI
+        const clock = new THREE.Clock();
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
         let camPosY = 6, camPosZ = 14, targetY = 6;
@@ -465,8 +465,8 @@
             }
         }
 
-        // Agregamos a Lunari al conteo de carga
-        totalModelsToLoad++;
+        // Agregamos a Lunari y su animación aleatoria al conteo de carga
+        totalModelsToLoad += 2; // Uno para el modelo base, otro para la animación extra
 
         function checkLoading() {
             modelsLoaded++;
@@ -483,25 +483,28 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // --- CARGA DE MODELOS Y LUNARI ---
+        // --- CARGA DE MODELOS Y LUNARI CON ANIMACIONES ---
         const loader = new GLTFLoader();
         let lunariMixer = null;
+        let baseAction = null;
+        let randomAction = null;
+        let currentAction = null; // Para controlar qué animación está activa
 
-        // 1. Cargar a Lunari primero
+        // 1. Cargar a Lunari (modelo base)
         loader.load('lunari_durmiendo1.glb', (gltf) => {
             const lunariModel = gltf.scene;
             
-            // Usamos la misma lógica para que tenga sombras y NO DESAPAREZCA
             applyMaterialLogic(lunariModel, 'lunari');
             
             scene.add(lunariModel);
 
-            // Manejar animaciones (equivalente a autoplay en model-viewer)
+            // Configurar animaciones
             if (gltf.animations && gltf.animations.length > 0) {
                 lunariMixer = new THREE.AnimationMixer(lunariModel);
-                gltf.animations.forEach((clip) => {
-                    lunariMixer.clipAction(clip).play();
-                });
+                // Usamos la primera animación como base (idle)
+                baseAction = lunariMixer.clipAction(gltf.animations[0]);
+                baseAction.play();
+                currentAction = baseAction;
             }
             checkLoading();
         }, undefined, (e) => {
@@ -509,7 +512,48 @@
             checkLoading();
         });
 
-        // 2. Función normal para los objetos de la habitación
+        // 2. Cargar la animación aleatoria (Lunari_Duerme_2.glb) y agregarla al mixer
+        loader.load('Lunari_Duerme_2.glb', (gltf) => {
+            if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
+                // Tomamos la primera animación del archivo
+                const clip = gltf.animations[0];
+                randomAction = lunariMixer.clipAction(clip);
+                randomAction.loop = THREE.LoopOnce; // Se reproduce una sola vez
+                randomAction.clampWhenFinished = true; // Se queda en el último fotograma hasta que volvamos
+                // No la reproducimos aún
+            }
+            checkLoading();
+        }, undefined, (e) => {
+            console.error('Error cargando animación aleatoria:', e);
+            checkLoading();
+        });
+
+        // 3. Configurar el intervalo para la animación aleatoria (cada 60 segundos)
+        setInterval(() => {
+            if (!randomAction || !baseAction || !lunariMixer) return;
+            // Si ya está reproduciendo la random, no hacer nada
+            if (currentAction === randomAction) return;
+
+            // Cambiar a la animación aleatoria con crossfade
+            if (baseAction && randomAction) {
+                baseAction.fadeOut(0.5);
+                randomAction.reset().fadeIn(0.5).play();
+                currentAction = randomAction;
+
+                // Cuando termine la random, volver a la base
+                const onFinished = (event) => {
+                    if (event.action === randomAction) {
+                        randomAction.fadeOut(0.5);
+                        baseAction.reset().fadeIn(0.5).play();
+                        currentAction = baseAction;
+                        lunariMixer.removeEventListener('finished', onFinished);
+                    }
+                };
+                lunariMixer.addEventListener('finished', onFinished);
+            }
+        }, 60000); // 60 segundos
+
+        // 4. Función normal para los objetos de la habitación
         function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             if (!itemFile) return;
             if (loadedSlotMeshes[categoryKey]) {
