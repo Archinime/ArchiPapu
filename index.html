@@ -380,7 +380,7 @@
         // --- Escena, Cámara y Reloj (Para Animaciones) ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050508); 
-        const clock = new THREE.Clock(); // NECESARIO PARA LUNARI
+        const clock = new THREE.Clock();
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
         let camPosY = 6, camPosZ = 14, targetY = 6;
@@ -417,6 +417,13 @@
         mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
         scene.add(mainLight); scene.add(mainLight.target);
 
+        // Luz direccional extra para Lunari (frontal)
+        const lunariLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        lunariLight.position.set(0, 5, 10);
+        lunariLight.target.position.set(0, 5, 0);
+        scene.add(lunariLight);
+        scene.add(lunariLight.target);
+
         let lightOn = localStorage.getItem('lightState') !== 'off';
         const perfCheck = document.getElementById('performance-mode');
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
@@ -445,6 +452,16 @@
                                 node.material.shadowSide = THREE.BackSide;
                             }
                             node.material.side = THREE.DoubleSide;
+                            
+                            // Si es Lunari, hacerlo más brillante (porque no tiene texturas PBR)
+                            if (categoryKey === 'lunari') {
+                                // Aumentar el color base en un 30%
+                                node.material.color.multiplyScalar(1.3);
+                                // Añadir una pequeña emisión para simular iluminación propia
+                                node.material.emissive = new THREE.Color(0x222222);
+                                node.material.emissiveIntensity = 0.3;
+                            }
+                            
                             node.material.needsUpdate = true;
                         }
                     }
@@ -483,49 +500,30 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-// --- Cargar Lunari (Personaje) ---
-        const lunariUrl = "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/lunari_duerme.glb";
-        let lunariMixer; // Para la animación
+        // --- CARGA DE MODELOS Y LUNARI ---
+        const loader = new GLTFLoader();
+        let lunariMixer = null;
 
-        loader.load(lunariUrl, (gltf) => {
+        // 1. Cargar a Lunari primero
+        loader.load('lunari_durmiendo1.glb', (gltf) => {
             const lunariModel = gltf.scene;
-            lunariModel.position.set(0, 0.40, 0); // Ajusta la posición (Y más bajo para estar en la cama)
-            lunariModel.scale.set(1.5, 1.5, 1.5); // Ajusta el tamaño
-
-            // Ajuste de materiales para Lunari (Hacerlo más claro)
-            lunariModel.traverse((child) => {
-                if (child.isMesh && child.material) {
-                    // 1. Quitar la "metalidad" que oscurece el modelo
-                    child.material.metalness = 0.0; 
-                    
-                    // 2. Hacerlo mate para evitar brillos de luz no deseados
-                    child.material.roughness = 1.0; 
-
-                    // 3. Añadir luz emisiva. Esto "ilumina" el modelo desde adentro.
-                    // 0x333333 es un gris oscuro/medio que aclara la textura sin quemarla.
-                    // Si lo quieres AÚN más claro, cámbialo a 0x555555 o 0x777777.
-                    if (child.material.emissive) {
-                        child.material.emissive.setHex(0x333333);
-                    }
-
-                    // 4. Asegurar que el color base sea blanco puro para no tintar/oscurecer la textura original
-                    if (child.material.color) {
-                        child.material.color.setHex(0xffffff);
-                    }
-
-                    child.material.envMapIntensity = 1.0;
-                    child.material.needsUpdate = true;
-                }
-            });
-
+            
+            // Aplicar lógica de materiales (incluye el aumento de brillo para Lunari)
+            applyMaterialLogic(lunariModel, 'lunari');
+            
             scene.add(lunariModel);
 
-            // Configurar animación de Lunari
+            // Manejar animaciones (equivalente a autoplay en model-viewer)
             if (gltf.animations && gltf.animations.length > 0) {
                 lunariMixer = new THREE.AnimationMixer(lunariModel);
-                const action = lunariMixer.clipAction(gltf.animations[0]);
-                action.play();
+                gltf.animations.forEach((clip) => {
+                    lunariMixer.clipAction(clip).play();
+                });
             }
+            checkLoading();
+        }, undefined, (e) => {
+            console.error('Error cargando a Lunari:', e);
+            checkLoading();
         });
 
         // 2. Función normal para los objetos de la habitación
