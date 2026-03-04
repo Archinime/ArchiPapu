@@ -280,7 +280,6 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-        import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
         
         import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
@@ -297,7 +296,6 @@
             inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
             inventoryData[cat].label = defaultInventoryConfig[cat].label;
 
-            // Verificar si el objeto equipado sigue existiendo, si no, restaurar al por defecto
             if (!inventoryData[cat].items[inventoryData[cat].equipped]) {
                 inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
             }
@@ -354,10 +352,6 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
-        const effect = new OutlineEffect(renderer, {
-            defaultThickness: 0.0008, defaultColor: [0.05, 0.05, 0.08], defaultAlpha: 0.85, defaultKeepAlive: true
-        });
-
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.target.set(0, targetY, 0);
@@ -409,7 +403,7 @@
             });
         }
 
-        // --- CÁLCULO DINÁMICO DE CARGA (Para arreglar la pantalla de carga infinita) ---
+        // --- CÁLCULO DINÁMICO DE CARGA ---
         let totalModelsToLoad = 0;
         let modelsLoaded = 0;
 
@@ -722,7 +716,7 @@
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
-            effect.render(scene, camera);
+            renderer.render(scene, camera); // Renderizamos sin el OutlineEffect
         }
         animate();
         
@@ -730,7 +724,6 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            effect.setSize(window.innerWidth, window.innerHeight); 
         });
         
         updateQuality();
