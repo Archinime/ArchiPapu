@@ -416,6 +416,9 @@
             }
         }
 
+        // Añadimos el personaje al contador de carga
+        totalModelsToLoad++;  // Por el personaje lunari_durmiendo
+
         function checkLoading() {
             modelsLoaded++;
             const loadingEl = document.getElementById('loading');
@@ -476,6 +479,21 @@
                 }
             }
         }
+
+        // --- Cargar el personaje (lunari_durmiendo) ---
+        const personajeURL = "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/lunari_durmiendo.glb";
+        loader.load(personajeURL, (gltf) => {
+            const personaje = gltf.scene;
+            // Aplicar la misma lógica de materiales (sombras, modo humilde)
+            applyMaterialLogic(personaje, 'personaje'); // Usamos un key inventado
+            scene.add(personaje);
+            // No lo guardamos en loadedSlotMeshes porque no es intercambiable, pero si quieres tener referencia:
+            // loadedSlotMeshes['personaje'] = personaje;
+            checkLoading(); // Notificar que se cargó
+        }, undefined, (e) => {
+            console.error("Error cargando el personaje:", e);
+            checkLoading(); // Aún así contamos como cargado para que desaparezca el loading
+        });
 
         // --- SISTEMA DE ILUMINACIÓN ---
         function updateLighting() {
@@ -566,6 +584,8 @@
             for (let cat in loadedSlotMeshes) {
                 applyMaterialLogic(loadedSlotMeshes[cat], cat);
             }
+            // También aplicar al personaje si se quiere, pero como no está en loadedSlotMeshes, lo hacemos aparte:
+            // Si guardamos referencia, se podría hacer. Por ahora asumimos que el personaje ya tiene applyMaterialLogic aplicado al cargar.
             
             localStorage.setItem('performanceMode', isLow);
             updateLighting(); 
@@ -716,7 +736,7 @@
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
-            renderer.render(scene, camera); // Renderizamos sin el OutlineEffect
+            renderer.render(scene, camera);
         }
         animate();
         
