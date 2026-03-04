@@ -13,6 +13,7 @@
             width: 100%;
             height: 100%;
             background-color: #111;
+            touch-action: none; /* Evita comportamientos raros de scroll en móviles */
         }
 
         /* --- SCROLLBAR PERSONALIZADO --- */
@@ -41,6 +42,7 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
         .top-btn:hover { transform: scale(1.15); background: rgba(50,50,60,0.95); }
         .top-btn:active { transform: scale(0.95); }
@@ -110,7 +112,6 @@
             transform: translateX(-50%);
             z-index: 150;
             pointer-events: none;
-            /* Permite girar la cámara clickeando a través del diálogo */
             width: 90%;
             max-width: 400px;
             text-align: center;
@@ -143,9 +144,7 @@
         }
 
         /* --- MODAL INVENTARIO / TIENDA --- */
-        @keyframes modalFadeIn { from { opacity: 0;
-            transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0);
-        } }
+        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         
         #inventory-modal {
             display: none;
@@ -156,158 +155,122 @@
             box-shadow: 0 15px 40px rgba(0,0,0,0.8);
             flex-direction: column;
         }
-        #inventory-modal.visible { display: flex; animation: modalFadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1);
-        }
+        #inventory-modal.visible { display: flex; animation: modalFadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1); }
         
-        #inv-header { display: flex;
-            justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;
-        }
-        #inv-header h2 { margin: 0; font-size: 24px; text-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-        #close-inv { cursor: pointer; font-size: 24px; background: rgba(255,255,255,0.1); border: none; color: white;
-            width: 40px; height: 40px; border-radius: 50%; transition: 0.2s; }
-        #close-inv:hover { background: rgba(255,50,50,0.6);
-            transform: rotate(90deg); }
+        #inv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        #inv-header h2 { margin: 0; font-size: 24px; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        #close-inv { cursor: pointer; font-size: 24px; background: rgba(255,255,255,0.1); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; transition: 0.2s; }
+        #close-inv:hover { background: rgba(255,50,50,0.6); transform: rotate(90deg); }
         
-        #inv-body { display: flex;
-            flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
+        #inv-body { display: flex; flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
         
-        /* SISTEMA DE CATEGORÍAS ACORDEÓN */
-        #inv-sidebar { width: 30%;
-            border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding-right: 10px; }
+        #inv-sidebar { width: 30%; border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding-right: 10px; }
         
         .inv-group { margin-bottom: 10px; }
         .group-btn {
-            width: 100%;
-            text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.5);
+            width: 100%; text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.5);
             color: white; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
-            cursor: pointer; font-size: 15px;
-            font-weight: bold;
+            cursor: pointer; font-size: 15px; font-weight: bold;
             display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease;
         }
-        .group-btn:hover { background: rgba(255,255,255,0.15); transform: translateX(2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
+        .group-btn:hover { background: rgba(255,255,255,0.15); transform: translateX(2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .group-content {
-            display: none;
-            flex-direction: column; padding-left: 10px; margin-top: 5px;
+            display: none; flex-direction: column; padding-left: 10px; margin-top: 5px;
             border-left: 2px solid rgba(255,255,255,0.1); margin-left: 8px;
             animation: slideDown 0.3s ease;
         }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-5px);
-        } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
         .group-content.open { display: flex; }
 
         .cat-btn { 
-            width: 100%;
-            text-align: left; padding: 10px 15px; background: transparent; 
+            width: 100%; text-align: left; padding: 10px 15px; background: transparent; 
             color: #bbb; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 4px; 
-            font-size: 14px;
-            transition: 0.2s; display: flex; align-items: center; gap: 10px;
+            font-size: 14px; transition: 0.2s; display: flex; align-items: center; gap: 10px;
         }
-        .cat-btn:hover { background: rgba(255,255,255,0.08);
-            color: white; padding-left: 18px; }
-        .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white;
-            font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
-        }
+        .cat-btn:hover { background: rgba(255,255,255,0.08); color: white; padding-left: 18px; }
+        .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
         .cat-icon-emoji { font-size: 18px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
         
-        /* CONTENIDO DE ÍTEMS */
         #inv-content {
-            width: 70%;
-            overflow-y: auto; display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            width: 70%; overflow-y: auto; display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 15px; align-content: start; padding-right: 5px;
         }
         .item-card {
             background: linear-gradient(145deg, rgba(40,40,50,0.9), rgba(25,25,30,0.9));
             padding: 15px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.05);
-            text-align: center; display: flex; flex-direction: column;
-            justify-content: space-between;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            text-align: center; display: flex; flex-direction: column; justify-content: space-between;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
-        .item-card:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 10px 25px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.2);
-        }
+        .item-card:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 10px 25px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.2); }
         .item-preview {
-            width: 100%;
-            height: 120px; background: rgba(0,0,0,0.3); border-radius: 12px; margin-bottom: 12px;
+            width: 100%; height: 120px; background: rgba(0,0,0,0.3); border-radius: 12px; margin-bottom: 12px;
             overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1);
         }
         .item-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .item-preview span { font-size: 48px; line-height: 120px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
-        .item-card h4 { margin: 0 0 8px 0; font-size: 16px; color: #fff;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
-        .item-price { color: #FFD700; font-weight: bold;
-            margin-bottom: 15px; font-size: 14px; text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
-        }
-        .item-btn {
-            padding: 10px;
-            border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
-        }
+        .item-card h4 { margin: 0 0 8px 0; font-size: 16px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+        .item-price { color: #FFD700; font-weight: bold; margin-bottom: 15px; font-size: 14px; text-shadow: 0 0 5px rgba(255, 215, 0, 0.3); }
+        .item-btn { padding: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
         
-        .btn-buy { background: linear-gradient(135deg, #FF9800, #F57C00);
-            color: white; box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3);
-        }
-        .btn-buy:hover { background: linear-gradient(135deg, #FFB74D, #FF9800); transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(255, 152, 0, 0.4); }
+        .btn-buy { background: linear-gradient(135deg, #FF9800, #F57C00); color: white; box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3); }
+        .btn-buy:hover { background: linear-gradient(135deg, #FFB74D, #FF9800); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(255, 152, 0, 0.4); }
         
-        .btn-equip { background: linear-gradient(135deg, #2196F3, #1976D2);
-            color: white; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3);
-        }
-        .btn-equip:hover { background: linear-gradient(135deg, #64B5F6, #2196F3); transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(33, 150, 243, 0.4); }
+        .btn-equip { background: linear-gradient(135deg, #2196F3, #1976D2); color: white; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3); }
+        .btn-equip:hover { background: linear-gradient(135deg, #64B5F6, #2196F3); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(33, 150, 243, 0.4); }
         
-        .btn-equipped { background: linear-gradient(135deg, #4CAF50, #2E7D32);
-            color: white; cursor: default; box-shadow: inset 0 2px 5px rgba(0,0,0,0.2), 0 0 10px rgba(76, 175, 80, 0.4);
-            border: 1px solid rgba(129, 199, 132, 0.5); }
+        .btn-equipped { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; cursor: default; box-shadow: inset 0 2px 5px rgba(0,0,0,0.2), 0 0 10px rgba(76, 175, 80, 0.4); border: 1px solid rgba(129, 199, 132, 0.5); }
 
         /* --- MODAL PARA VER POSTERS --- */
         #poster-view-modal {
-            display: none;
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 2000;
-            justify-content: center; align-items: center;
-            flex-direction: column;
+            justify-content: center; align-items: center; flex-direction: column;
             opacity: 0; transition: opacity 0.3s ease;
         }
         #poster-view-modal.visible { display: flex; opacity: 1; }
         #poster-view-modal img {
-            max-width: 90%;
-            max-height: 85%; border-radius: 15px;
+            max-width: 90%; max-height: 85%; border-radius: 15px;
             box-shadow: 0 15px 40px rgba(0,0,0,0.8); object-fit: contain;
             transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         #poster-view-modal.visible img { transform: scale(1); }
         #close-poster-view {
-            position: absolute;
-            top: 20px; right: 20px; background: rgba(255,255,255,0.1);
+            position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1);
             border: none; color: white; font-size: 30px; cursor: pointer; width: 50px;
-            height: 50px; border-radius: 50%;
-            transition: 0.2s; display: flex;
+            height: 50px; border-radius: 50%; transition: 0.2s; display: flex;
             align-items: center; justify-content: center;
         }
         #close-poster-view:hover { background: rgba(255,50,50,0.8); transform: rotate(90deg); }
 
-        @media (max-width: 600px) {
-            .top-btn { top: 10px; width: 40px; height: 40px; font-size: 20px; }
-            #settings-button { right: 10px; }
-            #inventory-button { right: 60px; }
-            #settings-panel { top: 60px; right: 10px; padding: 12px 15px; font-size: 13px; min-width: 180px; }
-            #coin-display { top: 10px; left: 10px; font-size: 14px; padding: 8px 12px; }
+        /* --- MEDIA QUERIES PARA MÓVILES (Celulares y Tablets) --- */
+        @media (max-width: 768px) {
+            .top-btn { top: 15px; width: 40px; height: 40px; font-size: 20px; }
+            #settings-button { right: 15px; }
+            #inventory-button { right: 65px; }
+            #settings-panel { top: 65px; right: 15px; padding: 12px 15px; font-size: 13px; min-width: 180px; }
+            #coin-display { top: 15px; left: 15px; font-size: 14px; padding: 8px 12px; }
+            
             #inventory-modal { top: 2%; left: 2%; width: 96%; height: 96%; padding: 15px; }
+            #inv-header h2 { font-size: 20px; }
             #inv-body { flex-direction: column; gap: 10px; }
             #inv-sidebar { width: 100%; height: 35%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; padding-right: 0; }
-            #inv-content { width: 100%; height: 65%; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); padding-right: 0; }
-            .item-card { padding: 12px; }
+            #inv-content { width: 100%; height: 65%; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); padding-right: 0; }
+            .item-card { padding: 10px; }
             .item-preview { height: 100px; }
             .item-preview span { font-size: 40px; line-height: 100px; }
+            
             #character-layer { bottom: 60px; width: 95%; }
+            #dialogue-box { padding: 10px; }
+            .char-name { font-size: 14px; }
+            #dialogue-text { font-size: 13px; }
+            
+            #loading, #light-status { font-size: 11px; padding: 6px 10px; bottom: 15px; }
         }
 
         /* --- ESTADOS --- */
         #loading, #light-status {
-            position: absolute;
-            bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px);
+            position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px);
             border: 1px solid rgba(255,255,255,0.1); font-weight: bold;
         }
         #loading { right: 20px; animation: pulse 1.5s infinite; }
@@ -414,21 +377,30 @@
         let switchMesh = null;
         let focoMesh = null;
 
-        // --- Detección de dispositivo ---
-        const ua = navigator.userAgent;
-        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-        const width = window.innerWidth;
-        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
-
-        // --- Escena, Cámara y Reloj (Para Animaciones) ---
+        // --- Escena, Cámara y Reloj ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050508); 
-        const clock = new THREE.Clock(); // NECESARIO PARA LUNARI
+        const clock = new THREE.Clock();
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
-        let camPosY = 6, camPosZ = 14, targetY = 6;
-        if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
-        camera.position.set(0, camPosY, camPosZ);
+        
+        // --- FUNCIÓN DE CÁMARA RESPONSIVA ---
+        let targetY = 6;
+        let baseCamPosZ = 14;
+        
+        function updateCameraForDevice() {
+            const aspect = window.innerWidth / window.innerHeight;
+            if (aspect < 1) { 
+                // Modo Vertical (Portrait) - Celulares
+                camera.position.set(0, 7, baseCamPosZ + 6); // Se aleja la cámara
+                targetY = 5.5;
+            } else { 
+                // Modo Horizontal (Landscape) - PC / Tablets acostadas
+                camera.position.set(0, 6, baseCamPosZ);
+                targetY = 6;
+            }
+        }
+        updateCameraForDevice(); // Configuración inicial
 
         // --- RENDERIZADOR ---
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -445,8 +417,10 @@
         controls.enableDamping = true;
         controls.target.set(0, targetY, 0);
         controls.maxPolarAngle = Math.PI / 2 - 0.05;
-        controls.minDistance = 2.5; controls.maxDistance = 16;
+        controls.minDistance = 2.5; 
+        controls.maxDistance = 22; // Permitimos alejar más en celulares
         controls.enablePan = false;
+        controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }; // Soporte Touch
 
         // --- LUCES ---
         const ambient = new THREE.AmbientLight(0xffffff, 0.3);
@@ -460,8 +434,7 @@
         mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
         scene.add(mainLight); scene.add(mainLight.target);
 
-        // --- LUZ EXCLUSIVA PARA LUNARI (Efecto Anime) ---
-        // Actúa como una luz de relleno para destacar sus colores sin quemarla
+        // Luz exclusiva para Lunari
         const lunariLight = new THREE.PointLight(0xfff0dd, 1.2, 12);
         lunariLight.position.set(0, 3, 2); 
         scene.add(lunariLight);
@@ -478,11 +451,9 @@
 
             model.traverse((node) => {
                 if (node.isMesh) {
-                    // EVITA QUE LUNARI DESAPAREZCA AL GIRAR LA CÁMARA
                     if (isLunari) node.frustumCulled = false;
 
                     if (isLunari) {
-                        // Solo actualizamos las sombras, el material Anime lo manejamos al cargarla
                         node.castShadow = !isLow; 
                         node.receiveShadow = !isLow;
                         return;
@@ -522,8 +493,7 @@
             }
         }
 
-        // Agregamos a Lunari al conteo de carga
-        totalModelsToLoad++;
+        totalModelsToLoad++; // Para Lunari
 
         function checkLoading() {
             modelsLoaded++;
@@ -540,21 +510,18 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // --- CARGA DE MODELOS Y LUNARI ---
+        // --- CARGA DE MODELOS ---
         const loader = new GLTFLoader();
         let lunariMixer = null;
 
-        // 1. Cargar a Lunari primero
-        loader.load('lunari_durmiendo1.glb', (gltf) => {
+        // 1. Cargar a Lunari (URL CORREGIDA)
+        loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/lunari_duerme.glb', (gltf) => {
             const lunariModel = gltf.scene;
             
-            // --- EFECTO ANIME Y REEMPLAZO DE MATERIALES ---
             lunariModel.traverse((node) => {
                 if (node.isMesh) {
                     node.frustumCulled = false; 
-                    
                     if (node.material) {
-                        // Cambiamos al material Toon para un sombreado plano (cel-shaded) clásico de anime
                         const newMat = new THREE.MeshToonMaterial({
                             map: node.material.map || null,
                             color: node.material.color || new THREE.Color(0xffffff),
@@ -563,15 +530,9 @@
                             alphaTest: node.material.alphaTest || 0,
                             side: THREE.DoubleSide
                         });
-
-                        // Le damos mapa y color emisivo para combatir la oscuridad de falta de PBR
-                        if (node.material.map) {
-                            newMat.emissiveMap = node.material.map;
-                        }
-                        // Brillo base para que sus texturas resalten siempre un poco de forma natural
+                        if (node.material.map) newMat.emissiveMap = node.material.map;
                         newMat.emissive = new THREE.Color(0x2a2a2a); 
-                        
-                        node.material.dispose(); // Limpiamos el anterior de memoria
+                        node.material.dispose(); 
                         node.material = newMat;
                     }
                 }
@@ -580,7 +541,6 @@
             applyMaterialLogic(lunariModel, 'lunari');
             scene.add(lunariModel);
 
-            // Manejar animaciones (equivalente a autoplay en model-viewer)
             if (gltf.animations && gltf.animations.length > 0) {
                 lunariMixer = new THREE.AnimationMixer(lunariModel);
                 gltf.animations.forEach((clip) => {
@@ -593,7 +553,7 @@
             checkLoading();
         });
 
-        // 2. Función normal para los objetos de la habitación
+        // 2. Función normal para los objetos
         function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             if (!itemFile) return;
             if (loadedSlotMeshes[categoryKey]) {
@@ -622,17 +582,12 @@
             });
         }
 
-        // Cargar todos los objetos equipados al inicio
         for (let cat in inventoryData) {
             let equippedItemId = inventoryData[cat].equipped;
             if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
                 let itemData = inventoryData[cat].items[equippedItemId];
-                if (itemData.file) {
-                    loadItemForSlot(cat, itemData.file, true);
-                }
-                if (cat === 'foco' && itemData.baseFile) {
-                    loadItemForSlot('base_foco', itemData.baseFile, true);
-                }
+                if (itemData.file) loadItemForSlot(cat, itemData.file, true);
+                if (cat === 'foco' && itemData.baseFile) loadItemForSlot('base_foco', itemData.baseFile, true);
             }
         }
 
@@ -644,9 +599,8 @@
                 ambient.intensity = isLow ? 0.8 : 0.3; hemiLight.intensity = isLow ? 0.8 : 0.4;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
                 
-                // Luz de Lunari Encendida
                 lunariLight.intensity = 1.2;
-                lunariLight.color.setHex(0xfff0dd); // Tono cálido de relleno
+                lunariLight.color.setHex(0xfff0dd); 
 
                 if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 1.5; });
             } else {
@@ -654,9 +608,8 @@
                 ambient.intensity = 0.02; hemiLight.intensity = 0.05; 
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
                 
-                // Luz de Lunari Apagada (Efecto dramático anime/luna/monitor)
                 lunariLight.intensity = 0.5;
-                lunariLight.color.setHex(0x99aaff); // Tono azul frío
+                lunariLight.color.setHex(0x99aaff); 
 
                 if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; });
             }
@@ -689,13 +642,25 @@
             if (e.target === posterViewModal) posterViewModal.classList.remove('visible');
         };
 
-        // --- SISTEMA DE INTERACCIÓN GENERAL ---
+        // --- SISTEMA DE INTERACCIÓN GENERAL (Corregido para Touch/Mouse) ---
         function handleInteraction(event) {
+            // Evitar interacciones si el inventario o menú de configuración está abierto
+            if (document.getElementById('inventory-modal').classList.contains('visible')) return;
+
             const rect = renderer.domElement.getBoundingClientRect();
-            const x = event.touches ? event.touches[0].clientX : event.clientX;
-            const y = event.touches ? event.touches[0].clientY : event.clientY;
-            mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
+            
+            // Unificar coordenadas de mouse y touch
+            let clientX, clientY;
+            if (event.changedTouches) {
+                clientX = event.changedTouches[0].clientX;
+                clientY = event.changedTouches[0].clientY;
+            } else {
+                clientX = event.clientX;
+                clientY = event.clientY;
+            }
+
+            mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
 
             // Chequeo de Luz
@@ -704,7 +669,7 @@
                 return; 
             }
 
-            // Chequeo de Pósters Dinámicos
+            // Chequeo de Pósters
             const posterCategories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
             for (let cat of posterCategories) {
                 const posterMesh = loadedSlotMeshes[cat];
@@ -718,11 +683,13 @@
             }
         }
         
-        renderer.domElement.addEventListener('click', handleInteraction);
-        renderer.domElement.addEventListener('touchstart', (e) => { 
-            if(document.getElementById('inventory-modal').classList.contains('visible')) return;
-            handleInteraction(e); 
-        }, {passive: true});
+        // Usamos pointerup en lugar de click/touchstart mezclados para mejor compatibilidad móvil/PC
+        renderer.domElement.addEventListener('pointerup', (e) => {
+            // Solo actuar si el usuario hizo un click/tap rápido, no si arrastró para rotar la cámara
+            if (Math.abs(e.movementX) < 5 && Math.abs(e.movementY) < 5) {
+                handleInteraction(e);
+            }
+        });
 
         // --- Calidad / Modo Humilde ---
         function updateQuality() {
@@ -731,10 +698,7 @@
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
             
-            // Reaplicar materiales a los objetos cargados
-            for (let cat in loadedSlotMeshes) {
-                applyMaterialLogic(loadedSlotMeshes[cat], cat);
-            }
+            for (let cat in loadedSlotMeshes) applyMaterialLogic(loadedSlotMeshes[cat], cat);
             
             localStorage.setItem('performanceMode', isLow);
             updateLighting(); 
@@ -883,7 +847,6 @@
         // --- Animación y Resize ---
         function animate() {
             requestAnimationFrame(animate);
-            // ACTUALIZAR ANIMACIÓN DE LUNARI
             const delta = clock.getDelta();
             if (lunariMixer) lunariMixer.update(delta);
 
@@ -894,6 +857,11 @@
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
+            
+            // Reajusta la distancia si giras el dispositivo
+            updateCameraForDevice();
+            controls.target.setY(targetY);
+            
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
