@@ -417,12 +417,20 @@
         mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
         scene.add(mainLight); scene.add(mainLight.target);
 
-        // Luz direccional cálida para Lunari (color piel natural)
-        const lunariLight = new THREE.DirectionalLight(0xffccaa, 1.0);
-        lunariLight.position.set(2, 6, 10); // desde un lado para dar volumen
-        lunariLight.target.position.set(0, 5, 0);
-        scene.add(lunariLight);
-        scene.add(lunariLight.target);
+        // --- LUCES ESPECIALES PARA LUNARI (CÁLIDAS) ---
+        // Luz principal desde la izquierda (más intensa)
+        const lunariLightMain = new THREE.DirectionalLight(0xffaa88, 1.5);
+        lunariLightMain.position.set(3, 6, 10);
+        lunariLightMain.target.position.set(0, 5, 0);
+        scene.add(lunariLightMain);
+        scene.add(lunariLightMain.target);
+
+        // Luz de relleno desde la derecha (más suave)
+        const lunariLightFill = new THREE.DirectionalLight(0xffccaa, 0.8);
+        lunariLightFill.position.set(-2, 5, 8);
+        lunariLightFill.target.position.set(0, 5, 0);
+        scene.add(lunariLightFill);
+        scene.add(lunariLightFill.target);
 
         let lightOn = localStorage.getItem('lightState') !== 'off';
         const perfCheck = document.getElementById('performance-mode');
@@ -453,13 +461,13 @@
                             }
                             node.material.side = THREE.DoubleSide;
                             
-                            // Si es Lunari, hacerlo más brillante (porque no tiene texturas PBR)
+                            // Si es Lunari, hacerlo más brillante y darle un tono cálido
                             if (categoryKey === 'lunari') {
-                                // Aumentar el color base en un 30%
-                                node.material.color.multiplyScalar(1.3);
-                                // Añadir una pequeña emisión para simular iluminación propia
-                                node.material.emissive = new THREE.Color(0x222222);
-                                node.material.emissiveIntensity = 0.3;
+                                // Aumentar el color base ligeramente
+                                node.material.color.multiplyScalar(1.2);
+                                // Añadir emisión cálida muy sutil para quitar el gris
+                                node.material.emissive = new THREE.Color(0x442200);
+                                node.material.emissiveIntensity = 0.15;
                             }
                             
                             node.material.needsUpdate = true;
