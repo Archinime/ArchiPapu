@@ -380,7 +380,7 @@
         // --- Escena, Cámara y Reloj (Para Animaciones) ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050508); 
-        const clock = new THREE.Clock();
+        const clock = new THREE.Clock(); // NECESARIO PARA LUNARI
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
         let camPosY = 6, camPosZ = 14, targetY = 6;
@@ -417,21 +417,6 @@
         mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
         scene.add(mainLight); scene.add(mainLight.target);
 
-        // --- LUCES ESPECIALES PARA LUNARI (CÁLIDAS) ---
-        // Luz principal desde la izquierda (más intensa)
-        const lunariLightMain = new THREE.DirectionalLight(0xffaa88, 1.5);
-        lunariLightMain.position.set(3, 6, 10);
-        lunariLightMain.target.position.set(0, 5, 0);
-        scene.add(lunariLightMain);
-        scene.add(lunariLightMain.target);
-
-        // Luz de relleno desde la derecha (más suave)
-        const lunariLightFill = new THREE.DirectionalLight(0xffccaa, 0.8);
-        lunariLightFill.position.set(-2, 5, 8);
-        lunariLightFill.target.position.set(0, 5, 0);
-        scene.add(lunariLightFill);
-        scene.add(lunariLightFill.target);
-
         let lightOn = localStorage.getItem('lightState') !== 'off';
         const perfCheck = document.getElementById('performance-mode');
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
@@ -460,16 +445,6 @@
                                 node.material.shadowSide = THREE.BackSide;
                             }
                             node.material.side = THREE.DoubleSide;
-                            
-                            // Si es Lunari, hacerlo más brillante y darle un tono cálido
-                            if (categoryKey === 'lunari') {
-                                // Aumentar el color base ligeramente
-                                node.material.color.multiplyScalar(1.2);
-                                // Añadir emisión cálida muy sutil para quitar el gris
-                                node.material.emissive = new THREE.Color(0x442200);
-                                node.material.emissiveIntensity = 0.15;
-                            }
-                            
                             node.material.needsUpdate = true;
                         }
                     }
@@ -516,7 +491,7 @@
         loader.load('lunari_durmiendo1.glb', (gltf) => {
             const lunariModel = gltf.scene;
             
-            // Aplicar lógica de materiales (incluye el aumento de brillo para Lunari)
+            // Usamos la misma lógica para que tenga sombras y NO DESAPAREZCA
             applyMaterialLogic(lunariModel, 'lunari');
             
             scene.add(lunariModel);
