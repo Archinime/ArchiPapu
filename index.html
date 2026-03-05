@@ -15,6 +15,12 @@
             background-color: #111;
         }
 
+        /* Bloquear gestos táctiles por defecto en el canvas para que funcione el arrastre */
+        canvas {
+            touch-action: none;
+            outline: none;
+        }
+
         /* --- SCROLLBAR PERSONALIZADO --- */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
@@ -167,14 +173,17 @@
         
         .inv-group { margin-bottom: 10px; }
         .group-btn {
-            width: 100%; text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.5);
+            width: 100%;
+            text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.5);
             color: white; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
-            cursor: pointer; font-size: 15px; font-weight: bold;
+            cursor: pointer; font-size: 15px;
+            font-weight: bold;
             display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease;
         }
         .group-btn:hover { background: rgba(255,255,255,0.15); transform: translateX(2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .group-content {
-            display: none; flex-direction: column; padding-left: 10px; margin-top: 5px;
+            display: none;
+            flex-direction: column; padding-left: 10px; margin-top: 5px;
             border-left: 2px solid rgba(255,255,255,0.1); margin-left: 8px;
             animation: slideDown 0.3s ease;
         }
@@ -182,9 +191,11 @@
         .group-content.open { display: flex; }
 
         .cat-btn { 
-            width: 100%; text-align: left; padding: 10px 15px; background: transparent; 
+            width: 100%;
+            text-align: left; padding: 10px 15px; background: transparent; 
             color: #bbb; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 4px; 
-            font-size: 14px; transition: 0.2s; display: flex; align-items: center; gap: 10px;
+            font-size: 14px;
+            transition: 0.2s; display: flex; align-items: center; gap: 10px;
         }
         .cat-btn:hover { background: rgba(255,255,255,0.08); color: white; padding-left: 18px; }
         .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
@@ -192,7 +203,8 @@
         
         /* CONTENIDO DE ÍTEMS */
         #inv-content {
-            width: 70%; overflow-y: auto; display: grid;
+            width: 70%;
+            overflow-y: auto; display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 15px; align-content: start; padding-right: 5px;
         }
@@ -200,12 +212,14 @@
             background: linear-gradient(145deg, rgba(40,40,50,0.9), rgba(25,25,30,0.9));
             padding: 15px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.05);
             text-align: center; display: flex; flex-direction: column;
-            justify-content: space-between; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            justify-content: space-between;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         .item-card:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 10px 25px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.2); }
         .item-preview {
-            width: 100%; height: 120px; background: rgba(0,0,0,0.3); border-radius: 12px; margin-bottom: 12px;
+            width: 100%;
+            height: 120px; background: rgba(0,0,0,0.3); border-radius: 12px; margin-bottom: 12px;
             overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1);
         }
         .item-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -213,7 +227,8 @@
         .item-card h4 { margin: 0 0 8px 0; font-size: 16px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
         .item-price { color: #FFD700; font-weight: bold; margin-bottom: 15px; font-size: 14px; text-shadow: 0 0 5px rgba(255, 215, 0, 0.3); }
         .item-btn {
-            padding: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
+            padding: 10px;
+            border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
         }
         
         .btn-buy { background: linear-gradient(135deg, #FF9800, #F57C00); color: white; box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3); }
@@ -226,22 +241,27 @@
 
         /* --- MODAL PARA VER POSTERS --- */
         #poster-view-modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 2000;
-            justify-content: center; align-items: center; flex-direction: column;
+            justify-content: center; align-items: center;
+            flex-direction: column;
             opacity: 0; transition: opacity 0.3s ease;
         }
         #poster-view-modal.visible { display: flex; opacity: 1; }
         #poster-view-modal img {
-            max-width: 90%; max-height: 85%; border-radius: 15px;
+            max-width: 90%;
+            max-height: 85%; border-radius: 15px;
             box-shadow: 0 15px 40px rgba(0,0,0,0.8); object-fit: contain;
             transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         #poster-view-modal.visible img { transform: scale(1); }
         #close-poster-view {
-            position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1);
+            position: absolute;
+            top: 20px; right: 20px; background: rgba(255,255,255,0.1);
             border: none; color: white; font-size: 30px; cursor: pointer; width: 50px;
-            height: 50px; border-radius: 50%; transition: 0.2s; display: flex;
+            height: 50px; border-radius: 50%;
+            transition: 0.2s; display: flex;
             align-items: center; justify-content: center;
         }
         #close-poster-view:hover { background: rgba(255,50,50,0.8); transform: rotate(90deg); }
@@ -264,7 +284,8 @@
 
         /* --- ESTADOS --- */
         #loading, #light-status {
-            position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px);
+            position: absolute;
+            bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px);
             border: 1px solid rgba(255,255,255,0.1); font-weight: bold;
         }
         #loading { right: 20px; animation: pulse 1.5s infinite; }
@@ -428,9 +449,8 @@
 
             model.traverse((node) => {
                 if (node.isMesh) {
-                    // ESTA LÍNEA EVITA QUE LOS MODELOS (Especialmente LUNARI) DESAPAREZCAN AL GIRAR LA CÁMARA
-                    node.frustumCulled = false;
-
+                    node.frustumCulled = false; // ESTA LÍNEA EVITA QUE LOS MODELOS DESAPAREZCAN AL GIRAR LA CÁMARA
+                    
                     if (isFoco) {
                         node.castShadow = false; node.receiveShadow = false;
                         if (node.material) {
@@ -465,8 +485,8 @@
             }
         }
 
-        // Agregamos a Lunari y TODAS sus animaciones al conteo de carga (Base, random, cargando, flotando)
-        totalModelsToLoad += 4; 
+        // Agregamos a Lunari y todas sus animaciones al conteo de carga (Base + Random + Cargando + Mientras Cargan = 4)
+        totalModelsToLoad += 4;
 
         function checkLoading() {
             modelsLoaded++;
@@ -485,60 +505,34 @@
 
         // --- CARGA DE MODELOS Y LUNARI CON ANIMACIONES ---
         const loader = new GLTFLoader();
-        
-        let lunariModelBase = null;
+        let lunariModelMesh = null; // Guardamos la referencia de su mesh para poder hacer Raycast
         let lunariMixer = null;
         let baseAction = null;
         let randomAction = null;
         let cargandoAction = null;
-        let flotandoAction = null;
+        let mientrasCarganAction = null;
         let currentAction = null;
-
-        // Variables de Drag & Drop
-        let isHoldingLunari = false;
-        let isDraggingLunari = false;
-        let isFallingLunari = false;
-        let holdTimer = null;
-        const floatHeight = 2.0; // Altura a la que flota Lunari
-        const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -floatHeight); 
-        const intersectionPoint = new THREE.Vector3();
-        const clickPos = new THREE.Vector2();
 
         // 1. Cargar a Lunari (modelo base)
         loader.load('lunari_durmiendo1.glb', (gltf) => {
-            lunariModelBase = gltf.scene;
-            applyMaterialLogic(lunariModelBase, 'lunari');
-            scene.add(lunariModelBase);
+            lunariModelMesh = gltf.scene;
+            applyMaterialLogic(lunariModelMesh, 'lunari');
+            scene.add(lunariModelMesh);
 
+            // Configurar animaciones
             if (gltf.animations && gltf.animations.length > 0) {
-                lunariMixer = new THREE.AnimationMixer(lunariModelBase);
+                lunariMixer = new THREE.AnimationMixer(lunariModelMesh);
                 baseAction = lunariMixer.clipAction(gltf.animations[0]);
                 baseAction.play();
                 currentAction = baseAction;
-
-                // Evento general para capturar transiciones de animaciones
-                lunariMixer.addEventListener('finished', (event) => {
-                    // Transición de Cargando a Flotando
-                    if (event.action === cargandoAction && isHoldingLunari) {
-                        isDraggingLunari = true;
-                        if (currentAction) currentAction.fadeOut(0.2);
-                        if (flotandoAction) {
-                            flotandoAction.reset().fadeIn(0.2).play();
-                            currentAction = flotandoAction;
-                        }
-                    }
-                    // Transición de Random a Base
-                    else if (event.action === randomAction && !isHoldingLunari && !isDraggingLunari) {
-                        randomAction.fadeOut(0.5);
-                        baseAction.reset().fadeIn(0.5).play();
-                        currentAction = baseAction;
-                    }
-                });
             }
             checkLoading();
-        }, undefined, (e) => { console.error('Error cargando a Lunari:', e); checkLoading(); });
+        }, undefined, (e) => {
+            console.error('Error cargando a Lunari:', e);
+            checkLoading();
+        });
 
-        // 2. Cargar Animaciones Extras
+        // 2. Cargar la animación aleatoria (Lunari_Duerme_2.glb)
         loader.load('Lunari_Duerme_2.glb', (gltf) => {
             if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
                 randomAction = lunariMixer.clipAction(gltf.animations[0]);
@@ -548,38 +542,48 @@
             checkLoading();
         }, undefined, (e) => { checkLoading(); });
 
+        // 3. Cargar la animación de "empezando a cargar"
         loader.load('lunari_cargando1.glb', (gltf) => {
             if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
                 cargandoAction = lunariMixer.clipAction(gltf.animations[0]);
                 cargandoAction.loop = THREE.LoopOnce; 
-                cargandoAction.clampWhenFinished = true; // Permite el evento 'finished' suave
+                cargandoAction.clampWhenFinished = true; 
             }
             checkLoading();
         }, undefined, (e) => { checkLoading(); });
 
+        // 4. Cargar la animación de "mientras la cargan (flotando)"
         loader.load('lunari_mientras_la_cargan1.glb', (gltf) => {
             if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
-                flotandoAction = lunariMixer.clipAction(gltf.animations[0]);
-                flotandoAction.loop = THREE.LoopRepeat;
+                mientrasCarganAction = lunariMixer.clipAction(gltf.animations[0]);
+                // Se repetirá en bucle mientras esté sostenida
             }
             checkLoading();
         }, undefined, (e) => { checkLoading(); });
 
-        // 3. Configurar el intervalo para la animación aleatoria
+        // Configurar el intervalo para la animación aleatoria (cada 60 segundos)
         setInterval(() => {
             if (!randomAction || !baseAction || !lunariMixer) return;
-            if (currentAction === randomAction) return;
-            // No reproducir animación aleatoria si estamos interactuando con ella
-            if (isHoldingLunari || isDraggingLunari || isFallingLunari) return;
+            if (currentAction === randomAction || currentAction === cargandoAction || currentAction === mientrasCarganAction) return;
 
             if (baseAction && randomAction) {
                 baseAction.fadeOut(0.5);
                 randomAction.reset().fadeIn(0.5).play();
                 currentAction = randomAction;
+
+                const onFinished = (event) => {
+                    if (event.action === randomAction) {
+                        randomAction.fadeOut(0.5);
+                        baseAction.reset().fadeIn(0.5).play();
+                        currentAction = baseAction;
+                        lunariMixer.removeEventListener('finished', onFinished);
+                    }
+                };
+                lunariMixer.addEventListener('finished', onFinished);
             }
         }, 60000);
 
-        // 4. Función normal para los objetos de la habitación
+        // --- FUNCIÓN NORMAL PARA CARGAR OBJETOS DE LA HABITACIÓN ---
         function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             if (!itemFile) return;
             if (loadedSlotMeshes[categoryKey]) {
@@ -608,17 +612,12 @@
             });
         }
 
-        // Cargar todos los objetos equipados al inicio
         for (let cat in inventoryData) {
             let equippedItemId = inventoryData[cat].equipped;
             if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
                 let itemData = inventoryData[cat].items[equippedItemId];
-                if (itemData.file) {
-                    loadItemForSlot(cat, itemData.file, true);
-                }
-                if (cat === 'foco' && itemData.baseFile) {
-                    loadItemForSlot('base_foco', itemData.baseFile, true);
-                }
+                if (itemData.file) { loadItemForSlot(cat, itemData.file, true); }
+                if (cat === 'foco' && itemData.baseFile) { loadItemForSlot('base_foco', itemData.baseFile, true); }
             }
         }
 
@@ -638,9 +637,6 @@
             }
         }
 
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-        
         function toggleLight() {
             lightOn = !lightOn;
             localStorage.setItem('lightState', lightOn ? 'on' : 'off'); updateLighting();
@@ -665,21 +661,93 @@
             if (e.target === posterViewModal) posterViewModal.classList.remove('visible');
         };
 
-        // --- SISTEMA DE INTERACCIÓN GENERAL (CLICKS) ---
-        function handleInteraction(event) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            const x = event.touches ? event.touches[0].clientX : event.clientX;
-            const y = event.touches ? event.touches[0].clientY : event.clientY;
-            mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
+        // --- SISTEMA DE ARRASTRE Y SOLTADO DE LUNARI ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
 
-            // Chequeo de Luz
-            if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
-                toggleLight();
-                return; 
+        let holdTimer = null;
+        let isDraggingLunari = false;
+        let dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.5); // Plano invisible a la altura Y=1.5 para arrastrar
+        let dragOffset = new THREE.Vector3(); // Evita que el modelo salte directo al centro del mouse
+        let initialClickPos = { x: 0, y: 0 };
+
+        function updateMouseCoordinates(clientX, clientY) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+        }
+
+        function pickupLunari() {
+            isDraggingLunari = true;
+            controls.enabled = false; // Detener rotación de cámara
+
+            // Determinar la posición inicial de arrastre para mantener un offset suave
+            const target = new THREE.Vector3();
+            raycaster.ray.intersectPlane(dragPlane, target);
+            if (target && lunariModelMesh) {
+                dragOffset.copy(target).sub(lunariModelMesh.position);
+                dragOffset.y = 0; // Solo afecta X y Z
             }
 
+            if (lunariModelMesh) {
+                lunariModelMesh.position.y = 1.5; // Elevarla
+            }
+
+            // Cambiar a la animación de "Siendo cargada"
+            if (currentAction) currentAction.fadeOut(0.2);
+            if (cargandoAction) {
+                cargandoAction.reset().fadeIn(0.2).play();
+                currentAction = cargandoAction;
+
+                const onCargandoFinished = (event) => {
+                    if (event.action === cargandoAction && isDraggingLunari) {
+                        cargandoAction.fadeOut(0.2);
+                        if (mientrasCarganAction) {
+                            mientrasCarganAction.reset().fadeIn(0.2).play();
+                            currentAction = mientrasCarganAction;
+                        }
+                        lunariMixer.removeEventListener('finished', onCargandoFinished);
+                    }
+                };
+                lunariMixer.addEventListener('finished', onCargandoFinished);
+            }
+        }
+
+        function dropLunari() {
+            isDraggingLunari = false;
+            controls.enabled = true; // Reactivar cámara
+
+            // Buscar la altura exacta del "piso" dinámico que el usuario tiene equipado
+            let targetY = 0; 
+            const pisoActivo = loadedSlotMeshes['piso'];
+            
+            if (lunariModelMesh && pisoActivo) {
+                // Trazar un rayo desde arriba de Lunari hacia abajo para detectar el piso
+                const downRay = new THREE.Raycaster(
+                    new THREE.Vector3(lunariModelMesh.position.x, 10, lunariModelMesh.position.z), 
+                    new THREE.Vector3(0, -1, 0)
+                );
+                const hits = downRay.intersectObject(pisoActivo, true);
+                if (hits.length > 0) {
+                    targetY = hits[0].point.y; // Suelo exacto de la malla
+                }
+                lunariModelMesh.position.y = targetY; // Aterrizar en el punto exacto
+            }
+
+            // Volver a la animación base
+            if (currentAction) currentAction.fadeOut(0.3);
+            if (baseAction) {
+                baseAction.reset().fadeIn(0.3).play();
+                currentAction = baseAction;
+            }
+        }
+
+        function handleStandardInteraction() {
+            // Chequeo de Luz
+            if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
+                toggleLight(); return; 
+            }
             // Chequeo de Pósters Dinámicos
             const posterCategories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
             for (let cat of posterCategories) {
@@ -693,87 +761,74 @@
                 }
             }
         }
-        
-        renderer.domElement.addEventListener('click', handleInteraction);
-        renderer.domElement.addEventListener('touchstart', (e) => { 
-            if(document.getElementById('inventory-modal').classList.contains('visible')) return;
-            handleInteraction(e); 
-        }, {passive: true});
 
-
-        // --- SISTEMA DE INTERACCIÓN DRAG & DROP (LUNARI) ---
-        
+        // --- EVENTOS POINTER PARA ARRASTRAR / CLICKEAR ---
         renderer.domElement.addEventListener('pointerdown', (e) => {
-            // Ignorar si hay interfaces abiertas
-            if(document.getElementById('inventory-modal').classList.contains('visible') || 
-               document.getElementById('settings-panel').classList.contains('visible')) return;
+            if(document.getElementById('inventory-modal').classList.contains('visible')) return;
+            
+            initialClickPos.x = e.clientX;
+            initialClickPos.y = e.clientY;
+            updateMouseCoordinates(e.clientX, e.clientY);
 
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-            clickPos.copy(mouse);
-
-            raycaster.setFromCamera(mouse, camera);
-
-            if (lunariModelBase) {
-                const intersects = raycaster.intersectObject(lunariModelBase, true);
+            // Verificar si tocamos a Lunari
+            if (lunariModelMesh) {
+                const intersects = raycaster.intersectObject(lunariModelMesh, true);
                 if (intersects.length > 0) {
-                    // Temporizador de 1 segundo
                     holdTimer = setTimeout(() => {
-                        isHoldingLunari = true;
-                        isFallingLunari = false;
-                        controls.enabled = false; // Desactivar rotación de cámara
-                        
-                        // Transición a la animación de cargando
-                        if (currentAction) currentAction.fadeOut(0.2);
-                        if (cargandoAction) {
-                            cargandoAction.reset().fadeIn(0.2).play();
-                            currentAction = cargandoAction;
-                        }
-                    }, 1000);
+                        pickupLunari();
+                    }, 1000); // 1 segundo de hold
                 }
             }
         });
 
         renderer.domElement.addEventListener('pointermove', (e) => {
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+            updateMouseCoordinates(e.clientX, e.clientY);
 
-            // Cancelar el hold si se mueve el cursor/dedo antes de 1s
-            if (holdTimer && clickPos.distanceTo(mouse) > 0.01) {
-                clearTimeout(holdTimer);
-                holdTimer = null;
+            // Si se movió mucho el dedo/mouse antes del segundo, cancelar el hold
+            if (holdTimer) {
+                const dx = e.clientX - initialClickPos.x;
+                const dy = e.clientY - initialClickPos.y;
+                if (Math.sqrt(dx*dx + dy*dy) > 10) {
+                    clearTimeout(holdTimer);
+                    holdTimer = null;
+                }
             }
 
-            // Mover a Lunari si la estamos arrastrando
-            if (isDraggingLunari && lunariModelBase) {
-                raycaster.setFromCamera(mouse, camera);
-                raycaster.ray.intersectPlane(dragPlane, intersectionPoint);
-                if (intersectionPoint) {
-                    lunariModelBase.position.x = intersectionPoint.x;
-                    lunariModelBase.position.z = intersectionPoint.z;
-                    lunariModelBase.position.y = floatHeight; 
+            // Si ya está flotando, actualizar su posición
+            if (isDraggingLunari && lunariModelMesh) {
+                const target = new THREE.Vector3();
+                raycaster.ray.intersectPlane(dragPlane, target);
+                if (target) {
+                    lunariModelMesh.position.x = target.x - dragOffset.x;
+                    lunariModelMesh.position.z = target.z - dragOffset.z;
                 }
             }
         });
 
-        const releaseLunari = () => {
+        renderer.domElement.addEventListener('pointerup', (e) => {
             if (holdTimer) {
                 clearTimeout(holdTimer);
                 holdTimer = null;
             }
-            if (isHoldingLunari || isDraggingLunari) {
-                isHoldingLunari = false;
-                isDraggingLunari = false;
-                isFallingLunari = true; // Empieza la caída
-                controls.enabled = true; // Reactivar cámara
+
+            if (isDraggingLunari) {
+                dropLunari();
+            } else {
+                // Si fue un click rápido (no se movió y no arrastró), lanzar interacciones normales
+                const dx = e.clientX - initialClickPos.x;
+                const dy = e.clientY - initialClickPos.y;
+                if (Math.sqrt(dx*dx + dy*dy) < 10) {
+                    handleStandardInteraction();
+                }
             }
-        };
+        });
 
-        renderer.domElement.addEventListener('pointerup', releaseLunari);
-        renderer.domElement.addEventListener('pointercancel', releaseLunari);
-
+        renderer.domElement.addEventListener('pointercancel', cancelHold);
+        renderer.domElement.addEventListener('pointerout', cancelHold);
+        function cancelHold() {
+            if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+            if (isDraggingLunari) dropLunari();
+        }
 
         // --- Calidad / Modo Humilde ---
         function updateQuality() {
@@ -781,11 +836,7 @@
             renderer.shadowMap.enabled = !isLow;
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-            
-            for (let cat in loadedSlotMeshes) {
-                applyMaterialLogic(loadedSlotMeshes[cat], cat);
-            }
-            
+            for (let cat in loadedSlotMeshes) { applyMaterialLogic(loadedSlotMeshes[cat], cat); }
             localStorage.setItem('performanceMode', isLow);
             updateLighting(); 
         }
@@ -870,7 +921,6 @@
                     </div>
                     ${btnHTML}
                 `;
-                
                 const previewContainer = card.querySelector('.item-preview');
                 if (previewContainer && item.preview) {
                     previewContainer.innerHTML = '';
@@ -932,27 +982,9 @@
         // --- Animación y Resize ---
         function animate() {
             requestAnimationFrame(animate);
-            
             // ACTUALIZAR ANIMACIÓN DE LUNARI
             const delta = clock.getDelta();
             if (lunariMixer) lunariMixer.update(delta);
-
-            // GRAVEDAD: Lógica de caída "hasta el suelo general" (Y = 0)
-            if (isFallingLunari && lunariModelBase) {
-                lunariModelBase.position.y -= 0.1; // Velocidad de caída
-                
-                if (lunariModelBase.position.y <= 0) {
-                    lunariModelBase.position.y = 0; 
-                    isFallingLunari = false;
-                    
-                    // Al tocar el suelo, volvemos a la animación principal
-                    if (currentAction) currentAction.fadeOut(0.2);
-                    if (baseAction) {
-                        baseAction.reset().fadeIn(0.2).play();
-                        currentAction = baseAction;
-                    }
-                }
-            }
 
             controls.update();
             renderer.render(scene, camera); 
