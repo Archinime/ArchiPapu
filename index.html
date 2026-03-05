@@ -109,7 +109,7 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 150;
-            pointer-events: none; /* Permite girar la cámara clickeando a través del diálogo */
+            pointer-events: none;
             width: 90%;
             max-width: 400px;
             text-align: center;
@@ -425,9 +425,9 @@
             if(!model) return;
             const isLow = perfCheck.checked;
             const isFoco = categoryKey === 'foco';
+
             model.traverse((node) => {
                 if (node.isMesh) {
-                    
                     // ESTA LÍNEA EVITA QUE LOS MODELOS (Especialmente LUNARI) DESAPAREZCAN AL GIRAR LA CÁMARA
                     node.frustumCulled = false;
 
@@ -465,8 +465,8 @@
             }
         }
 
-        // Agregamos a Lunari y su animación aleatoria al conteo de carga
-        totalModelsToLoad += 2; // Uno para el modelo base, otro para la animación extra
+        // Agregamos a Lunari y TODAS sus animaciones al conteo de carga (Base, random, cargando, flotando)
+        totalModelsToLoad += 4; 
 
         function checkLoading() {
             modelsLoaded++;
@@ -485,73 +485,99 @@
 
         // --- CARGA DE MODELOS Y LUNARI CON ANIMACIONES ---
         const loader = new GLTFLoader();
+        
+        let lunariModelBase = null;
         let lunariMixer = null;
         let baseAction = null;
         let randomAction = null;
-        let currentAction = null; // Para controlar qué animación está activa
+        let cargandoAction = null;
+        let flotandoAction = null;
+        let currentAction = null;
+
+        // Variables de Drag & Drop
+        let isHoldingLunari = false;
+        let isDraggingLunari = false;
+        let isFallingLunari = false;
+        let holdTimer = null;
+        const floatHeight = 2.0; // Altura a la que flota Lunari
+        const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -floatHeight); 
+        const intersectionPoint = new THREE.Vector3();
+        const clickPos = new THREE.Vector2();
 
         // 1. Cargar a Lunari (modelo base)
         loader.load('lunari_durmiendo1.glb', (gltf) => {
-            const lunariModel = gltf.scene;
-            
-            applyMaterialLogic(lunariModel, 'lunari');
-            
-            scene.add(lunariModel);
+            lunariModelBase = gltf.scene;
+            applyMaterialLogic(lunariModelBase, 'lunari');
+            scene.add(lunariModelBase);
 
-            // Configurar animaciones
             if (gltf.animations && gltf.animations.length > 0) {
-                lunariMixer = new THREE.AnimationMixer(lunariModel);
-                // Usamos la primera animación como base (idle)
+                lunariMixer = new THREE.AnimationMixer(lunariModelBase);
                 baseAction = lunariMixer.clipAction(gltf.animations[0]);
                 baseAction.play();
                 currentAction = baseAction;
+
+                // Evento general para capturar transiciones de animaciones
+                lunariMixer.addEventListener('finished', (event) => {
+                    // Transición de Cargando a Flotando
+                    if (event.action === cargandoAction && isHoldingLunari) {
+                        isDraggingLunari = true;
+                        if (currentAction) currentAction.fadeOut(0.2);
+                        if (flotandoAction) {
+                            flotandoAction.reset().fadeIn(0.2).play();
+                            currentAction = flotandoAction;
+                        }
+                    }
+                    // Transición de Random a Base
+                    else if (event.action === randomAction && !isHoldingLunari && !isDraggingLunari) {
+                        randomAction.fadeOut(0.5);
+                        baseAction.reset().fadeIn(0.5).play();
+                        currentAction = baseAction;
+                    }
+                });
             }
             checkLoading();
-        }, undefined, (e) => {
-            console.error('Error cargando a Lunari:', e);
-            checkLoading();
-        });
+        }, undefined, (e) => { console.error('Error cargando a Lunari:', e); checkLoading(); });
 
-        // 2. Cargar la animación aleatoria (Lunari_Duerme_2.glb) y agregarla al mixer
+        // 2. Cargar Animaciones Extras
         loader.load('Lunari_Duerme_2.glb', (gltf) => {
             if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
-                // Tomamos la primera animación del archivo
-                const clip = gltf.animations[0];
-                randomAction = lunariMixer.clipAction(clip);
-                randomAction.loop = THREE.LoopOnce; // Se reproduce una sola vez
-                randomAction.clampWhenFinished = true; // Se queda en el último fotograma hasta que volvamos
-                // No la reproducimos aún
+                randomAction = lunariMixer.clipAction(gltf.animations[0]);
+                randomAction.loop = THREE.LoopOnce; 
+                randomAction.clampWhenFinished = true; 
             }
             checkLoading();
-        }, undefined, (e) => {
-            console.error('Error cargando animación aleatoria:', e);
-            checkLoading();
-        });
+        }, undefined, (e) => { checkLoading(); });
 
-        // 3. Configurar el intervalo para la animación aleatoria (cada 60 segundos)
+        loader.load('lunari_cargando1.glb', (gltf) => {
+            if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
+                cargandoAction = lunariMixer.clipAction(gltf.animations[0]);
+                cargandoAction.loop = THREE.LoopOnce; 
+                cargandoAction.clampWhenFinished = true; // Permite el evento 'finished' suave
+            }
+            checkLoading();
+        }, undefined, (e) => { checkLoading(); });
+
+        loader.load('lunari_mientras_la_cargan1.glb', (gltf) => {
+            if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
+                flotandoAction = lunariMixer.clipAction(gltf.animations[0]);
+                flotandoAction.loop = THREE.LoopRepeat;
+            }
+            checkLoading();
+        }, undefined, (e) => { checkLoading(); });
+
+        // 3. Configurar el intervalo para la animación aleatoria
         setInterval(() => {
             if (!randomAction || !baseAction || !lunariMixer) return;
-            // Si ya está reproduciendo la random, no hacer nada
             if (currentAction === randomAction) return;
+            // No reproducir animación aleatoria si estamos interactuando con ella
+            if (isHoldingLunari || isDraggingLunari || isFallingLunari) return;
 
-            // Cambiar a la animación aleatoria con crossfade
             if (baseAction && randomAction) {
                 baseAction.fadeOut(0.5);
                 randomAction.reset().fadeIn(0.5).play();
                 currentAction = randomAction;
-
-                // Cuando termine la random, volver a la base
-                const onFinished = (event) => {
-                    if (event.action === randomAction) {
-                        randomAction.fadeOut(0.5);
-                        baseAction.reset().fadeIn(0.5).play();
-                        currentAction = baseAction;
-                        lunariMixer.removeEventListener('finished', onFinished);
-                    }
-                };
-                lunariMixer.addEventListener('finished', onFinished);
             }
-        }, 60000); // 60 segundos
+        }, 60000);
 
         // 4. Función normal para los objetos de la habitación
         function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
@@ -639,7 +665,7 @@
             if (e.target === posterViewModal) posterViewModal.classList.remove('visible');
         };
 
-        // --- SISTEMA DE INTERACCIÓN GENERAL ---
+        // --- SISTEMA DE INTERACCIÓN GENERAL (CLICKS) ---
         function handleInteraction(event) {
             const rect = renderer.domElement.getBoundingClientRect();
             const x = event.touches ? event.touches[0].clientX : event.clientX;
@@ -674,14 +700,88 @@
             handleInteraction(e); 
         }, {passive: true});
 
+
+        // --- SISTEMA DE INTERACCIÓN DRAG & DROP (LUNARI) ---
+        
+        renderer.domElement.addEventListener('pointerdown', (e) => {
+            // Ignorar si hay interfaces abiertas
+            if(document.getElementById('inventory-modal').classList.contains('visible') || 
+               document.getElementById('settings-panel').classList.contains('visible')) return;
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+            clickPos.copy(mouse);
+
+            raycaster.setFromCamera(mouse, camera);
+
+            if (lunariModelBase) {
+                const intersects = raycaster.intersectObject(lunariModelBase, true);
+                if (intersects.length > 0) {
+                    // Temporizador de 1 segundo
+                    holdTimer = setTimeout(() => {
+                        isHoldingLunari = true;
+                        isFallingLunari = false;
+                        controls.enabled = false; // Desactivar rotación de cámara
+                        
+                        // Transición a la animación de cargando
+                        if (currentAction) currentAction.fadeOut(0.2);
+                        if (cargandoAction) {
+                            cargandoAction.reset().fadeIn(0.2).play();
+                            currentAction = cargandoAction;
+                        }
+                    }, 1000);
+                }
+            }
+        });
+
+        renderer.domElement.addEventListener('pointermove', (e) => {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+            // Cancelar el hold si se mueve el cursor/dedo antes de 1s
+            if (holdTimer && clickPos.distanceTo(mouse) > 0.01) {
+                clearTimeout(holdTimer);
+                holdTimer = null;
+            }
+
+            // Mover a Lunari si la estamos arrastrando
+            if (isDraggingLunari && lunariModelBase) {
+                raycaster.setFromCamera(mouse, camera);
+                raycaster.ray.intersectPlane(dragPlane, intersectionPoint);
+                if (intersectionPoint) {
+                    lunariModelBase.position.x = intersectionPoint.x;
+                    lunariModelBase.position.z = intersectionPoint.z;
+                    lunariModelBase.position.y = floatHeight; 
+                }
+            }
+        });
+
+        const releaseLunari = () => {
+            if (holdTimer) {
+                clearTimeout(holdTimer);
+                holdTimer = null;
+            }
+            if (isHoldingLunari || isDraggingLunari) {
+                isHoldingLunari = false;
+                isDraggingLunari = false;
+                isFallingLunari = true; // Empieza la caída
+                controls.enabled = true; // Reactivar cámara
+            }
+        };
+
+        renderer.domElement.addEventListener('pointerup', releaseLunari);
+        renderer.domElement.addEventListener('pointercancel', releaseLunari);
+
+
         // --- Calidad / Modo Humilde ---
         function updateQuality() {
             const isLow = perfCheck.checked;
             renderer.shadowMap.enabled = !isLow;
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-
-            // Reaplicar materiales a los objetos cargados
+            
             for (let cat in loadedSlotMeshes) {
                 applyMaterialLogic(loadedSlotMeshes[cat], cat);
             }
@@ -836,6 +936,23 @@
             // ACTUALIZAR ANIMACIÓN DE LUNARI
             const delta = clock.getDelta();
             if (lunariMixer) lunariMixer.update(delta);
+
+            // GRAVEDAD: Lógica de caída "hasta el suelo general" (Y = 0)
+            if (isFallingLunari && lunariModelBase) {
+                lunariModelBase.position.y -= 0.1; // Velocidad de caída
+                
+                if (lunariModelBase.position.y <= 0) {
+                    lunariModelBase.position.y = 0; 
+                    isFallingLunari = false;
+                    
+                    // Al tocar el suelo, volvemos a la animación principal
+                    if (currentAction) currentAction.fadeOut(0.2);
+                    if (baseAction) {
+                        baseAction.reset().fadeIn(0.2).play();
+                        currentAction = baseAction;
+                    }
+                }
+            }
 
             controls.update();
             renderer.render(scene, camera); 
