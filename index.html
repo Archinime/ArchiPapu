@@ -449,7 +449,7 @@
 
             model.traverse((node) => {
                 if (node.isMesh) {
-                    node.frustumCulled = false; // ESTA LÍNEA EVITA QUE LOS MODELOS DESAPAREZCAN AL GIRAR LA CÁMARA
+                    node.frustumCulled = false; 
                     
                     if (isFoco) {
                         node.castShadow = false; node.receiveShadow = false;
@@ -485,8 +485,7 @@
             }
         }
 
-        // Agregamos a Lunari y todas sus animaciones al conteo de carga (Base + Random + Cargando + Mientras Cargan = 4)
-        totalModelsToLoad += 4;
+        totalModelsToLoad += 4; // Añadimos las 4 animaciones de Lunari
 
         function checkLoading() {
             modelsLoaded++;
@@ -505,7 +504,8 @@
 
         // --- CARGA DE MODELOS Y LUNARI CON ANIMACIONES ---
         const loader = new GLTFLoader();
-        let lunariModelMesh = null; // Guardamos la referencia de su mesh para poder hacer Raycast
+        let lunariModelMesh = null; 
+        let lunariHitbox = null; // NUEVA SOLUCIÓN PARA QUE EL CLICK NO FALLE
         let lunariMixer = null;
         let baseAction = null;
         let randomAction = null;
@@ -518,6 +518,14 @@
             lunariModelMesh = gltf.scene;
             applyMaterialLogic(lunariModelMesh, 'lunari');
             scene.add(lunariModelMesh);
+
+            // --- HITBOX DE PRECISIÓN ---
+            // Un cilindro invisible que cubre a Lunari para que el Raycaster lo detecte fácilmente
+            const hitboxGeo = new THREE.CylinderGeometry(1.2, 1.2, 3, 16); 
+            const hitboxMat = new THREE.MeshBasicMaterial({ visible: false }); 
+            lunariHitbox = new THREE.Mesh(hitboxGeo, hitboxMat);
+            lunariHitbox.position.y = 1.5; // Elevamos el hitbox a su centro
+            lunariModelMesh.add(lunariHitbox);
 
             // Configurar animaciones
             if (gltf.animations && gltf.animations.length > 0) {
@@ -532,7 +540,7 @@
             checkLoading();
         });
 
-        // 2. Cargar la animación aleatoria (Lunari_Duerme_2.glb)
+        // 2. Cargar la animación aleatoria
         loader.load('Lunari_Duerme_2.glb', (gltf) => {
             if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
                 randomAction = lunariMixer.clipAction(gltf.animations[0]);
@@ -556,12 +564,11 @@
         loader.load('lunari_mientras_la_cargan1.glb', (gltf) => {
             if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
                 mientrasCarganAction = lunariMixer.clipAction(gltf.animations[0]);
-                // Se repetirá en bucle mientras esté sostenida
             }
             checkLoading();
         }, undefined, (e) => { checkLoading(); });
 
-        // Configurar el intervalo para la animación aleatoria (cada 60 segundos)
+        // Animación aleatoria
         setInterval(() => {
             if (!randomAction || !baseAction || !lunariMixer) return;
             if (currentAction === randomAction || currentAction === cargandoAction || currentAction === mientrasCarganAction) return;
@@ -667,8 +674,8 @@
 
         let holdTimer = null;
         let isDraggingLunari = false;
-        let dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.5); // Plano invisible a la altura Y=1.5 para arrastrar
-        let dragOffset = new THREE.Vector3(); // Evita que el modelo salte directo al centro del mouse
+        let dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.5); 
+        let dragOffset = new THREE.Vector3(); 
         let initialClickPos = { x: 0, y: 0 };
 
         function updateMouseCoordinates(clientX, clientY) {
@@ -680,21 +687,19 @@
 
         function pickupLunari() {
             isDraggingLunari = true;
-            controls.enabled = false; // Detener rotación de cámara
+            controls.enabled = false; 
 
-            // Determinar la posición inicial de arrastre para mantener un offset suave
             const target = new THREE.Vector3();
             raycaster.ray.intersectPlane(dragPlane, target);
             if (target && lunariModelMesh) {
                 dragOffset.copy(target).sub(lunariModelMesh.position);
-                dragOffset.y = 0; // Solo afecta X y Z
+                dragOffset.y = 0; 
             }
 
             if (lunariModelMesh) {
-                lunariModelMesh.position.y = 1.5; // Elevarla
+                lunariModelMesh.position.y = 1.5; 
             }
 
-            // Cambiar a la animación de "Siendo cargada"
             if (currentAction) currentAction.fadeOut(0.2);
             if (cargandoAction) {
                 cargandoAction.reset().fadeIn(0.2).play();
@@ -716,26 +721,23 @@
 
         function dropLunari() {
             isDraggingLunari = false;
-            controls.enabled = true; // Reactivar cámara
+            controls.enabled = true; 
 
-            // Buscar la altura exacta del "piso" dinámico que el usuario tiene equipado
             let targetY = 0; 
             const pisoActivo = loadedSlotMeshes['piso'];
             
             if (lunariModelMesh && pisoActivo) {
-                // Trazar un rayo desde arriba de Lunari hacia abajo para detectar el piso
                 const downRay = new THREE.Raycaster(
                     new THREE.Vector3(lunariModelMesh.position.x, 10, lunariModelMesh.position.z), 
                     new THREE.Vector3(0, -1, 0)
                 );
                 const hits = downRay.intersectObject(pisoActivo, true);
                 if (hits.length > 0) {
-                    targetY = hits[0].point.y; // Suelo exacto de la malla
+                    targetY = hits[0].point.y; 
                 }
-                lunariModelMesh.position.y = targetY; // Aterrizar en el punto exacto
+                lunariModelMesh.position.y = targetY; 
             }
 
-            // Volver a la animación base
             if (currentAction) currentAction.fadeOut(0.3);
             if (baseAction) {
                 baseAction.reset().fadeIn(0.3).play();
@@ -744,11 +746,9 @@
         }
 
         function handleStandardInteraction() {
-            // Chequeo de Luz
             if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
                 toggleLight(); return; 
             }
-            // Chequeo de Pósters Dinámicos
             const posterCategories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
             for (let cat of posterCategories) {
                 const posterMesh = loadedSlotMeshes[cat];
@@ -770,13 +770,14 @@
             initialClickPos.y = e.clientY;
             updateMouseCoordinates(e.clientX, e.clientY);
 
-            // Verificar si tocamos a Lunari
-            if (lunariModelMesh) {
-                const intersects = raycaster.intersectObject(lunariModelMesh, true);
+            // Verificamos click pero sobre el hitbox invisible que creamos
+            if (lunariHitbox) {
+                const intersects = raycaster.intersectObject(lunariHitbox);
                 if (intersects.length > 0) {
+                    controls.enabled = false; // Desactivar cámara YA MISMO para que el click no se resbale
                     holdTimer = setTimeout(() => {
                         pickupLunari();
-                    }, 1000); // 1 segundo de hold
+                    }, 1000); // 1 segundo exacto de hold
                 }
             }
         });
@@ -784,17 +785,17 @@
         renderer.domElement.addEventListener('pointermove', (e) => {
             updateMouseCoordinates(e.clientX, e.clientY);
 
-            // Si se movió mucho el dedo/mouse antes del segundo, cancelar el hold
             if (holdTimer) {
                 const dx = e.clientX - initialClickPos.x;
                 const dy = e.clientY - initialClickPos.y;
-                if (Math.sqrt(dx*dx + dy*dy) > 10) {
+                // Margen de 20 píxeles tolerado si te tiembla el pulso
+                if (Math.sqrt(dx*dx + dy*dy) > 20) {
                     clearTimeout(holdTimer);
                     holdTimer = null;
+                    controls.enabled = true; // Restaurar rotación si cancelamos
                 }
             }
 
-            // Si ya está flotando, actualizar su posición
             if (isDraggingLunari && lunariModelMesh) {
                 const target = new THREE.Vector3();
                 raycaster.ray.intersectPlane(dragPlane, target);
@@ -809,15 +810,15 @@
             if (holdTimer) {
                 clearTimeout(holdTimer);
                 holdTimer = null;
+                controls.enabled = true; // Restaurar cámara si soltó antes del segundo
             }
 
             if (isDraggingLunari) {
                 dropLunari();
             } else {
-                // Si fue un click rápido (no se movió y no arrastró), lanzar interacciones normales
                 const dx = e.clientX - initialClickPos.x;
                 const dy = e.clientY - initialClickPos.y;
-                if (Math.sqrt(dx*dx + dy*dy) < 10) {
+                if (Math.sqrt(dx*dx + dy*dy) < 20) {
                     handleStandardInteraction();
                 }
             }
@@ -826,7 +827,11 @@
         renderer.domElement.addEventListener('pointercancel', cancelHold);
         renderer.domElement.addEventListener('pointerout', cancelHold);
         function cancelHold() {
-            if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+            if (holdTimer) { 
+                clearTimeout(holdTimer); 
+                holdTimer = null; 
+                controls.enabled = true;
+            }
             if (isDraggingLunari) dropLunari();
         }
 
