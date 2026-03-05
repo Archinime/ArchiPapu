@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Habitación 3D - Inventario y Lunari</title>
     <style>
-        /* (los estilos se mantienen exactamente igual que en tu versión anterior) */
         body {
             margin: 0;
             overflow: hidden;
@@ -110,7 +109,7 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 150;
-            pointer-events: none;
+            pointer-events: none; /* Permite girar la cámara clickeando a través del diálogo */
             width: 90%;
             max-width: 400px;
             text-align: center;
@@ -466,8 +465,8 @@
             }
         }
 
-        // Agregamos a Lunari y sus animaciones: modelo base + 2 animaciones extra
-        totalModelsToLoad += 3; // modelo base, animación 2, animación 3
+        // Agregamos a Lunari y su animación aleatoria al conteo de carga
+        totalModelsToLoad += 2; // Uno para el modelo base, otro para la animación extra
 
         function checkLoading() {
             modelsLoaded++;
@@ -487,19 +486,9 @@
         // --- CARGA DE MODELOS Y LUNARI CON ANIMACIONES ---
         const loader = new GLTFLoader();
         let lunariMixer = null;
-        let idle1Action = null;      // animación base (lunari_durmiendo1.glb)
-        let randomAction = null;     // animación especial (Lunari_Duerme_2.glb)
-        let idle2Action = null;      // segundo idle (Lunari_Duerme_3.glb)
-        let currentAction = null;    // acción que se está reproduciendo actualmente
-        let currentIdleAction = null; // idle actual (idle1 o idle2)
-        let isRandomPlaying = false; // true mientras se reproduce randomAction
-        let previousIdleAction = null; // para volver después de random
-
-        // Almacenar clips temporalmente si el mixer aún no está listo
-        let pendingClips = {
-            random: null,
-            idle2: null
-        };
+        let baseAction = null;
+        let randomAction = null;
+        let currentAction = null; // Para controlar qué animación está activa
 
         // 1. Cargar a Lunari (modelo base)
         loader.load('lunari_durmiendo1.glb', (gltf) => {
@@ -512,22 +501,10 @@
             // Configurar animaciones
             if (gltf.animations && gltf.animations.length > 0) {
                 lunariMixer = new THREE.AnimationMixer(lunariModel);
-                // Usamos la primera animación como idle base
-                idle1Action = lunariMixer.clipAction(gltf.animations[0]);
-                idle1Action.play();
-                currentAction = idle1Action;
-                currentIdleAction = idle1Action;
-
-                // Si hay clips pendientes (animaciones cargadas antes que el modelo), creamos las acciones ahora
-                if (pendingClips.random) {
-                    randomAction = lunariMixer.clipAction(pendingClips.random);
-                    randomAction.loop = THREE.LoopOnce;
-                    randomAction.clampWhenFinished = true;
-                }
-                if (pendingClips.idle2) {
-                    idle2Action = lunariMixer.clipAction(pendingClips.idle2);
-                    idle2Action.loop = THREE.LoopRepeat;
-                }
+                // Usamos la primera animación como base (idle)
+                baseAction = lunariMixer.clipAction(gltf.animations[0]);
+                baseAction.play();
+                currentAction = baseAction;
             }
             checkLoading();
         }, undefined, (e) => {
@@ -535,18 +512,15 @@
             checkLoading();
         });
 
-        // 2. Cargar la animación aleatoria (Lunari_Duerme_2.glb)
+        // 2. Cargar la animación aleatoria (Lunari_Duerme_2.glb) y agregarla al mixer
         loader.load('Lunari_Duerme_2.glb', (gltf) => {
-            if (gltf.animations && gltf.animations.length > 0) {
+            if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
+                // Tomamos la primera animación del archivo
                 const clip = gltf.animations[0];
-                if (lunariMixer) {
-                    randomAction = lunariMixer.clipAction(clip);
-                    randomAction.loop = THREE.LoopOnce;
-                    randomAction.clampWhenFinished = true;
-                } else {
-                    // Guardar el clip para cuando el mixer esté listo
-                    pendingClips.random = clip;
-                }
+                randomAction = lunariMixer.clipAction(clip);
+                randomAction.loop = THREE.LoopOnce; // Se reproduce una sola vez
+                randomAction.clampWhenFinished = true; // Se queda en el último fotograma hasta que volvamos
+                // No la reproducimos aún
             }
             checkLoading();
         }, undefined, (e) => {
@@ -554,23 +528,30 @@
             checkLoading();
         });
 
-        // 3. Cargar el segundo idle (Lunari_Duerme_3.glb)
-        loader.load('Lunari_Duerme_3.glb', (gltf) => {
-            if (gltf.animations && gltf.animations.length > 0) {
-                const clip = gltf.animations[0];
-                if (lunariMixer) {
-                    idle2Action = lunariMixer.clipAction(clip);
-                    idle2Action.loop = THREE.LoopRepeat;
-                } else {
-                    // Guardar el clip para cuando el mixer esté listo
-                    pendingClips.idle2 = clip;
-                }
+        // 3. Configurar el intervalo para la animación aleatoria (cada 60 segundos)
+        setInterval(() => {
+            if (!randomAction || !baseAction || !lunariMixer) return;
+            // Si ya está reproduciendo la random, no hacer nada
+            if (currentAction === randomAction) return;
+
+            // Cambiar a la animación aleatoria con crossfade
+            if (baseAction && randomAction) {
+                baseAction.fadeOut(0.5);
+                randomAction.reset().fadeIn(0.5).play();
+                currentAction = randomAction;
+
+                // Cuando termine la random, volver a la base
+                const onFinished = (event) => {
+                    if (event.action === randomAction) {
+                        randomAction.fadeOut(0.5);
+                        baseAction.reset().fadeIn(0.5).play();
+                        currentAction = baseAction;
+                        lunariMixer.removeEventListener('finished', onFinished);
+                    }
+                };
+                lunariMixer.addEventListener('finished', onFinished);
             }
-            checkLoading();
-        }, undefined, (e) => {
-            console.error('Error cargando segundo idle:', e);
-            checkLoading();
-        });
+        }, 60000); // 60 segundos
 
         // 4. Función normal para los objetos de la habitación
         function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
@@ -847,68 +828,6 @@
         document.getElementById('settings-button').onclick = () => {
             document.getElementById('settings-panel').classList.toggle('visible');
         };
-
-        // --- CONFIGURACIÓN DE ANIMACIONES DE LUNARI ---
-        // Esperamos a que todas las acciones estén listas antes de iniciar los intervalos
-        function startAnimationIntervals() {
-            // Intervalo para cambiar entre idle1 e idle2 cada 2 minutos (120000 ms)
-            setInterval(() => {
-                if (!lunariMixer || !idle1Action || !idle2Action || isRandomPlaying) return;
-                
-                // Determinar el próximo idle
-                let nextIdle = (currentIdleAction === idle1Action) ? idle2Action : idle1Action;
-                
-                // Hacer crossfade
-                currentIdleAction.fadeOut(0.5);
-                nextIdle.reset().fadeIn(0.5).play();
-                
-                // Actualizar referencias
-                currentIdleAction = nextIdle;
-                currentAction = nextIdle;
-            }, 120000); // 2 minutos
-
-            // Intervalo para la animación aleatoria cada 60 segundos
-            setInterval(() => {
-                if (!lunariMixer || !randomAction || !currentIdleAction || isRandomPlaying) return;
-
-                // Guardar el idle actual para volver después
-                previousIdleAction = currentIdleAction;
-                
-                // Detener el idle actual con fade out y lanzar random con fade in
-                currentIdleAction.fadeOut(0.5);
-                randomAction.reset().fadeIn(0.5).play();
-                
-                // Actualizar estado
-                currentAction = randomAction;
-                isRandomPlaying = true;
-
-                // Escuchar el final de la animación aleatoria
-                const onRandomFinished = (event) => {
-                    if (event.action === randomAction) {
-                        // Volver al idle anterior
-                        randomAction.fadeOut(0.5);
-                        previousIdleAction.reset().fadeIn(0.5).play();
-                        
-                        currentIdleAction = previousIdleAction;
-                        currentAction = previousIdleAction;
-                        isRandomPlaying = false;
-                        
-                        // Remover el listener para evitar acumulación
-                        lunariMixer.removeEventListener('finished', onRandomFinished);
-                    }
-                };
-                lunariMixer.addEventListener('finished', onRandomFinished);
-            }, 60000); // 60 segundos
-        }
-
-        // Iniciar los intervalos cuando todas las acciones estén definidas
-        // Usamos un setInterval para comprobar periódicamente
-        const checkActionsInterval = setInterval(() => {
-            if (idle1Action && idle2Action && randomAction) {
-                clearInterval(checkActionsInterval);
-                startAnimationIntervals();
-            }
-        }, 500);
 
         // --- Animación y Resize ---
         function animate() {
