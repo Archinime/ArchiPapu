@@ -109,7 +109,7 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 150;
-            pointer-events: none; /* Permite girar la cámara clickeando a través del diálogo */
+            pointer-events: none;
             width: 90%;
             max-width: 400px;
             text-align: center;
@@ -167,14 +167,17 @@
         
         .inv-group { margin-bottom: 10px; }
         .group-btn {
-            width: 100%; text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.5);
+            width: 100%;
+            text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.5);
             color: white; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
-            cursor: pointer; font-size: 15px; font-weight: bold;
+            cursor: pointer; font-size: 15px;
+            font-weight: bold;
             display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease;
         }
         .group-btn:hover { background: rgba(255,255,255,0.15); transform: translateX(2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .group-content {
-            display: none; flex-direction: column; padding-left: 10px; margin-top: 5px;
+            display: none;
+            flex-direction: column; padding-left: 10px; margin-top: 5px;
             border-left: 2px solid rgba(255,255,255,0.1); margin-left: 8px;
             animation: slideDown 0.3s ease;
         }
@@ -182,9 +185,11 @@
         .group-content.open { display: flex; }
 
         .cat-btn { 
-            width: 100%; text-align: left; padding: 10px 15px; background: transparent; 
+            width: 100%;
+            text-align: left; padding: 10px 15px; background: transparent; 
             color: #bbb; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 4px; 
-            font-size: 14px; transition: 0.2s; display: flex; align-items: center; gap: 10px;
+            font-size: 14px;
+            transition: 0.2s; display: flex; align-items: center; gap: 10px;
         }
         .cat-btn:hover { background: rgba(255,255,255,0.08); color: white; padding-left: 18px; }
         .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
@@ -192,7 +197,8 @@
         
         /* CONTENIDO DE ÍTEMS */
         #inv-content {
-            width: 70%; overflow-y: auto; display: grid;
+            width: 70%;
+            overflow-y: auto; display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 15px; align-content: start; padding-right: 5px;
         }
@@ -200,12 +206,14 @@
             background: linear-gradient(145deg, rgba(40,40,50,0.9), rgba(25,25,30,0.9));
             padding: 15px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.05);
             text-align: center; display: flex; flex-direction: column;
-            justify-content: space-between; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            justify-content: space-between;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         .item-card:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 10px 25px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.2); }
         .item-preview {
-            width: 100%; height: 120px; background: rgba(0,0,0,0.3); border-radius: 12px; margin-bottom: 12px;
+            width: 100%;
+            height: 120px; background: rgba(0,0,0,0.3); border-radius: 12px; margin-bottom: 12px;
             overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1);
         }
         .item-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -213,7 +221,8 @@
         .item-card h4 { margin: 0 0 8px 0; font-size: 16px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
         .item-price { color: #FFD700; font-weight: bold; margin-bottom: 15px; font-size: 14px; text-shadow: 0 0 5px rgba(255, 215, 0, 0.3); }
         .item-btn {
-            padding: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
+            padding: 10px;
+            border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
         }
         
         .btn-buy { background: linear-gradient(135deg, #FF9800, #F57C00); color: white; box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3); }
@@ -226,22 +235,27 @@
 
         /* --- MODAL PARA VER POSTERS --- */
         #poster-view-modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 2000;
-            justify-content: center; align-items: center; flex-direction: column;
+            justify-content: center; align-items: center;
+            flex-direction: column;
             opacity: 0; transition: opacity 0.3s ease;
         }
         #poster-view-modal.visible { display: flex; opacity: 1; }
         #poster-view-modal img {
-            max-width: 90%; max-height: 85%; border-radius: 15px;
+            max-width: 90%;
+            max-height: 85%; border-radius: 15px;
             box-shadow: 0 15px 40px rgba(0,0,0,0.8); object-fit: contain;
             transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         #poster-view-modal.visible img { transform: scale(1); }
         #close-poster-view {
-            position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1);
+            position: absolute;
+            top: 20px; right: 20px; background: rgba(255,255,255,0.1);
             border: none; color: white; font-size: 30px; cursor: pointer; width: 50px;
-            height: 50px; border-radius: 50%; transition: 0.2s; display: flex;
+            height: 50px; border-radius: 50%;
+            transition: 0.2s; display: flex;
             align-items: center; justify-content: center;
         }
         #close-poster-view:hover { background: rgba(255,50,50,0.8); transform: rotate(90deg); }
@@ -264,7 +278,8 @@
 
         /* --- ESTADOS --- */
         #loading, #light-status {
-            position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px);
+            position: absolute;
+            bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px);
             border: 1px solid rgba(255,255,255,0.1); font-weight: bold;
         }
         #loading { right: 20px; animation: pulse 1.5s infinite; }
@@ -425,9 +440,9 @@
             if(!model) return;
             const isLow = perfCheck.checked;
             const isFoco = categoryKey === 'foco';
+
             model.traverse((node) => {
                 if (node.isMesh) {
-                    
                     // ESTA LÍNEA EVITA QUE LOS MODELOS (Especialmente LUNARI) DESAPAREZCAN AL GIRAR LA CÁMARA
                     node.frustumCulled = false;
 
@@ -465,8 +480,8 @@
             }
         }
 
-        // Agregamos a Lunari y su animación aleatoria al conteo de carga
-        totalModelsToLoad += 2; // Uno para el modelo base, otro para la animación extra
+        // Agregamos a Lunari y sus animaciones al conteo de carga (Modelo Base + Anim Random + Idle 2)
+        totalModelsToLoad += 3; 
 
         function checkLoading() {
             modelsLoaded++;
@@ -483,75 +498,103 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // --- CARGA DE MODELOS Y LUNARI CON ANIMACIONES ---
+        // --- CARGA DE MODELOS Y LUNARI CON SISTEMA DE ANIMACIONES (STATE MACHINE) ---
         const loader = new GLTFLoader();
         let lunariMixer = null;
-        let baseAction = null;
-        let randomAction = null;
-        let currentAction = null; // Para controlar qué animación está activa
+        let actionIdle1 = null;      // lunari_durmiendo1.glb
+        let actionIdle2 = null;      // Lunari_Duerme_3.glb
+        let actionRandom = null;     // Lunari_Duerme_2.glb
+        let currentIdleAction = null; // Animación de descanso activa actualmente
+        let isPlayingRandom = false; // Bloqueador para no interrumpir la animación random
 
-        // 1. Cargar a Lunari (modelo base)
+        // 1. Cargar el modelo base y su primer Idle (lunari_durmiendo1.glb)
         loader.load('lunari_durmiendo1.glb', (gltf) => {
             const lunariModel = gltf.scene;
-            
             applyMaterialLogic(lunariModel, 'lunari');
-            
             scene.add(lunariModel);
 
-            // Configurar animaciones
             if (gltf.animations && gltf.animations.length > 0) {
                 lunariMixer = new THREE.AnimationMixer(lunariModel);
-                // Usamos la primera animación como base (idle)
-                baseAction = lunariMixer.clipAction(gltf.animations[0]);
-                baseAction.play();
-                currentAction = baseAction;
+                
+                actionIdle1 = lunariMixer.clipAction(gltf.animations[0]);
+                actionIdle1.play();
+                currentIdleAction = actionIdle1; // Iniciamos con el Idle 1
             }
             checkLoading();
+
+            // 2. Cargar la animación aleatoria (Lunari_Duerme_2.glb)
+            loader.load('Lunari_Duerme_2.glb', (gltf2) => {
+                if (gltf2.animations && gltf2.animations.length > 0 && lunariMixer) {
+                    actionRandom = lunariMixer.clipAction(gltf2.animations[0]);
+                    actionRandom.loop = THREE.LoopOnce; 
+                    actionRandom.clampWhenFinished = true; 
+                }
+                checkLoading();
+            }, undefined, (e) => {
+                console.error('Error cargando animación aleatoria (Duerme_2):', e);
+                checkLoading();
+            });
+
+            // 3. Cargar el nuevo Idle (Lunari_Duerme_3.glb)
+            loader.load('Lunari_Duerme_3.glb', (gltf3) => {
+                if (gltf3.animations && gltf3.animations.length > 0 && lunariMixer) {
+                    actionIdle2 = lunariMixer.clipAction(gltf3.animations[0]);
+                }
+                checkLoading();
+            }, undefined, (e) => {
+                console.error('Error cargando el segundo Idle (Duerme_3):', e);
+                checkLoading();
+            });
+
         }, undefined, (e) => {
             console.error('Error cargando a Lunari:', e);
             checkLoading();
         });
 
-        // 2. Cargar la animación aleatoria (Lunari_Duerme_2.glb) y agregarla al mixer
-        loader.load('Lunari_Duerme_2.glb', (gltf) => {
-            if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
-                // Tomamos la primera animación del archivo
-                const clip = gltf.animations[0];
-                randomAction = lunariMixer.clipAction(clip);
-                randomAction.loop = THREE.LoopOnce; // Se reproduce una sola vez
-                randomAction.clampWhenFinished = true; // Se queda en el último fotograma hasta que volvamos
-                // No la reproducimos aún
-            }
-            checkLoading();
-        }, undefined, (e) => {
-            console.error('Error cargando animación aleatoria:', e);
-            checkLoading();
-        });
-
-        // 3. Configurar el intervalo para la animación aleatoria (cada 60 segundos)
+        // TEMPORIZADOR 1: Animación aleatoria (Duerme 2) cada 60 segundos
         setInterval(() => {
-            if (!randomAction || !baseAction || !lunariMixer) return;
-            // Si ya está reproduciendo la random, no hacer nada
-            if (currentAction === randomAction) return;
+            if (!actionRandom || !currentIdleAction || !lunariMixer) return;
+            // Si ya está reproduciéndose la animación random, no hacer nada
+            if (isPlayingRandom) return;
 
-            // Cambiar a la animación aleatoria con crossfade
-            if (baseAction && randomAction) {
-                baseAction.fadeOut(0.5);
-                randomAction.reset().fadeIn(0.5).play();
-                currentAction = randomAction;
+            isPlayingRandom = true;
 
-                // Cuando termine la random, volver a la base
-                const onFinished = (event) => {
-                    if (event.action === randomAction) {
-                        randomAction.fadeOut(0.5);
-                        baseAction.reset().fadeIn(0.5).play();
-                        currentAction = baseAction;
-                        lunariMixer.removeEventListener('finished', onFinished);
-                    }
-                };
-                lunariMixer.addEventListener('finished', onFinished);
-            }
+            // Transición cruzada suave hacia la animación random
+            currentIdleAction.fadeOut(0.5);
+            actionRandom.reset().fadeIn(0.5).play();
+
+            // Cuando termine la random, volver al idle que estaba activo
+            const onFinished = (event) => {
+                if (event.action === actionRandom) {
+                    actionRandom.fadeOut(0.5);
+                    currentIdleAction.reset().fadeIn(0.5).play(); // Volvemos al idle actual (sea 1 o 2)
+                    
+                    lunariMixer.removeEventListener('finished', onFinished);
+                    isPlayingRandom = false;
+                }
+            };
+            lunariMixer.addEventListener('finished', onFinished);
         }, 60000); // 60 segundos
+
+        // TEMPORIZADOR 2: Cambiar de Idle base cada 3 minutos
+        setInterval(() => {
+            if (!actionIdle1 || !actionIdle2 || !lunariMixer) return;
+            // Si está reproduciendo la animación de 1 minuto, posponemos el cambio para no romperla
+            if (isPlayingRandom) return;
+
+            let prevIdle = currentIdleAction;
+            // Intercambiador: Si es Idle 1, pasa a 2. Si es 2, pasa a 1.
+            let nextIdle = (currentIdleAction === actionIdle1) ? actionIdle2 : actionIdle1;
+
+            nextIdle.reset().play();
+            
+            // Transición suave de 2 segundos para combinar ambas posturas
+            prevIdle.crossFadeTo(nextIdle, 2.0, false);
+            
+            // Actualizamos el Idle global para que el otro temporizador sepa a dónde volver
+            currentIdleAction = nextIdle;
+
+        }, 180000); // 180,000 ms = 3 minutos
 
         // 4. Función normal para los objetos de la habitación
         function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
@@ -646,8 +689,8 @@
             const y = event.touches ? event.touches[0].clientY : event.clientY;
             mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
 
+            raycaster.setFromCamera(mouse, camera);
             // Chequeo de Luz
             if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
                 toggleLight();
@@ -680,7 +723,7 @@
             renderer.shadowMap.enabled = !isLow;
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-
+            
             // Reaplicar materiales a los objetos cargados
             for (let cat in loadedSlotMeshes) {
                 applyMaterialLogic(loadedSlotMeshes[cat], cat);
@@ -698,8 +741,9 @@
         function renderInventory() {
             const sidebar = document.getElementById('inv-sidebar');
             const content = document.getElementById('inv-content');
+            
             sidebar.innerHTML = ''; content.innerHTML = '';
-
+            
             inventoryGroups.forEach(group => {
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'inv-group';
@@ -832,7 +876,7 @@
         // --- Animación y Resize ---
         function animate() {
             requestAnimationFrame(animate);
-            
+
             // ACTUALIZAR ANIMACIÓN DE LUNARI
             const delta = clock.getDelta();
             if (lunariMixer) lunariMixer.update(delta);
