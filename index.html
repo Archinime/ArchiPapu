@@ -68,7 +68,7 @@
         }
         #coin-display:hover { transform: scale(1.05); }
 
-        /* --- UI DE CLIMA (NUEVO) --- */
+        /* --- UI DE CLIMA --- */
         #weather-status {
             position: absolute;
             top: 70px;
@@ -188,16 +188,14 @@
         
         .inv-group { margin-bottom: 10px; }
         .group-btn {
-            width: 100%;
-            text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.5);
+            width: 100%; text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.5);
             color: white; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
             cursor: pointer; font-size: 15px; font-weight: bold;
             display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease;
         }
         .group-btn:hover { background: rgba(255,255,255,0.15); transform: translateX(2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .group-content {
-            display: none;
-            flex-direction: column; padding-left: 10px; margin-top: 5px;
+            display: none; flex-direction: column; padding-left: 10px; margin-top: 5px;
             border-left: 2px solid rgba(255,255,255,0.1); margin-left: 8px;
             animation: slideDown 0.3s ease;
         }
@@ -234,9 +232,7 @@
         .item-preview span { font-size: 48px; line-height: 120px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
         .item-card h4 { margin: 0 0 8px 0; font-size: 16px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
         .item-price { color: #FFD700; font-weight: bold; margin-bottom: 15px; font-size: 14px; text-shadow: 0 0 5px rgba(255, 215, 0, 0.3); }
-        .item-btn {
-            padding: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
-        }
+        .item-btn { padding: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
         
         .btn-buy { background: linear-gradient(135deg, #FF9800, #F57C00); color: white; box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3); }
         .btn-buy:hover { background: linear-gradient(135deg, #FFB74D, #FF9800); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(255, 152, 0, 0.4); }
@@ -350,16 +346,32 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-        
-        import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
-        // --- SISTEMA DE DATOS E INVENTARIO ---
+        // --- SISTEMA DE DATOS E INVENTARIO (Integrado para que no dependa de archivo externo) ---
+        const defaultInventoryConfig = {
+            lunari: { emoji: "🦊", label: "Lunari", equipped: "lunari_base", items: { lunari_base: { name: "Lunari Básico", owned: true, price: 0, file: "lunari_durmiendo1.glb" } } },
+            cama: { emoji: "🛏️", label: "Cama", equipped: "cama_basica", items: { cama_basica: { name: "Cama Estándar", owned: true, price: 0, file: null } } },
+            foco: { emoji: "💡", label: "Foco", equipped: "foco_basico", items: { foco_basico: { name: "Foco Clásico", owned: true, price: 0, file: null, baseFile: null } } },
+            interruptor: { emoji: "🎛️", label: "Interruptor", equipped: "int_basico", items: { int_basico: { name: "Normal", owned: true, price: 0, file: null } } },
+            cuadro: { emoji: "🖼️", label: "Cuadro", equipped: "cuadro_base", items: { cuadro_base: { name: "Cuadro Base", owned: true, price: 0, file: "cuadro.glb" } } },
+            poster_1: { emoji: "🖼️", label: "Póster 1", equipped: "poster_vacio", items: { poster_vacio: { name: "Vacío", owned: true, price: 0, file: null, preview: null } } },
+            poster_2: { emoji: "🖼️", label: "Póster 2", equipped: "poster_vacio", items: { poster_vacio: { name: "Vacío", owned: true, price: 0, file: null, preview: null } } },
+            poster_3: { emoji: "🖼️", label: "Póster 3", equipped: "poster_vacio", items: { poster_vacio: { name: "Vacío", owned: true, price: 0, file: null, preview: null } } },
+            poster_4: { emoji: "🖼️", label: "Póster 4", equipped: "poster_vacio", items: { poster_vacio: { name: "Vacío", owned: true, price: 0, file: null, preview: null } } }
+        };
+
+        const inventoryGroups = [
+            { id: "muebles", emoji: "🛋️", label: "Muebles", categories: ["cama"] },
+            { id: "iluminacion", emoji: "💡", label: "Iluminación", categories: ["foco", "interruptor"] },
+            { id: "decoracion", emoji: "🖼️", label: "Decoración", categories: ["cuadro", "poster_1", "poster_2", "poster_3", "poster_4"] },
+            { id: "personajes", emoji: "🦊", label: "Personajes", categories: ["lunari"] }
+        ];
+
         let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
         document.getElementById('coin-amount').innerText = playerCoins;
 
         let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
         if (inventoryData.base_foco) delete inventoryData.base_foco;
-
         for (let cat in defaultInventoryConfig) {
             if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
             inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
@@ -408,11 +420,10 @@
         let camPosY = 6, camPosZ = 14, targetY = 6;
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
         camera.position.set(0, camPosY, camPosZ);
-
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.outputEncoding = THREE.sRGBEncoding;
         renderer.toneMapping = THREE.ACESFilmicToneMapping; 
         renderer.toneMappingExposure = 1.0;
@@ -428,13 +439,16 @@
 
         const ambient = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambient);
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0);
+        scene.add(hemiLight);
         
         const mainLight = new THREE.SpotLight(0xffeedd, 6);
-        mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
+        mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8;
+        mainLight.decay = 2; mainLight.distance = 60;
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.set(2048, 2048);
-        mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
+        mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001;
+        mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
         scene.add(mainLight); scene.add(mainLight.target);
 
         let lightOn = localStorage.getItem('lightState') !== 'off';
@@ -445,7 +459,6 @@
             if(!model) return;
             const isLow = perfCheck.checked;
             const isFoco = categoryKey === 'foco';
-
             model.traverse((node) => {
                 if (node.isMesh) {
                     node.frustumCulled = false;
@@ -472,7 +485,6 @@
 
         let totalModelsToLoad = 0;
         let modelsLoaded = 0;
-
         for (let cat in inventoryData) {
             let equippedItemId = inventoryData[cat].equipped;
             if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
@@ -505,7 +517,6 @@
         let baseAction = null;
         let randomAction = null;
         let currentAction = null;
-
         loader.load('lunari_durmiendo1.glb', (gltf) => {
             const lunariModel = gltf.scene;
             applyMaterialLogic(lunariModel, 'lunari');
@@ -535,7 +546,7 @@
             console.error('Error cargando animación aleatoria:', e);
             checkLoading();
         });
-
+        
         setInterval(() => {
             if (!randomAction || !baseAction || !lunariMixer) return;
             if (currentAction === randomAction) return;
@@ -556,7 +567,7 @@
                 lunariMixer.addEventListener('finished', onFinished);
             }
         }, 60000);
-
+        
         function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             if (!itemFile) return;
             if (loadedSlotMeshes[categoryKey]) {
@@ -606,15 +617,13 @@
             video.playsInline = true;
             video.crossOrigin = 'anonymous';
             
-            // Valores por defecto
-            let videoFile = 'dia_soleado.mp4'; [cite: 191]
+            let videoFile = 'dia_soleado.mp4';
             let weatherEmoji = "☀️";
             let weatherName = "Clima estándar";
             let cityName = "Ubicación Local";
             const statusBox = document.getElementById('weather-status');
 
             try {
-                // 1. Pedir coordenadas exactas (GPS)
                 const pos = await new Promise((resolve, reject) => {
                     navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
                 });
@@ -622,19 +631,16 @@
                 const lat = pos.coords.latitude;
                 const lon = pos.coords.longitude;
                 
-                // 2. Traducir coordenadas a nombre de ciudad (Geocodificación Inversa Gratis)
                 const geoResponse = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=es`);
                 const geoData = await geoResponse.json();
                 cityName = geoData.locality || geoData.city || "Tu zona";
                 
-                // 3. Consultar la API de clima exacto para esas coordenadas
                 const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
                 const data = await weatherResponse.json();
                 
                 const code = data.current_weather.weathercode;
-                const isDay = data.current_weather.is_day; // 1 = día, 0 = noche
+                const isDay = data.current_weather.is_day;
                 
-                // 4. Asignar clima, nombre y video según el código mundial (WMO)
                 if (code === 0) {
                     weatherName = "Despejado";
                     weatherEmoji = isDay ? "☀️" : "🌙";
@@ -687,14 +693,11 @@
                 cityName = "Ubicación desconocida";
             }
 
-            // Actualizar el panel visual en la pantalla
             statusBox.innerHTML = `📍 ${cityName} | ${weatherEmoji} ${weatherName}`;
             video.src = videoFile;
 
-            // Iniciar video
             video.play().catch(e => console.log('Autoplay bloqueado:', e));
-
-            const videoTexture = new THREE.VideoTexture(video); [cite: 192]
+            const videoTexture = new THREE.VideoTexture(video);
             videoTexture.minFilter = THREE.LinearFilter;
             videoTexture.magFilter = THREE.LinearFilter;
             videoTexture.format = THREE.RGBAFormat;
@@ -716,7 +719,8 @@
                         }
                     }
                 });
-                applyMaterialLogic(cuadroModel, 'cuadro'); [cite: 201]
+             
+                applyMaterialLogic(cuadroModel, 'cuadro');
                 scene.add(cuadroModel);
                 loadedSlotMeshes['cuadro'] = cuadroModel;
                 checkLoading();
@@ -776,7 +780,6 @@
             mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
-
             if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
                 toggleLight();
                 return; 
@@ -806,7 +809,6 @@
             renderer.shadowMap.enabled = !isLow;
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-
             for (let cat in loadedSlotMeshes) {
                 applyMaterialLogic(loadedSlotMeshes[cat], cat);
             }
@@ -818,12 +820,12 @@
 
         let currentCategory = 'cama';
         let openGroup = 'muebles';
-
+        
         function renderInventory() {
             const sidebar = document.getElementById('inv-sidebar');
             const content = document.getElementById('inv-content');
             sidebar.innerHTML = ''; content.innerHTML = '';
-
+            
             inventoryGroups.forEach(group => {
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'inv-group';
@@ -835,6 +837,7 @@
                     openGroup = openGroup === group.id ? null : group.id;
                     renderInventory();
                 };
+           
                 groupDiv.appendChild(groupBtn);
 
                 const groupContent = document.createElement('div');
@@ -950,7 +953,7 @@
         document.getElementById('settings-button').onclick = () => {
             document.getElementById('settings-panel').classList.toggle('visible');
         };
-
+        
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
@@ -960,13 +963,13 @@
             renderer.render(scene, camera); 
         }
         animate();
-
+        
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
-
+        
         updateQuality();
     </script>
 </body>
