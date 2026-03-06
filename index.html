@@ -699,7 +699,7 @@
             // Si no estamos en modo presión o flotando, salir
             if (!isPressingLunari && !isFloating) return;
 
-            // Prevenir menú contextual en click derecho
+            // Prevenir menú contextual en click derecho (por si acaso)
             if (event.button === 2) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -758,7 +758,8 @@
             const isRightClick = (event.button === 2);
             const isTouch = event.type === 'touchend';
             
-            if ((isRightClick && activeButton === 2) || (isTouch && activeButton === 0) || (!isRightClick && !isTouch)) {
+            // Si es el botón activo o cualquier toque (en móvil no tenemos botón)
+            if ((isRightClick && activeButton === 2) || (isTouch && activeButton === 0) || (!isRightClick && !isTouch && activeButton !== null)) {
                 // Limpiar estado de presión
                 if (isPressingLunari) {
                     clearTimeout(pressTimer);
