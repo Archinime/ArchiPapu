@@ -456,8 +456,8 @@
             }
         }
 
-        // Agregamos a Lunari y sus animaciones
-        totalModelsToLoad += 3; // Modelo base + animación aleatoria + animaciones de flotación
+        // Agregamos a Lunari y sus animaciones (aunque carguen o no)
+        totalModelsToLoad += 4; // Modelo base + 3 animaciones (una puede fallar, pero sumamos igual)
 
         function checkLoading() {
             modelsLoaded++;
@@ -494,31 +494,50 @@
         // Para la detección de presión prolongada
         let pressTimer = null;
         let isPressingLunari = false;
-        let pressStartPos = new THREE.Vector2();
         const PRESS_DURATION = 1000; // 1 segundo
-        const MOVE_THRESHOLD = 10; // píxeles de tolerancia para cancelar
 
-        // 1. Cargar a Lunari (modelo base)
-        loader.load('lunari_durmiendo1.glb', (gltf) => {
-            lunariModel = gltf.scene;
-            lunariModel.position.set(0, 0, 0); // Ajusta según necesites
-            
-            applyMaterialLogic(lunariModel, 'lunari');
-            
-            scene.add(lunariModel);
+        // Función para crear un placeholder si los modelos fallan
+        function createPlaceholder() {
+            const group = new THREE.Group();
+            const body = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.5, 0.5, 1.5),
+                new THREE.MeshStandardMaterial({ color: 0xffaa00 })
+            );
+            body.position.y = 0.75;
+            group.add(body);
+            const head = new THREE.Mesh(
+                new THREE.SphereGeometry(0.4),
+                new THREE.MeshStandardMaterial({ color: 0xffcc00 })
+            );
+            head.position.y = 1.5 + 0.4;
+            group.add(head);
+            group.position.set(0, 0, 0);
+            return group;
+        }
 
-            // Configurar animaciones
-            if (gltf.animations && gltf.animations.length > 0) {
-                lunariMixer = new THREE.AnimationMixer(lunariModel);
-                baseAction = lunariMixer.clipAction(gltf.animations[0]);
-                baseAction.play();
-                currentAction = baseAction;
-            }
-            checkLoading();
-        }, undefined, (e) => {
-            console.error('Error cargando a Lunari:', e);
-            checkLoading();
-        });
+        // 1. Cargar a Lunari (modelo base) con fallback
+        function loadLunariModel() {
+            loader.load('lunari_durmiendo1.glb', (gltf) => {
+                lunariModel = gltf.scene;
+                lunariModel.position.set(0, 0, 0);
+                applyMaterialLogic(lunariModel, 'lunari');
+                scene.add(lunariModel);
+
+                if (gltf.animations && gltf.animations.length > 0) {
+                    lunariMixer = new THREE.AnimationMixer(lunariModel);
+                    baseAction = lunariMixer.clipAction(gltf.animations[0]);
+                    baseAction.play();
+                    currentAction = baseAction;
+                }
+                checkLoading();
+            }, undefined, (error) => {
+                console.error('Error cargando Lunari, usando placeholder', error);
+                lunariModel = createPlaceholder();
+                scene.add(lunariModel);
+                checkLoading();
+            });
+        }
+        loadLunariModel();
 
         // 2. Cargar la animación aleatoria (Lunari_Duerme_2.glb)
         loader.load('Lunari_Duerme_2.glb', (gltf) => {
@@ -530,7 +549,7 @@
             }
             checkLoading();
         }, undefined, (e) => {
-            console.error('Error cargando animación aleatoria:', e);
+            console.warn('No se pudo cargar animación aleatoria', e);
             checkLoading();
         });
 
@@ -544,7 +563,7 @@
             }
             checkLoading();
         }, undefined, (e) => {
-            console.error('Error cargando animación cargando:', e);
+            console.warn('No se pudo cargar animación cargando', e);
             checkLoading();
         });
 
@@ -557,7 +576,7 @@
             }
             checkLoading();
         }, undefined, (e) => {
-            console.error('Error cargando animación flotando:', e);
+            console.warn('No se pudo cargar animación flotando', e);
             checkLoading();
         });
 
@@ -603,8 +622,9 @@
         // --- INICIAR FLOTACIÓN ---
         function startFloating() {
             if (isFloating || !lunariModel || !lunariMixer) return;
+            console.log('¡A flotar!');
             isFloating = true;
-            isDragging = false; // Aún no arrastrando, se activará al mover
+            isDragging = false;
 
             // Detener el intervalo aleatorio mientras flota
             if (randomIntervalId) clearInterval(randomIntervalId);
@@ -625,12 +645,16 @@
                     }
                 };
                 lunariMixer.addEventListener('finished', onCargandoFinished);
+            } else {
+                // Si no hay animaciones, al menos indicamos que flota (se mueve)
+                console.warn('Animaciones de flotación no disponibles');
             }
         }
 
         // --- FINALIZAR FLOTACIÓN (caer) ---
         function stopFloating() {
             if (!isFloating || !lunariModel || !lunariMixer) return;
+            console.log('Dejar de flotar');
             isFloating = false;
             isDragging = false;
 
@@ -642,20 +666,26 @@
                 flotandoAction.fadeOut(0.3);
                 baseAction.reset().fadeIn(0.3).play();
                 currentAction = baseAction;
+            } else if (baseAction) {
+                baseAction.reset().fadeIn(0.3).play();
+                currentAction = baseAction;
             }
 
             // Calcular altura del suelo en la posición actual
             targetFloorY = getFloorHeightAt(lunariModel.position);
         }
 
-        // --- MANEJADORES DE EVENTOS PARA PRESIÓN PROLONGADA Y ARRASTRE ---
+        // --- MANEJADORES DE EVENTOS SIMPLIFICADOS ---
         function onPointerDown(event) {
             // Evitar si el modal está abierto
             if (document.getElementById('inventory-modal').classList.contains('visible')) return;
 
-            // Prevenir menú contextual en cualquier caso (especialmente clic derecho)
+            // Prevenir comportamiento por defecto (como menú contextual)
             event.preventDefault();
             event.stopPropagation();
+
+            // Solo si Lunari existe
+            if (!lunariModel) return;
 
             const rect = renderer.domElement.getBoundingClientRect();
             const clientX = event.touches ? event.touches[0].clientX : event.clientX;
@@ -665,19 +695,17 @@
                 -((clientY - rect.top) / rect.height) * 2 + 1
             );
 
-            // Verificar si apuntamos a Lunari (solo si ya está cargado)
-            if (!lunariModel) return;
-
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObject(lunariModel, true);
             if (intersects.length > 0) {
+                console.log('Lunari presionada');
                 isPressingLunari = true;
-                pressStartPos.set(clientX, clientY);
-                // Desactivar controles de cámara mientras se presiona sobre Lunari
-                controls.enabled = false;
+                controls.enabled = false; // Desactivar cámara
+
                 // Iniciar timer
                 pressTimer = setTimeout(() => {
                     if (isPressingLunari && !isFloating) {
+                        console.log('Iniciar flotación');
                         startFloating();
                     }
                     pressTimer = null;
@@ -686,7 +714,6 @@
         }
 
         function onPointerMove(event) {
-            // Si no estamos en modo presión o flotando, salir
             if (!isPressingLunari && !isFloating) return;
 
             event.preventDefault();
@@ -695,29 +722,12 @@
             const clientX = event.touches ? event.touches[0].clientX : event.clientX;
             const clientY = event.touches ? event.touches[0].clientY : event.clientY;
 
-            // Si estamos presionando y aún no ha comenzado flotación, verificar movimiento para cancelar
-            if (isPressingLunari && !isFloating) {
-                const dx = clientX - pressStartPos.x;
-                const dy = clientY - pressStartPos.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist > MOVE_THRESHOLD) {
-                    // Cancelar presión y reactivar controles
-                    clearTimeout(pressTimer);
-                    pressTimer = null;
-                    isPressingLunari = false;
-                    controls.enabled = true;
-                }
-            }
-
-            // Si estamos flotando, activar arrastre y mover a Lunari
+            // Si estamos flotando, mover a Lunari
             if (isFloating && lunariModel) {
-                // Activar arrastre si no lo estaba
                 if (!isDragging) {
                     isDragging = true;
-                    // Los controles ya están desactivados desde que se inició la presión/flotación
                 }
 
-                // Convertir coordenadas de pantalla a un punto en un plano horizontal a la altura actual de Lunari
                 const rect = renderer.domElement.getBoundingClientRect();
                 const mouse = new THREE.Vector2(
                     ((clientX - rect.left) / rect.width) * 2 - 1,
@@ -738,20 +748,18 @@
             event.preventDefault();
             event.stopPropagation();
 
-            // Limpiar estado de presión
             if (isPressingLunari) {
                 clearTimeout(pressTimer);
                 pressTimer = null;
                 isPressingLunari = false;
             }
 
-            // Si estábamos flotando, finalizar
             if (isFloating) {
                 stopFloating();
             }
 
             isDragging = false;
-            controls.enabled = true; // Reactivar controles
+            controls.enabled = true;
         }
 
         // Registrar eventos
@@ -775,7 +783,6 @@
             controls.enabled = true;
         });
 
-        // Prevenir menú contextual global en el canvas
         renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
 
         // --- SISTEMA DE ILUMINACIÓN ---
@@ -824,7 +831,7 @@
 
         // --- SISTEMA DE INTERACCIÓN GENERAL (solo para switch y posters, no para Lunari) ---
         function handleInteraction(event) {
-            // Si estamos flotando o presionando Lunari, ignorar interacción con objetos (para evitar conflictos)
+            // Si estamos flotando o presionando Lunari, ignorar interacción con objetos
             if (isFloating || isPressingLunari) return;
 
             const rect = renderer.domElement.getBoundingClientRect();
