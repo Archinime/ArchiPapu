@@ -327,7 +327,7 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         
         import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
-        import { climaConfig } from './climas.js';  // <-- NUEVO: importamos el objeto de clima
+        import { climaConfig } from './climas.js';
 
         // --- SISTEMA DE DATOS E INVENTARIO ---
         let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
@@ -469,7 +469,7 @@
         // Agregamos a Lunari y su animación aleatoria al conteo de carga
         totalModelsToLoad += 2; // Uno para el modelo base, otro para la animación extra
 
-        // NUEVO: Añadimos el objeto de clima al contador
+        // Añadimos el objeto de clima al contador
         if (climaConfig.dia_soleado && climaConfig.dia_soleado.file) {
             totalModelsToLoad++;
         }
@@ -602,11 +602,38 @@
             }
         }
 
-        // --- NUEVO: Cargar el objeto de clima (dia_soleado) ---
+        // --- NUEVO: Sistema para manejar texturas de video ---
+        const videoTextures = []; // Almacena las texturas de video encontradas
+        let userInteracted = false; // Bandera para saber si el usuario ya interactuó
+
+        function playAllVideos() {
+            if (userInteracted) return;
+            userInteracted = true;
+            videoTextures.forEach(texture => {
+                const video = texture.image;
+                if (video && video.tagName === 'VIDEO') {
+                    // Asegurar que el video esté silenciado para permitir autoplay con interacción
+                    video.muted = true;
+                    video.loop = true;
+                    video.play().catch(e => console.warn('Error al reproducir video:', e));
+                }
+            });
+        }
+
+        // Escuchar la primera interacción del usuario en el documento
+        document.addEventListener('click', function once() {
+            playAllVideos();
+            document.removeEventListener('click', once);
+        });
+        document.addEventListener('touchstart', function once() {
+            playAllVideos();
+            document.removeEventListener('touchstart', once);
+        });
+
+        // --- NUEVO: Cargar el objeto de clima (dia_soleado) con soporte de video ---
         if (climaConfig.dia_soleado && climaConfig.dia_soleado.file) {
             loader.load(climaConfig.dia_soleado.file, (gltf) => {
                 const model = gltf.scene;
-                // Aplicar lógica de materiales genérica (opcional)
                 applyMaterialLogic(model, 'clima');
                 
                 // Aplicar posición, rotación y escala si están definidas
@@ -629,6 +656,28 @@
                 }
                 
                 scene.add(model);
+
+                // Buscar texturas de video en el modelo
+                model.traverse((node) => {
+                    if (node.isMesh) {
+                        const materials = Array.isArray(node.material) ? node.material : [node.material];
+                        materials.forEach(mat => {
+                            if (mat.map && mat.map.isVideoTexture) {
+                                videoTextures.push(mat.map);
+                            }
+                            // También revisar otras texturas como emissiveMap, etc. si es necesario
+                            if (mat.emissiveMap && mat.emissiveMap.isVideoTexture) {
+                                videoTextures.push(mat.emissiveMap);
+                            }
+                        });
+                    }
+                });
+
+                // Si el usuario ya interactuó antes de que cargara el modelo, intentar reproducir inmediatamente
+                if (userInteracted) {
+                    playAllVideos();
+                }
+
                 checkLoading(); // Incrementar contador de carga
             }, undefined, (e) => {
                 console.error('Error cargando el objeto de clima:', e);
