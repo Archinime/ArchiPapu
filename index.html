@@ -206,7 +206,8 @@
         .group-content.open { display: flex; }
 
         .cat-btn { 
-            width: 100%; text-align: left; padding: 10px 15px; background: transparent; 
+            width: 100%;
+            text-align: left; padding: 10px 15px; background: transparent; 
             color: #bbb; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 4px; 
             font-size: 14px; transition: 0.2s; display: flex; align-items: center; gap: 10px;
         }
@@ -289,8 +290,7 @@
 
         /* --- ESTADOS --- */
         #loading, #light-status {
-            position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.1); font-weight: bold;
+            position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); font-weight: bold;
         }
         #loading { right: 20px; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
@@ -352,7 +352,6 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-        
         import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
         // --- SISTEMA DE DATOS E INVENTARIO ---
@@ -361,7 +360,7 @@
 
         let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
         if (inventoryData.base_foco) delete inventoryData.base_foco;
-
+        
         // Sincronizar objetos nuevos y verificar integridad
         for (let cat in defaultInventoryConfig) {
             if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
@@ -443,7 +442,7 @@
         mainLight.shadow.mapSize.set(2048, 2048);
         mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
         scene.add(mainLight); scene.add(mainLight.target);
-
+        
         let lightOn = localStorage.getItem('lightState') !== 'off';
         const perfCheck = document.getElementById('performance-mode');
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
@@ -452,7 +451,7 @@
             if(!model) return;
             const isLow = perfCheck.checked;
             const isFoco = categoryKey === 'foco';
-
+            
             model.traverse((node) => {
                 if (node.isMesh) {
                     node.frustumCulled = false;
@@ -544,7 +543,7 @@
             console.error('Error cargando animación aleatoria:', e);
             checkLoading();
         });
-
+        
         setInterval(() => {
             if (!randomAction || !baseAction || !lunariMixer) return;
             if (currentAction === randomAction) return;
@@ -619,6 +618,8 @@
             let videoFile = 'dia_soleado.mp4'; 
             let weatherEmoji = "☀️";
             let weatherName = "Clima estándar";
+            let temperature = "--"; // Añadido para guardar la temperatura
+    
             const statusBox = document.getElementById('weather-status');
 
             try {
@@ -634,6 +635,7 @@
                 
                 const code = data.current_weather.weathercode;
                 const isDay = data.current_weather.is_day; // 1 = día, 0 = noche
+                temperature = data.current_weather.temperature; // Extraemos la temperatura de la API
                 
                 // MAPEADO COMPLETO WMO
                 if (code === 0) {
@@ -687,20 +689,24 @@
                 weatherName = "Clima offline";
             }
 
-            // Actualizar la interfaz con el clima detectado
-            statusBox.innerHTML = `${weatherEmoji} ${weatherName}`;
+            // Actualizar la interfaz con el clima y la TEMPERATURA
+            if (temperature !== "--") {
+                statusBox.innerHTML = `${weatherEmoji} ${weatherName} | ${temperature}°C`;
+            } else {
+                statusBox.innerHTML = `${weatherEmoji} ${weatherName}`;
+            }
             video.src = videoFile;
 
             // Iniciar video
             video.play().catch(e => console.log('Autoplay bloqueado:', e));
-
+            
             // Configurar textura 3D
             const videoTexture = new THREE.VideoTexture(video);
             videoTexture.minFilter = THREE.LinearFilter;
             videoTexture.magFilter = THREE.LinearFilter;
             videoTexture.format = THREE.RGBAFormat;
             videoTexture.encoding = THREE.sRGBEncoding;
-
+            
             // Cargar el cuadro
             loader.load('cuadro.glb', (gltf) => {
                 const cuadroModel = gltf.scene;
@@ -718,6 +724,7 @@
                         }
                     }
                 });
+       
                 applyMaterialLogic(cuadroModel, 'cuadro');
                 scene.add(cuadroModel);
                 loadedSlotMeshes['cuadro'] = cuadroModel;
@@ -781,7 +788,7 @@
             mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
-
+            
             // Chequeo de Luz
             if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
                 toggleLight();
@@ -807,14 +814,13 @@
             if(document.getElementById('inventory-modal').classList.contains('visible')) return;
             handleInteraction(e); 
         }, {passive: true});
-
+        
         // --- Calidad / Modo Humilde ---
         function updateQuality() {
             const isLow = perfCheck.checked;
             renderer.shadowMap.enabled = !isLow;
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-
             for (let cat in loadedSlotMeshes) {
                 applyMaterialLogic(loadedSlotMeshes[cat], cat);
             }
@@ -823,7 +829,7 @@
             updateLighting(); 
         }
         perfCheck.addEventListener('change', updateQuality);
-
+        
         // --- LÓGICA DE INTERFAZ DEL INVENTARIO ---
         let currentCategory = 'cama';
         let openGroup = 'muebles';
@@ -832,7 +838,7 @@
             const sidebar = document.getElementById('inv-sidebar');
             const content = document.getElementById('inv-content');
             sidebar.innerHTML = ''; content.innerHTML = '';
-
+            
             inventoryGroups.forEach(group => {
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'inv-group';
@@ -844,6 +850,7 @@
                     openGroup = openGroup === group.id ? null : group.id;
                     renderInventory();
                 };
+           
                 groupDiv.appendChild(groupBtn);
 
                 const groupContent = document.createElement('div');
@@ -851,6 +858,7 @@
 
                 group.categories.forEach(catKey => {
                     const catData = inventoryData[catKey];
+          
                     if(!catData) return;
                     
                     const btn = document.createElement('button');
@@ -899,6 +907,7 @@
                     <div>
                         ${previewDiv.outerHTML}
                         <h4>${item.name}</h4>
+              
                         <div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div>
                     </div>
                     ${btnHTML}
@@ -960,7 +969,7 @@
         document.getElementById('settings-button').onclick = () => {
             document.getElementById('settings-panel').classList.toggle('visible');
         };
-
+        
         // --- Animación y Resize ---
         function animate() {
             requestAnimationFrame(animate);
@@ -971,13 +980,13 @@
             renderer.render(scene, camera); 
         }
         animate();
-
+        
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
-
+        
         updateQuality();
     </script>
 </body>
