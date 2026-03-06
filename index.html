@@ -68,7 +68,7 @@
         }
         #coin-display:hover { transform: scale(1.05); }
 
-        /* --- UI DE CLIMA --- */
+        /* --- UI DE CLIMA (NUEVO) --- */
         #weather-status {
             position: absolute;
             top: 70px;
@@ -184,7 +184,6 @@
         
         #inv-body { display: flex; flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
         
-        /* SISTEMA DE CATEGORÍAS ACORDEÓN */
         #inv-sidebar { width: 30%; border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding-right: 10px; }
         
         .inv-group { margin-bottom: 10px; }
@@ -214,7 +213,6 @@
         .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
         .cat-icon-emoji { font-size: 18px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
         
-        /* CONTENIDO DE ÍTEMS */
         #inv-content {
             width: 70%; overflow-y: auto; display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -300,7 +298,7 @@
 <body>
     <div id="coin-display">🪙 <span id="coin-amount">0</span></div>
     
-    <div id="weather-status">🌍 Detectando clima...</div>
+    <div id="weather-status">🌍 Detectando clima local...</div>
     
     <div id="inventory-button" class="top-btn" title="Inventario y Tienda">🎒</div>
     <div id="settings-button" class="top-btn" title="Ajustes">⚙️</div>
@@ -362,7 +360,6 @@
         let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
         if (inventoryData.base_foco) delete inventoryData.base_foco;
 
-        // Sincronizar objetos nuevos y verificar integridad
         for (let cat in defaultInventoryConfig) {
             if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
             inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
@@ -398,13 +395,11 @@
         let switchMesh = null;
         let focoMesh = null;
 
-        // --- Detección de dispositivo ---
         const ua = navigator.userAgent;
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
         const width = window.innerWidth;
         let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
 
-        // --- Escena, Cámara y Reloj (Para Animaciones) ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050508); 
         const clock = new THREE.Clock();
@@ -414,7 +409,6 @@
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
         camera.position.set(0, camPosY, camPosZ);
 
-        // --- RENDERIZADOR ---
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
@@ -432,7 +426,6 @@
         controls.minDistance = 2.5; controls.maxDistance = 16;
         controls.enablePan = false;
 
-        // --- LUCES ---
         const ambient = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambient);
         const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
@@ -477,7 +470,6 @@
             });
         }
 
-        // --- CÁLCULO DINÁMICO DE CARGA ---
         let totalModelsToLoad = 0;
         let modelsLoaded = 0;
 
@@ -508,7 +500,6 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // --- CARGA DE MODELOS Y LUNARI CON ANIMACIONES ---
         const loader = new GLTFLoader();
         let lunariMixer = null;
         let baseAction = null;
@@ -607,7 +598,7 @@
             }
         }
 
-        // --- CARGA DEL CUADRO CON VIDEO Y CLIMA API (MAPEADO COMPLETO) ---
+        // --- SISTEMA DE CLIMA LOCAL + VIDEO EN EL CUADRO ---
         (async function setupWeatherVideo() {
             const video = document.createElement('video');
             video.loop = true;
@@ -616,12 +607,14 @@
             video.crossOrigin = 'anonymous';
             
             // Valores por defecto
-            let videoFile = 'dia_soleado.mp4'; 
+            let videoFile = 'dia_soleado.mp4'; [cite: 191]
             let weatherEmoji = "☀️";
             let weatherName = "Clima estándar";
+            let cityName = "Ubicación Local";
             const statusBox = document.getElementById('weather-status');
 
             try {
+                // 1. Pedir coordenadas exactas (GPS)
                 const pos = await new Promise((resolve, reject) => {
                     navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
                 });
@@ -629,13 +622,19 @@
                 const lat = pos.coords.latitude;
                 const lon = pos.coords.longitude;
                 
-                const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-                const data = await response.json();
+                // 2. Traducir coordenadas a nombre de ciudad (Geocodificación Inversa Gratis)
+                const geoResponse = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=es`);
+                const geoData = await geoResponse.json();
+                cityName = geoData.locality || geoData.city || "Tu zona";
+                
+                // 3. Consultar la API de clima exacto para esas coordenadas
+                const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+                const data = await weatherResponse.json();
                 
                 const code = data.current_weather.weathercode;
                 const isDay = data.current_weather.is_day; // 1 = día, 0 = noche
                 
-                // MAPEADO COMPLETO WMO
+                // 4. Asignar clima, nombre y video según el código mundial (WMO)
                 if (code === 0) {
                     weatherName = "Despejado";
                     weatherEmoji = isDay ? "☀️" : "🌙";
@@ -682,26 +681,25 @@
                 }
 
             } catch (error) {
-                console.warn('Error con el clima, usando defecto:', error);
+                console.warn('Error obteniendo ubicación o clima, usando defecto:', error);
                 weatherEmoji = "❌";
                 weatherName = "Clima offline";
+                cityName = "Ubicación desconocida";
             }
 
-            // Actualizar la interfaz con el clima detectado
-            statusBox.innerHTML = `${weatherEmoji} ${weatherName}`;
+            // Actualizar el panel visual en la pantalla
+            statusBox.innerHTML = `📍 ${cityName} | ${weatherEmoji} ${weatherName}`;
             video.src = videoFile;
 
             // Iniciar video
             video.play().catch(e => console.log('Autoplay bloqueado:', e));
 
-            // Configurar textura 3D
-            const videoTexture = new THREE.VideoTexture(video);
+            const videoTexture = new THREE.VideoTexture(video); [cite: 192]
             videoTexture.minFilter = THREE.LinearFilter;
             videoTexture.magFilter = THREE.LinearFilter;
             videoTexture.format = THREE.RGBAFormat;
             videoTexture.encoding = THREE.sRGBEncoding;
 
-            // Cargar el cuadro
             loader.load('cuadro.glb', (gltf) => {
                 const cuadroModel = gltf.scene;
                 
@@ -718,7 +716,7 @@
                         }
                     }
                 });
-                applyMaterialLogic(cuadroModel, 'cuadro');
+                applyMaterialLogic(cuadroModel, 'cuadro'); [cite: 201]
                 scene.add(cuadroModel);
                 loadedSlotMeshes['cuadro'] = cuadroModel;
                 checkLoading();
@@ -730,7 +728,6 @@
         })();
 
 
-        // --- SISTEMA DE ILUMINACIÓN ---
         function updateLighting() {
             const isLow = perfCheck.checked;
             if (lightOn) {
@@ -754,7 +751,6 @@
             localStorage.setItem('lightState', lightOn ? 'on' : 'off'); updateLighting();
         }
 
-        // --- FUNCIONES PARA LOS POSTERS ---
         const posterViewModal = document.getElementById('poster-view-modal');
         const posterEnlargedImage = document.getElementById('poster-enlarged-image');
         const closePosterBtn = document.getElementById('close-poster-view');
@@ -773,7 +769,6 @@
             if (e.target === posterViewModal) posterViewModal.classList.remove('visible');
         };
 
-        // --- SISTEMA DE INTERACCIÓN GENERAL ---
         function handleInteraction(event) {
             const rect = renderer.domElement.getBoundingClientRect();
             const x = event.touches ? event.touches[0].clientX : event.clientX;
@@ -782,13 +777,11 @@
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
 
-            // Chequeo de Luz
             if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
                 toggleLight();
                 return; 
             }
 
-            // Chequeo de Pósters Dinámicos
             const posterCategories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
             for (let cat of posterCategories) {
                 const posterMesh = loadedSlotMeshes[cat];
@@ -808,7 +801,6 @@
             handleInteraction(e); 
         }, {passive: true});
 
-        // --- Calidad / Modo Humilde ---
         function updateQuality() {
             const isLow = perfCheck.checked;
             renderer.shadowMap.enabled = !isLow;
@@ -824,7 +816,6 @@
         }
         perfCheck.addEventListener('change', updateQuality);
 
-        // --- LÓGICA DE INTERFAZ DEL INVENTARIO ---
         let currentCategory = 'cama';
         let openGroup = 'muebles';
 
@@ -949,7 +940,6 @@
             }
         }
 
-        // Eventos UI
         document.getElementById('inventory-button').onclick = () => {
             document.getElementById('inventory-modal').classList.add('visible');
             renderInventory();
@@ -961,7 +951,6 @@
             document.getElementById('settings-panel').classList.toggle('visible');
         };
 
-        // --- Animación y Resize ---
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
