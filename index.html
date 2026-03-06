@@ -606,7 +606,7 @@
             }
         }
 
-        // --- CARGA DEL CUADRO CON VIDEO Y CLIMA API (MAPEADO COMPLETO) ---
+        // --- CARGA DEL CUADRO CON VIDEO Y CLIMA API (MAPEADO COMPLETO Y DÍA/NOCHE) ---
         (async function setupWeatherVideo() {
             const video = document.createElement('video');
             video.loop = true;
@@ -618,7 +618,7 @@
             let videoFile = 'dia_soleado.mp4'; 
             let weatherEmoji = "☀️";
             let weatherName = "Clima estándar";
-            let temperature = "--"; // Añadido para guardar la temperatura
+            let temperature = "--";
     
             const statusBox = document.getElementById('weather-status');
 
@@ -635,15 +635,15 @@
                 
                 const code = data.current_weather.weathercode;
                 const isDay = data.current_weather.is_day; // 1 = día, 0 = noche
-                temperature = data.current_weather.temperature; // Extraemos la temperatura de la API
+                temperature = data.current_weather.temperature;
                 
-                // MAPEADO COMPLETO WMO
+                // MAPEADO COMPLETO WMO CON VERIFICACIÓN DÍA Y NOCHE
                 if (code === 0) {
-                    weatherName = "Despejado";
+                    weatherName = isDay ? "Despejado" : "Noche despejada";
                     weatherEmoji = isDay ? "☀️" : "🌙";
                     videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4';
                 } else if (code === 1 || code === 2) {
-                    weatherName = "Parcialmente nublado";
+                    weatherName = isDay ? "Parcialmente nublado" : "Noche algo nublada";
                     weatherEmoji = isDay ? "⛅" : "☁️";
                     videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4';
                 } else if (code === 3) {
@@ -653,34 +653,34 @@
                 } else if (code === 45 || code === 48) {
                     weatherName = "Niebla";
                     weatherEmoji = "🌫️";
-                    videoFile = 'niebla.mp4';
+                    videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4';
                 } else if ([51, 53, 55, 56, 57].includes(code)) {
                     weatherName = "Llovizna";
-                    weatherEmoji = "🌦️";
-                    videoFile = 'lluvia.mp4';
+                    weatherEmoji = isDay ? "🌦️" : "🌧️";
+                    videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
                 } else if ([61, 63, 65, 66, 67].includes(code)) {
                     weatherName = "Lluvia";
                     weatherEmoji = "🌧️";
-                    videoFile = 'lluvia.mp4';
+                    videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
                 } else if ([71, 73, 75, 77].includes(code)) {
                     weatherName = "Nieve";
                     weatherEmoji = "❄️";
-                    videoFile = 'nieve.mp4';
+                    videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4';
                 } else if ([80, 81, 82].includes(code)) {
                     weatherName = "Aguaceros";
                     weatherEmoji = "🌧️";
-                    videoFile = 'lluvia.mp4';
+                    videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
                 } else if ([85, 86].includes(code)) {
                     weatherName = "Chubascos de nieve";
                     weatherEmoji = "🌨️";
-                    videoFile = 'nieve.mp4';
+                    videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4';
                 } else if ([95, 96, 99].includes(code)) {
                     weatherName = "Tormenta";
                     weatherEmoji = "⛈️";
-                    videoFile = 'tormenta.mp4';
+                    videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4';
                 } else {
                     weatherName = "Desconocido";
-                    videoFile = 'dia_soleado.mp4';
+                    videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4';
                 }
 
             } catch (error) {
