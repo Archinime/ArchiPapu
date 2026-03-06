@@ -487,18 +487,16 @@
         // Variables para el estado de flotación y arrastre
         let isFloating = false;
         let isDragging = false;
-        let floatStartY = 0;
         let targetFloorY = 0; // Altura del suelo actual
         const fallingSpeed = 2.0; // Velocidad de caída
         let randomIntervalId = null; // Para desactivar el intervalo mientras flota
 
-        // Para la detección de presión prolongada (con click derecho o toque)
+        // Para la detección de presión prolongada
         let pressTimer = null;
         let isPressingLunari = false;
         let pressStartPos = new THREE.Vector2();
         const PRESS_DURATION = 1000; // 1 segundo
         const MOVE_THRESHOLD = 10; // píxeles de tolerancia para cancelar
-        let activeButton = null; // Guardar qué botón activó la presión (2 = derecho)
 
         // 1. Cargar a Lunari (modelo base)
         loader.load('lunari_durmiendo1.glb', (gltf) => {
@@ -606,12 +604,10 @@
         function startFloating() {
             if (isFloating || !lunariModel || !lunariMixer) return;
             isFloating = true;
+            isDragging = false; // Aún no arrastrando, se activará al mover
 
             // Detener el intervalo aleatorio mientras flota
             if (randomIntervalId) clearInterval(randomIntervalId);
-
-            // Guardar la altura inicial de flotación (la actual)
-            floatStartY = lunariModel.position.y;
 
             // Reproducir animación de cargando y luego flotando
             if (cargandoAction && flotandoAction && baseAction) {
@@ -657,16 +653,9 @@
             // Evitar si el modal está abierto
             if (document.getElementById('inventory-modal').classList.contains('visible')) return;
 
-            // Prevenir menú contextual en click derecho
-            if (event.button === 2) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-
-            // Solo nos interesa el click derecho (botón 2) en mouse, o cualquier toque en móvil
-            const isRightClick = (event.button === 2);
-            const isTouch = event.type === 'touchstart';
-            if (!isRightClick && !isTouch) return;
+            // Prevenir menú contextual en cualquier caso (especialmente clic derecho)
+            event.preventDefault();
+            event.stopPropagation();
 
             const rect = renderer.domElement.getBoundingClientRect();
             const clientX = event.touches ? event.touches[0].clientX : event.clientX;
@@ -676,22 +665,23 @@
                 -((clientY - rect.top) / rect.height) * 2 + 1
             );
 
+            // Verificar si apuntamos a Lunari (solo si ya está cargado)
+            if (!lunariModel) return;
+
             raycaster.setFromCamera(mouse, camera);
-            // Verificar si apuntamos a Lunari
-            if (lunariModel) {
-                const intersects = raycaster.intersectObject(lunariModel, true);
-                if (intersects.length > 0) {
-                    isPressingLunari = true;
-                    activeButton = isRightClick ? 2 : 0; // 0 para toque
-                    pressStartPos.set(clientX, clientY);
-                    // Iniciar timer
-                    pressTimer = setTimeout(() => {
-                        if (isPressingLunari && !isFloating) {
-                            startFloating();
-                        }
-                        pressTimer = null;
-                    }, PRESS_DURATION);
-                }
+            const intersects = raycaster.intersectObject(lunariModel, true);
+            if (intersects.length > 0) {
+                isPressingLunari = true;
+                pressStartPos.set(clientX, clientY);
+                // Desactivar controles de cámara mientras se presiona sobre Lunari
+                controls.enabled = false;
+                // Iniciar timer
+                pressTimer = setTimeout(() => {
+                    if (isPressingLunari && !isFloating) {
+                        startFloating();
+                    }
+                    pressTimer = null;
+                }, PRESS_DURATION);
             }
         }
 
@@ -699,11 +689,8 @@
             // Si no estamos en modo presión o flotando, salir
             if (!isPressingLunari && !isFloating) return;
 
-            // Prevenir menú contextual en click derecho (por si acaso)
-            if (event.button === 2) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
+            event.preventDefault();
+            event.stopPropagation();
 
             const clientX = event.touches ? event.touches[0].clientX : event.clientX;
             const clientY = event.touches ? event.touches[0].clientY : event.clientY;
@@ -714,20 +701,20 @@
                 const dy = clientY - pressStartPos.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 if (dist > MOVE_THRESHOLD) {
-                    // Cancelar presión
+                    // Cancelar presión y reactivar controles
                     clearTimeout(pressTimer);
                     pressTimer = null;
                     isPressingLunari = false;
-                    activeButton = null;
+                    controls.enabled = true;
                 }
             }
 
             // Si estamos flotando, activar arrastre y mover a Lunari
             if (isFloating && lunariModel) {
-                // Asegurar que el arrastre se activa (si no lo estaba)
+                // Activar arrastre si no lo estaba
                 if (!isDragging) {
                     isDragging = true;
-                    controls.enabled = false; // Desactivar controles de cámara mientras arrastramos
+                    // Los controles ya están desactivados desde que se inició la presión/flotación
                 }
 
                 // Convertir coordenadas de pantalla a un punto en un plano horizontal a la altura actual de Lunari
@@ -748,34 +735,23 @@
         }
 
         function onPointerUp(event) {
-            // Prevenir menú contextual en click derecho
-            if (event.button === 2) {
-                event.preventDefault();
-                event.stopPropagation();
+            event.preventDefault();
+            event.stopPropagation();
+
+            // Limpiar estado de presión
+            if (isPressingLunari) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+                isPressingLunari = false;
             }
 
-            // Verificar si soltamos el botón que inició la presión (derecho o toque)
-            const isRightClick = (event.button === 2);
-            const isTouch = event.type === 'touchend';
-            
-            // Si es el botón activo o cualquier toque (en móvil no tenemos botón)
-            if ((isRightClick && activeButton === 2) || (isTouch && activeButton === 0) || (!isRightClick && !isTouch && activeButton !== null)) {
-                // Limpiar estado de presión
-                if (isPressingLunari) {
-                    clearTimeout(pressTimer);
-                    pressTimer = null;
-                    isPressingLunari = false;
-                }
-
-                // Si estábamos flotando, finalizar
-                if (isFloating) {
-                    stopFloating();
-                }
-
-                isDragging = false;
-                controls.enabled = true; // Reactivar controles
-                activeButton = null;
+            // Si estábamos flotando, finalizar
+            if (isFloating) {
+                stopFloating();
             }
+
+            isDragging = false;
+            controls.enabled = true; // Reactivar controles
         }
 
         // Registrar eventos
@@ -797,7 +773,6 @@
             }
             isDragging = false;
             controls.enabled = true;
-            activeButton = null;
         });
 
         // Prevenir menú contextual global en el canvas
@@ -849,8 +824,8 @@
 
         // --- SISTEMA DE INTERACCIÓN GENERAL (solo para switch y posters, no para Lunari) ---
         function handleInteraction(event) {
-            // Si estamos flotando, ignorar interacción con objetos (excepto para terminar arrastre, ya manejado)
-            if (isFloating) return;
+            // Si estamos flotando o presionando Lunari, ignorar interacción con objetos (para evitar conflictos)
+            if (isFloating || isPressingLunari) return;
 
             const rect = renderer.domElement.getBoundingClientRect();
             const x = event.touches ? event.touches[0].clientX : event.clientX;
