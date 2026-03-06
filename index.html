@@ -68,6 +68,28 @@
         }
         #coin-display:hover { transform: scale(1.05); }
 
+        /* --- UI DE CLIMA --- */
+        #weather-status {
+            position: absolute;
+            top: 70px;
+            left: 20px;
+            background: rgba(30,30,40,0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100,200,255,0.4);
+            color: #E0F7FA;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 300;
+            user-select: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.3s;
+        }
+
         /* --- PANELES --- */
         #settings-panel {
             position: absolute;
@@ -109,7 +131,7 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 150;
-            pointer-events: none; /* Permite girar la cámara clickeando a través del diálogo */
+            pointer-events: none;
             width: 90%;
             max-width: 400px;
             text-align: center;
@@ -254,6 +276,7 @@
             #inventory-button { right: 60px; }
             #settings-panel { top: 60px; right: 10px; padding: 12px 15px; font-size: 13px; min-width: 180px; }
             #coin-display { top: 10px; left: 10px; font-size: 14px; padding: 8px 12px; }
+            #weather-status { top: 55px; left: 10px; font-size: 12px; padding: 6px 10px; }
             #inventory-modal { top: 2%; left: 2%; width: 96%; height: 96%; padding: 15px; }
             #inv-body { flex-direction: column; gap: 10px; }
             #inv-sidebar { width: 100%; height: 35%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; padding-right: 0; }
@@ -276,6 +299,8 @@
 </head>
 <body>
     <div id="coin-display">🪙 <span id="coin-amount">0</span></div>
+    
+    <div id="weather-status">🌍 Detectando clima...</div>
     
     <div id="inventory-button" class="top-btn" title="Inventario y Tienda">🎒</div>
     <div id="settings-button" class="top-btn" title="Ajustes">⚙️</div>
@@ -465,10 +490,8 @@
             }
         }
 
-        // Agregamos a Lunari y su animación aleatoria al conteo de carga
-        totalModelsToLoad += 2;
-        // Agregamos el cuadro con video
-        totalModelsToLoad += 1;
+        totalModelsToLoad += 2; // Lunari
+        totalModelsToLoad += 1; // Cuadro
 
         function checkLoading() {
             modelsLoaded++;
@@ -492,13 +515,11 @@
         let randomAction = null;
         let currentAction = null;
 
-        // 1. Cargar a Lunari (modelo base)
         loader.load('lunari_durmiendo1.glb', (gltf) => {
             const lunariModel = gltf.scene;
             applyMaterialLogic(lunariModel, 'lunari');
             scene.add(lunariModel);
 
-            // Configurar animaciones
             if (gltf.animations && gltf.animations.length > 0) {
                 lunariMixer = new THREE.AnimationMixer(lunariModel);
                 baseAction = lunariMixer.clipAction(gltf.animations[0]);
@@ -511,7 +532,6 @@
             checkLoading();
         });
 
-        // 2. Cargar la animación aleatoria (Lunari_Duerme_2.glb)
         loader.load('Lunari_Duerme_2.glb', (gltf) => {
             if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
                 const clip = gltf.animations[0];
@@ -525,7 +545,6 @@
             checkLoading();
         });
 
-        // 3. Configurar el intervalo para la animación aleatoria
         setInterval(() => {
             if (!randomAction || !baseAction || !lunariMixer) return;
             if (currentAction === randomAction) return;
@@ -547,7 +566,6 @@
             }
         }, 60000);
 
-        // 4. Función normal para los objetos de la habitación
         function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             if (!itemFile) return;
             if (loadedSlotMeshes[categoryKey]) {
@@ -576,7 +594,6 @@
             });
         }
 
-        // Cargar todos los objetos equipados al inicio
         for (let cat in inventoryData) {
             let equippedItemId = inventoryData[cat].equipped;
             if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
@@ -590,21 +607,21 @@
             }
         }
 
-
-        // --- CARGA DEL CUADRO CON VIDEO Y CLIMA API ---
-        // Lo ponemos dentro de una función asíncrona para poder consultar la API sin trabar la página
+        // --- CARGA DEL CUADRO CON VIDEO Y CLIMA API (MAPEADO COMPLETO) ---
         (async function setupWeatherVideo() {
             const video = document.createElement('video');
             video.loop = true;
-            video.muted = true; // Muted es obligatorio para el autoplay sin interacción
+            video.muted = true;
             video.playsInline = true;
             video.crossOrigin = 'anonymous';
             
-            // Video por defecto por si falla algo
-            video.src = 'dia_soleado.mp4'; 
+            // Valores por defecto
+            let videoFile = 'dia_soleado.mp4'; 
+            let weatherEmoji = "☀️";
+            let weatherName = "Clima estándar";
+            const statusBox = document.getElementById('weather-status');
 
             try {
-                // 1. Obtener la ubicación del usuario
                 const pos = await new Promise((resolve, reject) => {
                     navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
                 });
@@ -612,52 +629,79 @@
                 const lat = pos.coords.latitude;
                 const lon = pos.coords.longitude;
                 
-                // 2. Consultar la API de clima de Open-Meteo (¡Gratis y sin API key!)
                 const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
                 const data = await response.json();
                 
-                // 3. Obtener el código de clima (WMO) y si es de día
-                const weatherCode = data.current_weather.weathercode;
+                const code = data.current_weather.weathercode;
                 const isDay = data.current_weather.is_day; // 1 = día, 0 = noche
                 
-                // 4. Lógica para asignar el video correspondiente
-                if (weatherCode === 0) {
-                    // Despejado
-                    video.src = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4';
-                } else if (weatherCode >= 1 && weatherCode <= 3) {
-                    // Nublado
-                    video.src = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4';
-                } else if (weatherCode === 45 || weatherCode === 48) {
-                    // Niebla
-                    video.src = 'niebla.mp4';
-                } else if ((weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82)) {
-                    // Lluvia / Llovizna
-                    video.src = 'lluvia.mp4';
-                } else if ((weatherCode >= 71 && weatherCode <= 77) || weatherCode === 85 || weatherCode === 86) {
-                    // Nieve
-                    video.src = 'nieve.mp4';
-                } else if (weatherCode >= 95 && weatherCode <= 99) {
-                    // Tormenta
-                    video.src = 'tormenta.mp4';
+                // MAPEADO COMPLETO WMO
+                if (code === 0) {
+                    weatherName = "Despejado";
+                    weatherEmoji = isDay ? "☀️" : "🌙";
+                    videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4';
+                } else if (code === 1 || code === 2) {
+                    weatherName = "Parcialmente nublado";
+                    weatherEmoji = isDay ? "⛅" : "☁️";
+                    videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4';
+                } else if (code === 3) {
+                    weatherName = "Muy nublado";
+                    weatherEmoji = "☁️";
+                    videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4';
+                } else if (code === 45 || code === 48) {
+                    weatherName = "Niebla";
+                    weatherEmoji = "🌫️";
+                    videoFile = 'niebla.mp4';
+                } else if ([51, 53, 55, 56, 57].includes(code)) {
+                    weatherName = "Llovizna";
+                    weatherEmoji = "🌦️";
+                    videoFile = 'lluvia.mp4';
+                } else if ([61, 63, 65, 66, 67].includes(code)) {
+                    weatherName = "Lluvia";
+                    weatherEmoji = "🌧️";
+                    videoFile = 'lluvia.mp4';
+                } else if ([71, 73, 75, 77].includes(code)) {
+                    weatherName = "Nieve";
+                    weatherEmoji = "❄️";
+                    videoFile = 'nieve.mp4';
+                } else if ([80, 81, 82].includes(code)) {
+                    weatherName = "Aguaceros";
+                    weatherEmoji = "🌧️";
+                    videoFile = 'lluvia.mp4';
+                } else if ([85, 86].includes(code)) {
+                    weatherName = "Chubascos de nieve";
+                    weatherEmoji = "🌨️";
+                    videoFile = 'nieve.mp4';
+                } else if ([95, 96, 99].includes(code)) {
+                    weatherName = "Tormenta";
+                    weatherEmoji = "⛈️";
+                    videoFile = 'tormenta.mp4';
+                } else {
+                    weatherName = "Desconocido";
+                    videoFile = 'dia_soleado.mp4';
                 }
-                
-                console.log(`¡Clima detectado! Código: ${weatherCode}, Video asignado: ${video.src}`);
 
             } catch (error) {
-                console.warn('No se pudo obtener el clima (se usará el video por defecto):', error);
+                console.warn('Error con el clima, usando defecto:', error);
+                weatherEmoji = "❌";
+                weatherName = "Clima offline";
             }
 
-            // Reproducir el video
+            // Actualizar la interfaz con el clima detectado
+            statusBox.innerHTML = `${weatherEmoji} ${weatherName}`;
+            video.src = videoFile;
+
+            // Iniciar video
             video.play().catch(e => console.log('Autoplay bloqueado:', e));
 
-            // Configurar textura
+            // Configurar textura 3D
             const videoTexture = new THREE.VideoTexture(video);
             videoTexture.minFilter = THREE.LinearFilter;
             videoTexture.magFilter = THREE.LinearFilter;
             videoTexture.format = THREE.RGBAFormat;
             videoTexture.encoding = THREE.sRGBEncoding;
 
-            // Cargar el modelo del cuadro
+            // Cargar el cuadro
             loader.load('cuadro.glb', (gltf) => {
                 const cuadroModel = gltf.scene;
                 
@@ -683,7 +727,7 @@
                 checkLoading();
             });
 
-        })(); // Ejecutamos la función inmediatamente
+        })();
 
 
         // --- SISTEMA DE ILUMINACIÓN ---
@@ -771,7 +815,6 @@
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
 
-            // Reaplicar materiales a los objetos cargados
             for (let cat in loadedSlotMeshes) {
                 applyMaterialLogic(loadedSlotMeshes[cat], cat);
             }
@@ -921,7 +964,6 @@
         // --- Animación y Resize ---
         function animate() {
             requestAnimationFrame(animate);
-            // ACTUALIZAR ANIMACIÓN DE LUNARI
             const delta = clock.getDelta();
             if (lunariMixer) lunariMixer.update(delta);
 
