@@ -488,16 +488,17 @@
         let isFloating = false;
         let isDragging = false;
         let floatStartY = 0;
-        let targetY = 0; // Altura del suelo actual
-        let fallingSpeed = 2.0; // Velocidad de caída
+        let targetFloorY = 0; // Altura del suelo actual
+        const fallingSpeed = 2.0; // Velocidad de caída
         let randomIntervalId = null; // Para desactivar el intervalo mientras flota
 
-        // Para la detección de presión prolongada
+        // Para la detección de presión prolongada (con click derecho o toque)
         let pressTimer = null;
         let isPressingLunari = false;
         let pressStartPos = new THREE.Vector2();
         const PRESS_DURATION = 1000; // 1 segundo
         const MOVE_THRESHOLD = 10; // píxeles de tolerancia para cancelar
+        let activeButton = null; // Guardar qué botón activó la presión (2 = derecho)
 
         // 1. Cargar a Lunari (modelo base)
         loader.load('lunari_durmiendo1.glb', (gltf) => {
@@ -629,16 +630,13 @@
                 };
                 lunariMixer.addEventListener('finished', onCargandoFinished);
             }
-
-            // Desactivar controles de cámara durante el arrastre (se activarán al empezar a mover)
-            // No desactivamos aún, solo cuando se inicie el arrastre.
         }
 
         // --- FINALIZAR FLOTACIÓN (caer) ---
         function stopFloating() {
             if (!isFloating || !lunariModel || !lunariMixer) return;
             isFloating = false;
-            isDragging = false; // Asegurar que se desactiva arrastre
+            isDragging = false;
 
             // Reanudar intervalo aleatorio
             startRandomInterval();
@@ -651,15 +649,24 @@
             }
 
             // Calcular altura del suelo en la posición actual
-            targetY = getFloorHeightAt(lunariModel.position);
-            
-            // La caída se manejará en animate() interpolando
+            targetFloorY = getFloorHeightAt(lunariModel.position);
         }
 
         // --- MANEJADORES DE EVENTOS PARA PRESIÓN PROLONGADA Y ARRASTRE ---
         function onPointerDown(event) {
             // Evitar si el modal está abierto
             if (document.getElementById('inventory-modal').classList.contains('visible')) return;
+
+            // Prevenir menú contextual en click derecho
+            if (event.button === 2) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            // Solo nos interesa el click derecho (botón 2) en mouse, o cualquier toque en móvil
+            const isRightClick = (event.button === 2);
+            const isTouch = event.type === 'touchstart';
+            if (!isRightClick && !isTouch) return;
 
             const rect = renderer.domElement.getBoundingClientRect();
             const clientX = event.touches ? event.touches[0].clientX : event.clientX;
@@ -675,6 +682,7 @@
                 const intersects = raycaster.intersectObject(lunariModel, true);
                 if (intersects.length > 0) {
                     isPressingLunari = true;
+                    activeButton = isRightClick ? 2 : 0; // 0 para toque
                     pressStartPos.set(clientX, clientY);
                     // Iniciar timer
                     pressTimer = setTimeout(() => {
@@ -688,7 +696,14 @@
         }
 
         function onPointerMove(event) {
-            if (!isPressingLunari && !isDragging) return;
+            // Si no estamos en modo presión o flotando, salir
+            if (!isPressingLunari && !isFloating) return;
+
+            // Prevenir menú contextual en click derecho
+            if (event.button === 2) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
 
             const clientX = event.touches ? event.touches[0].clientX : event.clientX;
             const clientY = event.touches ? event.touches[0].clientY : event.clientY;
@@ -703,18 +718,26 @@
                     clearTimeout(pressTimer);
                     pressTimer = null;
                     isPressingLunari = false;
+                    activeButton = null;
                 }
             }
 
-            // Si estamos flotando y arrastrando, mover a Lunari
-            if (isFloating && isDragging && lunariModel) {
+            // Si estamos flotando, activar arrastre y mover a Lunari
+            if (isFloating && lunariModel) {
+                // Asegurar que el arrastre se activa (si no lo estaba)
+                if (!isDragging) {
+                    isDragging = true;
+                    controls.enabled = false; // Desactivar controles de cámara mientras arrastramos
+                }
+
                 // Convertir coordenadas de pantalla a un punto en un plano horizontal a la altura actual de Lunari
-                const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -lunariModel.position.y);
-                const raycaster = new THREE.Raycaster();
+                const rect = renderer.domElement.getBoundingClientRect();
                 const mouse = new THREE.Vector2(
                     ((clientX - rect.left) / rect.width) * 2 - 1,
                     -((clientY - rect.top) / rect.height) * 2 + 1
                 );
+                const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -lunariModel.position.y);
+                const raycaster = new THREE.Raycaster();
                 raycaster.setFromCamera(mouse, camera);
                 const intersection = new THREE.Vector3();
                 if (raycaster.ray.intersectPlane(plane, intersection)) {
@@ -725,29 +748,59 @@
         }
 
         function onPointerUp(event) {
-            if (isPressingLunari) {
-                clearTimeout(pressTimer);
-                pressTimer = null;
-                isPressingLunari = false;
+            // Prevenir menú contextual en click derecho
+            if (event.button === 2) {
+                event.preventDefault();
+                event.stopPropagation();
             }
 
-            // Si estábamos flotando y arrastrando, terminar flotación al soltar
-            if (isFloating && isDragging) {
-                stopFloating();
+            // Verificar si soltamos el botón que inició la presión (derecho o toque)
+            const isRightClick = (event.button === 2);
+            const isTouch = event.type === 'touchend';
+            
+            if ((isRightClick && activeButton === 2) || (isTouch && activeButton === 0) || (!isRightClick && !isTouch)) {
+                // Limpiar estado de presión
+                if (isPressingLunari) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                    isPressingLunari = false;
+                }
+
+                // Si estábamos flotando, finalizar
+                if (isFloating) {
+                    stopFloating();
+                }
+
+                isDragging = false;
+                controls.enabled = true; // Reactivar controles
+                activeButton = null;
             }
-            isDragging = false;
-            controls.enabled = true; // Reactivar controles
         }
 
         // Registrar eventos
-        const rect = renderer.domElement.getBoundingClientRect(); // Necesario en move
         renderer.domElement.addEventListener('mousedown', onPointerDown);
         renderer.domElement.addEventListener('touchstart', onPointerDown, { passive: false });
         renderer.domElement.addEventListener('mousemove', onPointerMove);
         renderer.domElement.addEventListener('touchmove', onPointerMove, { passive: false });
         renderer.domElement.addEventListener('mouseup', onPointerUp);
         renderer.domElement.addEventListener('touchend', onPointerUp);
-        renderer.domElement.addEventListener('mouseleave', onPointerUp); // Por si sale del canvas
+        renderer.domElement.addEventListener('mouseleave', (e) => {
+            // Si el mouse sale del canvas, cancelar todo
+            if (isPressingLunari) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+                isPressingLunari = false;
+            }
+            if (isFloating) {
+                stopFloating();
+            }
+            isDragging = false;
+            controls.enabled = true;
+            activeButton = null;
+        });
+
+        // Prevenir menú contextual global en el canvas
+        renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
 
         // --- SISTEMA DE ILUMINACIÓN ---
         function updateLighting() {
@@ -1039,11 +1092,11 @@
             if (lunariMixer) lunariMixer.update(delta);
 
             // Manejar caída si no está flotando y la posición Y no es la del suelo
-            if (!isFloating && lunariModel && Math.abs(lunariModel.position.y - targetY) > 0.01) {
-                // Interpolar hacia targetY
-                lunariModel.position.y += (targetY - lunariModel.position.y) * fallingSpeed * delta;
-                if (Math.abs(lunariModel.position.y - targetY) < 0.01) {
-                    lunariModel.position.y = targetY;
+            if (!isFloating && lunariModel && Math.abs(lunariModel.position.y - targetFloorY) > 0.01) {
+                // Interpolar hacia targetFloorY
+                lunariModel.position.y += (targetFloorY - lunariModel.position.y) * fallingSpeed * delta;
+                if (Math.abs(lunariModel.position.y - targetFloorY) < 0.01) {
+                    lunariModel.position.y = targetFloorY;
                 }
             }
 
