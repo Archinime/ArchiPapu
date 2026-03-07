@@ -262,9 +262,9 @@
         const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
         scene.add(hemiLight);
 
-        // NUEVO: Luz del Clima (proveniente del cuadro, simulando la ventana/sol)
-        const weatherLight = new THREE.SpotLight(0xffeedd, 0); // Intensidad 0 hasta saber el clima
-        weatherLight.angle = 1.0; // Ángulo amplio
+        // Luz del Clima (proveniente del cuadro, simulando la ventana/sol)
+        const weatherLight = new THREE.SpotLight(0xffeedd, 0); 
+        weatherLight.angle = 1.0; 
         weatherLight.penumbra = 0.5;
         weatherLight.distance = 50;
         weatherLight.castShadow = true;
@@ -275,8 +275,8 @@
         scene.add(weatherLight);
         scene.add(weatherLight.target);
 
-        // NUEVO: Luz del Cuarto (proveniente del foco, luz cálida)
-        const focoLight = new THREE.PointLight(0xffcca8, 0, 25); // Color de foco cálido
+        // Luz del Cuarto (proveniente del foco, luz cálida y MUY fuerte)
+        const focoLight = new THREE.PointLight(0xffcca8, 0, 100); // Rango ampliado a 100
         focoLight.castShadow = true;
         focoLight.shadow.mapSize.width = 512;
         focoLight.shadow.mapSize.height = 512;
@@ -441,7 +441,6 @@
                 
                 if (categoryKey === 'foco') {
                     focoMesh = model;
-                    // Posicionar la LUZ DEL FOCO (cuarto) en la ubicación del modelo
                     const box = new THREE.Box3().setFromObject(model);
                     const center = new THREE.Vector3();
                     box.getCenter(center);
@@ -464,7 +463,7 @@
             }
         }
 
-        // --- CUADRO CON CLIMA ---
+        // --- CUADRO CON CLIMA Y COLOR REALISTA ---
         (async function setupWeatherVisual() {
             const statusBox = document.getElementById('weather-status');
             statusBox.innerHTML = '🌍 Obteniendo clima...';
@@ -496,8 +495,23 @@
                     const code = data.current_weather.weathercode;
                     const isDay = data.current_weather.is_day;
                     
-                    isDaytime = (isDay === 1); // ACTUALIZAMOS ESTADO GLOBAL DEL CLIMA
+                    isDaytime = (isDay === 1);
                     temperature = data.current_weather.temperature;
+
+                    // Lógica de hora para el color de la luz climática
+                    const currentHour = new Date().getHours();
+                    let weatherLightColor = 0xffeedd; // Día normal por defecto
+                    
+                    if (isDaytime) {
+                        if (currentHour >= 6 && currentHour <= 8) {
+                            weatherLightColor = 0xffbfa8; // Amanecer (cálido/rosado)
+                        } else if (currentHour >= 17 && currentHour <= 19) {
+                            weatherLightColor = 0xff8c42; // Atardecer (naranja fuerte)
+                        } else {
+                            weatherLightColor = 0xffffee; // Mediodía (blanco brillante)
+                        }
+                    }
+                    weatherLight.color.setHex(weatherLightColor);
 
                     if (code === 0) {
                         weatherName = isDay ? "Despejado" : "Noche despejada"; weatherEmoji = isDay ? "☀️" : "🌙";
@@ -522,7 +536,7 @@
             }
 
             statusBox.innerHTML = temperature !== "--" ? `${weatherEmoji} ${weatherName} | ${temperature}°C` : `${weatherEmoji} ${weatherName}`;
-            updateLighting(); // Refrescar luces ahora que sabemos si es de día
+            updateLighting(); 
 
             const video = document.createElement('video');
             video.loop = true; video.muted = true; video.playsInline = true; video.crossOrigin = 'anonymous';
@@ -548,12 +562,11 @@
                 });
                 applyMaterialLogic(cuadroModel, 'cuadro');
                 
-                // Posicionar LUZ DEL CLIMA (ventanal) en el cuadro
                 const box = new THREE.Box3().setFromObject(cuadroModel);
                 const center = new THREE.Vector3();
                 box.getCenter(center);
-                weatherLight.position.copy(center).add(new THREE.Vector3(0, 0, 1)); // Ligeramente desplazada hacia adentro
-                weatherLight.target.position.set(0, 1, 0); // Apuntar al centro del cuarto
+                weatherLight.position.copy(center).add(new THREE.Vector3(0, 0, 1)); 
+                weatherLight.target.position.set(0, 1, 0); 
                 
                 scene.add(cuadroModel);
                 loadedSlotMeshes['cuadro'] = cuadroModel;
@@ -589,13 +602,13 @@
         function updateLighting() {
             const isLow = perfCheck.checked;
 
-            // 1. Control de la Luz del Cuarto (Foco)
+            // 1. Control de la Luz del Cuarto (Foco) - Fuerza aumentada bastante
             if (lightOn) {
                 focoLight.visible = true;
-                focoLight.intensity = isLow ? 12 : 20; // Ajuste por rendimiento
+                focoLight.intensity = isLow ? 60 : 150; // Intensidad masiva
                 document.getElementById('light-status').innerText = '💡 Luz del cuarto encendida';
                 if (focoMesh) {
-                    focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = isLow ? 2.0 : 3.5; });
+                    focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = isLow ? 2.0 : 4.0; });
                 }
             } else {
                 focoLight.visible = false;
@@ -609,11 +622,10 @@
             // 2. Control de la Luz del Clima (Cuadro/Ventana)
             if (isDaytime) {
                 weatherLight.visible = true;
-                weatherLight.intensity = isLow ? 6 : 10;
+                weatherLight.intensity = isLow ? 8 : 15;
                 hemiLight.intensity = 0.6;
                 ambient.intensity = 0.2;
             } else {
-                // De noche, no hay sol entrando
                 weatherLight.visible = false;
                 weatherLight.intensity = 0;
                 hemiLight.intensity = lightOn ? 0.3 : 0.1;
@@ -624,7 +636,7 @@
         const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2();
 
         function toggleLight() {
-            lightOn = !lightOn; // Solo cambia el foco del cuarto
+            lightOn = !lightOn; 
             localStorage.setItem('lightState', lightOn ? 'on' : 'off');
             updateLighting();
         }
