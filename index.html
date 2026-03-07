@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Habitación 3D - Inventario y Lunari</title>
     <style>
+        /* (Estilos originales, sin cambios) */
         body {
             margin: 0;
             overflow: hidden;
@@ -354,14 +355,26 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
-        // --- SISTEMA DE DATOS E INVENTARIO ---
+        /************************************************************************
+         * OPTIMIZACIONES PARA MÓVIL Y BAJA GAMA
+         ************************************************************************/
+
+        // --- Detección de dispositivo mejorada ---
+        const ua = navigator.userAgent;
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+        const width = window.innerWidth;
+        const deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
+        
+        // Forzar modo humilde en móviles/tablets (el usuario podrá desactivarlo, pero recomendado)
+        const isLowEndDevice = deviceType === 'mobile' || deviceType === 'tablet';
+        
+        // --- Sistema de datos e inventario (sin cambios) ---
         let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
         document.getElementById('coin-amount').innerText = playerCoins;
 
         let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
         if (inventoryData.base_foco) delete inventoryData.base_foco;
         
-        // Sincronizar objetos nuevos y verificar integridad
         for (let cat in defaultInventoryConfig) {
             if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
             inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
@@ -397,13 +410,7 @@
         let switchMesh = null;
         let focoMesh = null;
 
-        // --- Detección de dispositivo ---
-        const ua = navigator.userAgent;
-        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-        const width = window.innerWidth;
-        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
-
-        // --- Escena, Cámara y Reloj (Para Animaciones) ---
+        // --- Escena, cámara, reloj ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050508); 
         const clock = new THREE.Clock();
@@ -413,40 +420,67 @@
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
         camera.position.set(0, camPosY, camPosZ);
 
-        // --- RENDERIZADOR ---
-        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        // --- Renderizador optimizado ---
+        const renderer = new THREE.WebGLRenderer({ 
+            antialias: !isLowEndDevice,          // Sin antialiasing en móvil
+            powerPreference: isLowEndDevice ? "low-power" : "high-performance" 
+        });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+        // Sombras: deshabilitadas completamente en móvil para mejorar rendimiento
+        renderer.shadowMap.enabled = !isLowEndDevice;
+        if (!isLowEndDevice) {
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.shadowMap.mapSize.width = 1024;  // Reducido de 2048
+            renderer.shadowMap.mapSize.height = 1024;
+        }
         renderer.outputEncoding = THREE.sRGBEncoding;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping; 
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.0;
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setPixelRatio(isLowEndDevice ? 1 : Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.target.set(0, targetY, 0);
         controls.maxPolarAngle = Math.PI / 2 - 0.05;
-        controls.minDistance = 2.5; controls.maxDistance = 16;
+        controls.minDistance = 2.5; 
+        controls.maxDistance = 16;
         controls.enablePan = false;
+        if (isLowEndDevice) {
+            controls.enableDamping = false; // Desactivar damping en móvil para menos cálculos
+        }
 
-        // --- LUCES ---
-        const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+        // --- Luces optimizadas ---
+        const ambient = new THREE.AmbientLight(0xffffff, isLowEndDevice ? 0.5 : 0.3);
         scene.add(ambient);
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, isLowEndDevice ? 0.6 : 0.4);
+        hemiLight.position.set(0, 20, 0);
+        scene.add(hemiLight);
         
-        const mainLight = new THREE.SpotLight(0xffeedd, 6);
-        mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
-        mainLight.castShadow = true;
-        mainLight.shadow.mapSize.set(2048, 2048);
-        mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
-        scene.add(mainLight); scene.add(mainLight.target);
+        const mainLight = new THREE.SpotLight(0xffeedd, isLowEndDevice ? 4 : 6);
+        mainLight.position.set(2, 22, 2); 
+        mainLight.angle = Math.PI / 3; 
+        mainLight.penumbra = 0.8; 
+        mainLight.decay = 2; 
+        mainLight.distance = 60;
+        mainLight.castShadow = !isLowEndDevice;
+        if (!isLowEndDevice) {
+            mainLight.shadow.mapSize.set(1024, 1024);
+            mainLight.shadow.camera.near = 0.5;
+            mainLight.shadow.camera.far = 40;
+            mainLight.shadow.bias = -0.0001;
+            mainLight.shadow.normalBias = 0.02;
+            mainLight.shadow.radius = 4;
+        }
+        scene.add(mainLight);
+        scene.add(mainLight.target);
         
         let lightOn = localStorage.getItem('lightState') !== 'off';
         const perfCheck = document.getElementById('performance-mode');
-        perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
+        // Inicializar checkbox según dispositivo
+        perfCheck.checked = isLowEndDevice || localStorage.getItem('performanceMode') === 'true';
 
+        // --- Función de materiales con lógica de calidad ---
         function applyMaterialLogic(model, categoryKey) {
             if(!model) return;
             const isLow = perfCheck.checked;
@@ -456,13 +490,15 @@
                 if (node.isMesh) {
                     node.frustumCulled = false;
                     if (isFoco) {
-                        node.castShadow = false; node.receiveShadow = false;
+                        node.castShadow = false; 
+                        node.receiveShadow = false;
                         if (node.material) {
                             node.material.emissive = new THREE.Color(0xffeedd);
                             node.material.emissiveIntensity = lightOn ? 1.5 : 0;
                         }
                     } else {
-                        node.castShadow = !isLow; node.receiveShadow = !isLow;
+                        node.castShadow = !isLow && !isLowEndDevice; // Forzar sin sombras en móvil
+                        node.receiveShadow = !isLow && !isLowEndDevice;
                         if(node.material) {
                             node.material.shadowSide = THREE.FrontSide;
                             if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
@@ -472,13 +508,19 @@
                             node.material.needsUpdate = true;
                         }
                     }
+                    // Reducir calidad de texturas en móvil
+                    if (isLowEndDevice && node.material.map) {
+                        node.material.map.minFilter = THREE.LinearFilter;
+                        node.material.map.magFilter = THREE.LinearFilter;
+                    }
                 }
             });
         }
 
-        // --- CÁLCULO DINÁMICO DE CARGA ---
+        // --- Gestión de carga con timeout y contador robusto ---
         let totalModelsToLoad = 0;
         let modelsLoaded = 0;
+        let loadingError = false;
 
         for (let cat in inventoryData) {
             let equippedItemId = inventoryData[cat].equipped;
@@ -489,8 +531,16 @@
             }
         }
 
-        totalModelsToLoad += 2; // Lunari
+        totalModelsToLoad += 2; // Lunari y animación
         totalModelsToLoad += 1; // Cuadro
+
+        // Timeout global: si después de 15 segundos no se ha cargado todo, ocultamos loading
+        const loadingTimeout = setTimeout(() => {
+            if (modelsLoaded < totalModelsToLoad) {
+                console.warn('Timeout de carga, forzando ocultar loading');
+                document.getElementById('loading').style.display = 'none';
+            }
+        }, 15000);
 
         function checkLoading() {
             modelsLoaded++;
@@ -498,23 +548,44 @@
             if(loadingEl) {
                 loadingEl.innerText = `Cargando: ${modelsLoaded}/${totalModelsToLoad}`;
                 if (modelsLoaded >= totalModelsToLoad) {
+                    clearTimeout(loadingTimeout);
                     loadingEl.style.display = 'none';
                 }
             }
         }
 
-        if(totalModelsToLoad === 0 && document.getElementById('loading')) {
-            document.getElementById('loading').style.display = 'none';
-        }
-
-        // --- CARGA DE MODELOS Y LUNARI CON ANIMACIONES ---
+        // --- Carga de modelos con secuencialidad en móvil ---
         const loader = new GLTFLoader();
         let lunariMixer = null;
         let baseAction = null;
         let randomAction = null;
         let currentAction = null;
 
-        loader.load('lunari_durmiendo1.glb', (gltf) => {
+        // Función para cargar modelos en serie (para móvil) o en paralelo (escritorio)
+        const loadQueue = [];
+        function queueLoad(url, onLoad, onError) {
+            if (isLowEndDevice) {
+                loadQueue.push({ url, onLoad, onError });
+            } else {
+                loader.load(url, onLoad, undefined, onError);
+            }
+        }
+
+        // Procesar cola secuencialmente
+        function processQueue() {
+            if (loadQueue.length === 0) return;
+            const next = loadQueue.shift();
+            loader.load(next.url, (gltf) => {
+                next.onLoad(gltf);
+                processQueue(); // Siguiente
+            }, undefined, (err) => {
+                next.onError(err);
+                processQueue();
+            });
+        }
+
+        // Cargar Lunari
+        queueLoad('lunari_durmiendo1.glb', (gltf) => {
             const lunariModel = gltf.scene;
             applyMaterialLogic(lunariModel, 'lunari');
             scene.add(lunariModel);
@@ -526,12 +597,12 @@
                 currentAction = baseAction;
             }
             checkLoading();
-        }, undefined, (e) => {
+        }, (e) => {
             console.error('Error cargando a Lunari:', e);
             checkLoading();
         });
 
-        loader.load('Lunari_Duerme_2.glb', (gltf) => {
+        queueLoad('Lunari_Duerme_2.glb', (gltf) => {
             if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
                 const clip = gltf.animations[0];
                 randomAction = lunariMixer.clipAction(clip);
@@ -539,11 +610,16 @@
                 randomAction.clampWhenFinished = true;
             }
             checkLoading();
-        }, undefined, (e) => {
+        }, (e) => {
             console.error('Error cargando animación aleatoria:', e);
             checkLoading();
         });
-        
+
+        // Iniciar cola si estamos en móvil
+        if (isLowEndDevice) {
+            processQueue();
+        }
+
         setInterval(() => {
             if (!randomAction || !baseAction || !lunariMixer) return;
             if (currentAction === randomAction) return;
@@ -565,34 +641,61 @@
             }
         }, 60000);
 
+        // Función para cargar ítem en un slot (con caché)
         function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             if (!itemFile) return;
             if (loadedSlotMeshes[categoryKey]) {
                 scene.remove(loadedSlotMeshes[categoryKey]);
             }
 
-            loader.load(itemFile, (gltf) => {
-                const model = gltf.scene;
-                applyMaterialLogic(model, categoryKey);
-                
-                if (categoryKey === 'foco') {
-                    focoMesh = model;
-                    const box = new THREE.Box3().setFromObject(model);
-                    const center = new THREE.Vector3(); box.getCenter(center);
-                    mainLight.position.copy(center); mainLight.position.y -= 0.2; 
-                }
-  
-                if (categoryKey === 'interruptor') switchMesh = model;
+            const loadFn = () => {
+                loader.load(itemFile, (gltf) => {
+                    const model = gltf.scene;
+                    applyMaterialLogic(model, categoryKey);
+                    
+                    if (categoryKey === 'foco') {
+                        focoMesh = model;
+                        const box = new THREE.Box3().setFromObject(model);
+                        const center = new THREE.Vector3(); box.getCenter(center);
+                        mainLight.position.copy(center); mainLight.position.y -= 0.2; 
+                    }
+      
+                    if (categoryKey === 'interruptor') switchMesh = model;
 
-                scene.add(model);
-                loadedSlotMeshes[categoryKey] = model; 
-                if(isInitialLoad) checkLoading();
-            }, undefined, (e) => { 
-                console.error(`Error cargando modelo [${categoryKey}]:`, itemFile); 
-                if(isInitialLoad) checkLoading();
-            });
+                    scene.add(model);
+                    loadedSlotMeshes[categoryKey] = model; 
+                    if(isInitialLoad) checkLoading();
+                }, undefined, (e) => { 
+                    console.error(`Error cargando modelo [${categoryKey}]:`, itemFile); 
+                    if(isInitialLoad) checkLoading();
+                });
+            };
+
+            if (isLowEndDevice) {
+                // En móvil, encolamos también estos modelos
+                queueLoad(itemFile, (gltf) => {
+                    const model = gltf.scene;
+                    applyMaterialLogic(model, categoryKey);
+                    if (categoryKey === 'foco') {
+                        focoMesh = model;
+                        const box = new THREE.Box3().setFromObject(model);
+                        const center = new THREE.Vector3(); box.getCenter(center);
+                        mainLight.position.copy(center); mainLight.position.y -= 0.2; 
+                    }
+                    if (categoryKey === 'interruptor') switchMesh = model;
+                    scene.add(model);
+                    loadedSlotMeshes[categoryKey] = model; 
+                    if(isInitialLoad) checkLoading();
+                }, (e) => {
+                    console.error(`Error cargando modelo [${categoryKey}]:`, itemFile); 
+                    if(isInitialLoad) checkLoading();
+                });
+            } else {
+                loadFn();
+            }
         }
 
+        // Carga inicial de modelos equipados
         for (let cat in inventoryData) {
             let equippedItemId = inventoryData[cat].equipped;
             if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
@@ -606,7 +709,7 @@
             }
         }
 
-        // --- CARGA DEL CUADRO CON VIDEO Y CLIMA API (MAPEADO COMPLETO Y DÍA/NOCHE) ---
+        // --- Cuadro con video / imagen de respaldo (robusto) ---
         (async function setupWeatherVideo() {
             const video = document.createElement('video');
             video.loop = true;
@@ -614,7 +717,6 @@
             video.playsInline = true;
             video.crossOrigin = 'anonymous';
             
-            // Valores por defecto
             let videoFile = 'dia_soleado.mp4'; 
             let weatherEmoji = "☀️";
             let weatherName = "Clima estándar";
@@ -624,7 +726,7 @@
 
             try {
                 const pos = await new Promise((resolve, reject) => {
-                    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+                    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 });
                 });
                 
                 const lat = pos.coords.latitude;
@@ -634,10 +736,9 @@
                 const data = await response.json();
                 
                 const code = data.current_weather.weathercode;
-                const isDay = data.current_weather.is_day; // 1 = día, 0 = noche
+                const isDay = data.current_weather.is_day;
                 temperature = data.current_weather.temperature;
                 
-                // MAPEADO COMPLETO WMO CON VERIFICACIÓN DÍA Y NOCHE
                 if (code === 0) {
                     weatherName = isDay ? "Despejado" : "Noche despejada";
                     weatherEmoji = isDay ? "☀️" : "🌙";
@@ -654,27 +755,27 @@
                     weatherName = "Niebla";
                     weatherEmoji = "🌫️";
                     videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4';
-                } else if ([51, 53, 55, 56, 57].includes(code)) {
+                } else if ([51,53,55,56,57].includes(code)) {
                     weatherName = "Llovizna";
                     weatherEmoji = isDay ? "🌦️" : "🌧️";
                     videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
-                } else if ([61, 63, 65, 66, 67].includes(code)) {
+                } else if ([61,63,65,66,67].includes(code)) {
                     weatherName = "Lluvia";
                     weatherEmoji = "🌧️";
                     videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
-                } else if ([71, 73, 75, 77].includes(code)) {
+                } else if ([71,73,75,77].includes(code)) {
                     weatherName = "Nieve";
                     weatherEmoji = "❄️";
                     videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4';
-                } else if ([80, 81, 82].includes(code)) {
+                } else if ([80,81,82].includes(code)) {
                     weatherName = "Aguaceros";
                     weatherEmoji = "🌧️";
                     videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
-                } else if ([85, 86].includes(code)) {
+                } else if ([85,86].includes(code)) {
                     weatherName = "Chubascos de nieve";
                     weatherEmoji = "🌨️";
                     videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4';
-                } else if ([95, 96, 99].includes(code)) {
+                } else if ([95,96,99].includes(code)) {
                     weatherName = "Tormenta";
                     weatherEmoji = "⛈️";
                     videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4';
@@ -689,99 +790,109 @@
                 weatherName = "Clima offline";
             }
 
-            // Actualizar la interfaz con el clima y la TEMPERATURA
             if (temperature !== "--") {
                 statusBox.innerHTML = `${weatherEmoji} ${weatherName} | ${temperature}°C`;
             } else {
                 statusBox.innerHTML = `${weatherEmoji} ${weatherName}`;
             }
-            video.src = videoFile;
 
-            // Iniciar video
-            video.play().catch(e => console.log('Autoplay bloqueado:', e));
-            
-            // Configurar textura 3D
+            // Fallback: si el video no puede cargarse, usar una imagen estática
+            let texture;
+            video.addEventListener('error', () => {
+                console.warn('No se pudo cargar el video, usando imagen estática');
+                const img = new Image();
+                img.src = 'dia_soleado.jpg'; // imagen por defecto
+                texture = new THREE.CanvasTexture(img); // convertimos a textura
+                applyTextureToCuadro(texture);
+            });
+
+            video.src = videoFile;
+            video.load();
+            video.play().catch(e => {
+                console.log('Autoplay bloqueado, usando imagen');
+                const img = new Image();
+                img.src = 'dia_soleado.jpg';
+                texture = new THREE.CanvasTexture(img);
+                applyTextureToCuadro(texture);
+            });
+
             const videoTexture = new THREE.VideoTexture(video);
             videoTexture.minFilter = THREE.LinearFilter;
             videoTexture.magFilter = THREE.LinearFilter;
             videoTexture.format = THREE.RGBAFormat;
             videoTexture.encoding = THREE.sRGBEncoding;
-            
-            // Cargar el cuadro
-            loader.load('cuadro.glb', (gltf) => {
-                const cuadroModel = gltf.scene;
-                
-                cuadroModel.traverse((node) => {
-                    if (node.isMesh) {
-                        if (Array.isArray(node.material)) {
-                            node.material.forEach(mat => {
-                                mat.map = videoTexture;
-                                mat.needsUpdate = true;
-                            });
-                        } else if (node.material) {
-                            node.material.map = videoTexture;
-                            node.material.needsUpdate = true;
-                        }
-                    }
-                });
-       
-                applyMaterialLogic(cuadroModel, 'cuadro');
-                scene.add(cuadroModel);
-                loadedSlotMeshes['cuadro'] = cuadroModel;
-                checkLoading();
-            }, undefined, (e) => {
-                console.error('Error cargando cuadro:', e);
-                checkLoading();
-            });
 
+            function applyTextureToCuadro(tex) {
+                loader.load('cuadro.glb', (gltf) => {
+                    const cuadroModel = gltf.scene;
+                    cuadroModel.traverse((node) => {
+                        if (node.isMesh) {
+                            if (Array.isArray(node.material)) {
+                                node.material.forEach(mat => {
+                                    mat.map = tex;
+                                    mat.needsUpdate = true;
+                                });
+                            } else if (node.material) {
+                                node.material.map = tex;
+                                node.material.needsUpdate = true;
+                            }
+                        }
+                    });
+                    applyMaterialLogic(cuadroModel, 'cuadro');
+                    scene.add(cuadroModel);
+                    loadedSlotMeshes['cuadro'] = cuadroModel;
+                    checkLoading();
+                }, undefined, (e) => {
+                    console.error('Error cargando cuadro:', e);
+                    checkLoading();
+                });
+            }
+
+            // Usar videoTexture si todo va bien
+            if (video.readyState >= 1) {
+                applyTextureToCuadro(videoTexture);
+            } else {
+                video.addEventListener('canplay', () => {
+                    applyTextureToCuadro(videoTexture);
+                });
+            }
         })();
 
-
-        // --- SISTEMA DE ILUMINACIÓN ---
+        // --- Iluminación ---
         function updateLighting() {
             const isLow = perfCheck.checked;
             if (lightOn) {
                 mainLight.visible = true;
-                ambient.intensity = isLow ? 0.8 : 0.3; hemiLight.intensity = isLow ? 0.8 : 0.4;
+                ambient.intensity = isLow ? 0.8 : 0.3;
+                hemiLight.intensity = isLow ? 0.8 : 0.4;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
                 if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 1.5; });
             } else {
                 mainLight.visible = false;
-                ambient.intensity = 0.02; hemiLight.intensity = 0.05; 
+                ambient.intensity = 0.02;
+                hemiLight.intensity = 0.05; 
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
                 if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; });
             }
         }
 
+        // --- Raycaster e interacción ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
+        let lastClick = 0;
         
         function toggleLight() {
             lightOn = !lightOn;
-            localStorage.setItem('lightState', lightOn ? 'on' : 'off'); updateLighting();
+            localStorage.setItem('lightState', lightOn ? 'on' : 'off'); 
+            updateLighting();
         }
 
-        // --- FUNCIONES PARA LOS POSTERS ---
-        const posterViewModal = document.getElementById('poster-view-modal');
-        const posterEnlargedImage = document.getElementById('poster-enlarged-image');
-        const closePosterBtn = document.getElementById('close-poster-view');
-
-        function openPosterPreview(categoryKey) {
-            const equippedId = inventoryData[categoryKey].equipped;
-            const itemData = inventoryData[categoryKey].items[equippedId];
-            if (itemData && itemData.preview) {
-                posterEnlargedImage.src = itemData.preview;
-                posterViewModal.classList.add('visible');
-            }
-        }
-
-        closePosterBtn.onclick = () => posterViewModal.classList.remove('visible');
-        posterViewModal.onclick = (e) => { 
-            if (e.target === posterViewModal) posterViewModal.classList.remove('visible');
-        };
-
-        // --- SISTEMA DE INTERACCIÓN GENERAL ---
         function handleInteraction(event) {
+            // Debounce para evitar múltiples disparos
+            const now = Date.now();
+            if (now - lastClick < 300) return;
+            lastClick = now;
+
             const rect = renderer.domElement.getBoundingClientRect();
             const x = event.touches ? event.touches[0].clientX : event.clientX;
             const y = event.touches ? event.touches[0].clientY : event.clientY;
@@ -789,13 +900,11 @@
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
             
-            // Chequeo de Luz
             if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
                 toggleLight();
                 return; 
             }
 
-            // Chequeo de Pósters Dinámicos
             const posterCategories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
             for (let cat of posterCategories) {
                 const posterMesh = loadedSlotMeshes[cat];
@@ -815,10 +924,10 @@
             handleInteraction(e); 
         }, {passive: true});
         
-        // --- Calidad / Modo Humilde ---
+        // --- Calidad / Modo humilde ---
         function updateQuality() {
             const isLow = perfCheck.checked;
-            renderer.shadowMap.enabled = !isLow;
+            renderer.shadowMap.enabled = !isLow && !isLowEndDevice; // En móvil siempre false
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
             for (let cat in loadedSlotMeshes) {
@@ -830,7 +939,7 @@
         }
         perfCheck.addEventListener('change', updateQuality);
         
-        // --- LÓGICA DE INTERFAZ DEL INVENTARIO ---
+        // --- Inventario (sin cambios funcionales) ---
         let currentCategory = 'cama';
         let openGroup = 'muebles';
 
@@ -858,7 +967,6 @@
 
                 group.categories.forEach(catKey => {
                     const catData = inventoryData[catKey];
-          
                     if(!catData) return;
                     
                     const btn = document.createElement('button');
@@ -907,7 +1015,6 @@
                     <div>
                         ${previewDiv.outerHTML}
                         <h4>${item.name}</h4>
-              
                         <div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div>
                     </div>
                     ${btnHTML}
@@ -958,7 +1065,7 @@
             }
         }
 
-        // Eventos UI
+        // --- Eventos UI ---
         document.getElementById('inventory-button').onclick = () => {
             document.getElementById('inventory-modal').classList.add('visible');
             renderInventory();
@@ -969,10 +1076,39 @@
         document.getElementById('settings-button').onclick = () => {
             document.getElementById('settings-panel').classList.toggle('visible');
         };
-        
-        // --- Animación y Resize ---
-        function animate() {
+
+        // --- Posters ---
+        const posterViewModal = document.getElementById('poster-view-modal');
+        const posterEnlargedImage = document.getElementById('poster-enlarged-image');
+        const closePosterBtn = document.getElementById('close-poster-view');
+
+        function openPosterPreview(categoryKey) {
+            const equippedId = inventoryData[categoryKey].equipped;
+            const itemData = inventoryData[categoryKey].items[equippedId];
+            if (itemData && itemData.preview) {
+                posterEnlargedImage.src = itemData.preview;
+                posterViewModal.classList.add('visible');
+            }
+        }
+
+        closePosterBtn.onclick = () => posterViewModal.classList.remove('visible');
+        posterViewModal.onclick = (e) => { 
+            if (e.target === posterViewModal) posterViewModal.classList.remove('visible');
+        };
+
+        // --- Animación con throttling de FPS en móvil ---
+        let lastFrameTime = 0;
+        const fpsLimit = isLowEndDevice ? 30 : 60;
+        const frameInterval = 1000 / fpsLimit;
+
+        function animate(time) {
             requestAnimationFrame(animate);
+            
+            if (isLowEndDevice) {
+                if (time - lastFrameTime < frameInterval) return;
+                lastFrameTime = time;
+            }
+
             const delta = clock.getDelta();
             if (lunariMixer) lunariMixer.update(delta);
 
