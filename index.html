@@ -354,38 +354,56 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
+        // --- CONSTANTE PARA ACTUALIZAR MODELOS (CAMBIA ESTE NÚMERO CUANDO SUBAS NUEVAS VERSIONES) ---
+        const MODEL_VERSION = '2'; // Incrementa cuando modifiques modelos 3D (p.ej., a 3, 4, etc.)
+
         // --- SISTEMA DE DATOS E INVENTARIO ---
         let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
         document.getElementById('coin-amount').innerText = playerCoins;
 
-        let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
-        if (inventoryData.base_foco) delete inventoryData.base_foco;
-        
-        // Sincronizar objetos nuevos y verificar integridad
+        // Cargar inventario guardado (si existe)
+        let savedInventory = JSON.parse(localStorage.getItem('room_inventory')) || {};
+
+        // Sincronización ESTRICTA: solo se conservan categorías e ítems que existen en defaultInventoryConfig
+        const inventoryData = {};
+
         for (let cat in defaultInventoryConfig) {
-            if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
-            inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
-            inventoryData[cat].label = defaultInventoryConfig[cat].label;
+            const defaultCat = defaultInventoryConfig[cat];
+            const savedCat = savedInventory[cat] || {};
 
-            if (!inventoryData[cat].items[inventoryData[cat].equipped]) {
-                inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
-            }
+            // Construir categoría nueva con valores por defecto + lo que se pueda recuperar
+            const newCat = {
+                label: defaultCat.label,
+                emoji: defaultCat.emoji,
+                // Si el ítem equipado guardado todavía existe en la configuración, se conserva; si no, se usa el defecto
+                equipped: (savedCat.equipped && defaultCat.items[savedCat.equipped]) ? savedCat.equipped : defaultCat.equipped,
+                items: {}
+            };
 
-            for(let item in defaultInventoryConfig[cat].items) {
-                if(!inventoryData[cat].items[item]) {
-                    inventoryData[cat].items[item] = defaultInventoryConfig[cat].items[item];
-                } else {
-                    inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file;
-                    inventoryData[cat].items[item].name = defaultInventoryConfig[cat].items[item].name;
-                    if(defaultInventoryConfig[cat].items[item].baseFile) {
-                        inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile;
-                    }
-                    if(defaultInventoryConfig[cat].items[item].preview) {
-                        inventoryData[cat].items[item].preview = defaultInventoryConfig[cat].items[item].preview;
-                    }
+            // Copiar cada ítem de la configuración por defecto, preservando owned si ya existía
+            for (let itemId in defaultCat.items) {
+                const defaultItem = defaultCat.items[itemId];
+                const savedItem = savedCat.items ? savedCat.items[itemId] : null;
+
+                newCat.items[itemId] = {
+                    name: defaultItem.name,
+                    file: defaultItem.file,
+                    price: defaultItem.price,
+                    owned: savedItem ? savedItem.owned : (defaultItem.owned || false),
+                    preview: defaultItem.preview
+                };
+                // Conservar baseFile si existe
+                if (defaultItem.baseFile) {
+                    newCat.items[itemId].baseFile = defaultItem.baseFile;
                 }
             }
+
+            inventoryData[cat] = newCat;
         }
+
+        // (Opcional) Eliminar del localStorage cualquier categoría huérfana; pero ya no se usa porque partimos de cero.
+        // Guardamos el inventario limpio inmediatamente para que el almacenamiento refleje la realidad
+        localStorage.setItem('room_inventory', JSON.stringify(inventoryData));
 
         function saveGame() {
             localStorage.setItem('room_coins', playerCoins);
@@ -514,7 +532,12 @@
         let randomAction = null;
         let currentAction = null;
 
-        loader.load('lunari_durmiendo1.glb', (gltf) => {
+        // Función auxiliar para agregar versión a las URLs
+        function addVersion(url) {
+            return `${url}?v=${MODEL_VERSION}`;
+        }
+
+        loader.load(addVersion('lunari_durmiendo1.glb'), (gltf) => {
             const lunariModel = gltf.scene;
             applyMaterialLogic(lunariModel, 'lunari');
             scene.add(lunariModel);
@@ -531,7 +554,7 @@
             checkLoading();
         });
 
-        loader.load('Lunari_Duerme_2.glb', (gltf) => {
+        loader.load(addVersion('Lunari_Duerme_2.glb'), (gltf) => {
             if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
                 const clip = gltf.animations[0];
                 randomAction = lunariMixer.clipAction(clip);
@@ -571,7 +594,7 @@
                 scene.remove(loadedSlotMeshes[categoryKey]);
             }
 
-            loader.load(itemFile, (gltf) => {
+            loader.load(addVersion(itemFile), (gltf) => {
                 const model = gltf.scene;
                 applyMaterialLogic(model, categoryKey);
                 
@@ -695,7 +718,8 @@
             } else {
                 statusBox.innerHTML = `${weatherEmoji} ${weatherName}`;
             }
-            video.src = videoFile;
+            // Añadir versión al video para evitar caché
+            video.src = `${videoFile}?v=${MODEL_VERSION}`;
 
             // Iniciar video
             video.play().catch(e => console.log('Autoplay bloqueado:', e));
@@ -708,7 +732,7 @@
             videoTexture.encoding = THREE.sRGBEncoding;
             
             // Cargar el cuadro
-            loader.load('cuadro.glb', (gltf) => {
+            loader.load(addVersion('cuadro.glb'), (gltf) => {
                 const cuadroModel = gltf.scene;
                 
                 cuadroModel.traverse((node) => {
