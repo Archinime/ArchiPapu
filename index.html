@@ -164,7 +164,9 @@
         }
 
         /* --- MODAL INVENTARIO / TIENDA --- */
-        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes modalFadeIn { from { opacity: 0;
+            transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0);
+        } }
         
         #inventory-modal {
             display: none;
@@ -177,9 +179,12 @@
         }
         #inventory-modal.visible { display: flex; animation: modalFadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1); }
         
-        #inv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        #inv-header { display: flex;
+            justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;
+        }
         #inv-header h2 { margin: 0; font-size: 24px; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        #close-inv { cursor: pointer; font-size: 24px; background: rgba(255,255,255,0.1); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; transition: 0.2s; }
+        #close-inv { cursor: pointer; font-size: 24px; background: rgba(255,255,255,0.1); border: none; color: white;
+            width: 40px; height: 40px; border-radius: 50%; transition: 0.2s; }
         #close-inv:hover { background: rgba(255,50,50,0.6); transform: rotate(90deg); }
         
         #inv-body { display: flex; flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
@@ -189,14 +194,17 @@
         
         .inv-group { margin-bottom: 10px; }
         .group-btn {
-            width: 100%; text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.5);
+            width: 100%;
+            text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.5);
             color: white; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
-            cursor: pointer; font-size: 15px; font-weight: bold;
+            cursor: pointer; font-size: 15px;
+            font-weight: bold;
             display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease;
         }
         .group-btn:hover { background: rgba(255,255,255,0.15); transform: translateX(2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .group-content {
-            display: none; flex-direction: column; padding-left: 10px; margin-top: 5px;
+            display: none;
+            flex-direction: column; padding-left: 10px; margin-top: 5px;
             border-left: 2px solid rgba(255,255,255,0.1); margin-left: 8px;
             animation: slideDown 0.3s ease;
         }
@@ -204,17 +212,22 @@
         .group-content.open { display: flex; }
 
         .cat-btn { 
-            width: 100%; text-align: left; padding: 10px 15px; background: transparent; 
+            width: 100%;
+            text-align: left; padding: 10px 15px; background: transparent; 
             color: #bbb; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 4px; 
-            font-size: 14px; transition: 0.2s; display: flex; align-items: center; gap: 10px;
+            font-size: 14px;
+            transition: 0.2s; display: flex; align-items: center; gap: 10px;
         }
         .cat-btn:hover { background: rgba(255,255,255,0.08); color: white; padding-left: 18px; }
-        .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
+        .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white;
+            font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+        }
         .cat-icon-emoji { font-size: 18px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
         
         /* CONTENIDO DE ÍTEMS */
         #inv-content {
-            width: 70%; overflow-y: auto; display: grid;
+            width: 70%;
+            overflow-y: auto; display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 15px; align-content: start; padding-right: 5px;
         }
@@ -222,12 +235,14 @@
             background: linear-gradient(145deg, rgba(40,40,50,0.9), rgba(25,25,30,0.9));
             padding: 15px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.05);
             text-align: center; display: flex; flex-direction: column;
-            justify-content: space-between; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            justify-content: space-between;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         .item-card:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 10px 25px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.2); }
         .item-preview {
-            width: 100%; height: 120px; background: rgba(0,0,0,0.3); border-radius: 12px; margin-bottom: 12px;
+            width: 100%;
+            height: 120px; background: rgba(0,0,0,0.3); border-radius: 12px; margin-bottom: 12px;
             overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1);
         }
         .item-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -358,7 +373,7 @@
 
         let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
         if (inventoryData.base_foco) delete inventoryData.base_foco;
-
+        
         // Sincronizar objetos nuevos y verificar integridad
         for (let cat in defaultInventoryConfig) {
             if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
@@ -400,7 +415,7 @@
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
         const width = window.innerWidth;
         let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
-
+        
         // --- Escena, Cámara y Reloj (Para Animaciones) ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050508); 
@@ -410,7 +425,7 @@
         let camPosY = 6, camPosZ = 14, targetY = 6;
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
         camera.position.set(0, camPosY, camPosZ);
-
+        
         // --- RENDERIZADOR (OPTIMIZADO PARA PREVENIR CRASHEOS) ---
         const renderer = new THREE.WebGLRenderer({ 
             antialias: deviceType !== 'mobile', // Quitamos el antialiasing en móviles (Consume mucha RAM gráfica)
@@ -447,18 +462,18 @@
         // Las sombras gigantes saturaban la VRAM. Ahora se adaptan al equipo:
         const shadowRes = deviceType === 'mobile' ? 512 : 2048;
         mainLight.shadow.mapSize.set(shadowRes, shadowRes);
-        mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
+        mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4;
         scene.add(mainLight); scene.add(mainLight.target);
 
         let lightOn = localStorage.getItem('lightState') !== 'off';
         const perfCheck = document.getElementById('performance-mode');
         perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
-
+        
         function applyMaterialLogic(model, categoryKey) {
             if(!model) return;
             const isLow = perfCheck.checked;
             const isFoco = categoryKey === 'foco';
-
+            
             model.traverse((node) => {
                 if (node.isMesh) {
                     // Activamos Frustum Culling para no renderizar lo que no se ve
@@ -544,10 +559,27 @@
         let baseAction = null;
         let randomAction = null;
         let currentAction = null;
-
+        
         loader.load('lunari_durmiendo1.glb', (gltf) => {
             const lunariModel = gltf.scene;
             applyMaterialLogic(lunariModel, 'lunari');
+
+            // --- CORRECCIÓN: EVITAR QUE LUNARI SE VUELVA INVISIBLE ---
+            lunariModel.traverse((child) => {
+                if (child.isMesh) {
+                    // Sobrescribimos el culling general que se aplicó arriba
+                    child.frustumCulled = false; 
+                    
+                    // Forzamos opacidad para evitar problemas de exportación
+                    if (child.material) {
+                        child.material.transparent = false;
+                        child.material.depthWrite = true;
+                        child.material.needsUpdate = true;
+                    }
+                }
+            });
+            // ---------------------------------------------------------
+
             scene.add(lunariModel);
 
             if (gltf.animations && gltf.animations.length > 0) {
@@ -574,7 +606,7 @@
             console.error('Error cargando animación aleatoria:', e);
             checkLoading();
         });
-
+        
         setInterval(() => {
             if (!randomAction || !baseAction || !lunariMixer) return;
             if (currentAction === randomAction) return;
@@ -595,7 +627,7 @@
                 lunariMixer.addEventListener('finished', onFinished);
             }
         }, 60000);
-
+        
         function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             if (!itemFile) return;
             
@@ -615,7 +647,7 @@
                     const center = new THREE.Vector3(); box.getCenter(center);
                     mainLight.position.copy(center); mainLight.position.y -= 0.2; 
                 }
-  
+ 
                 if (categoryKey === 'interruptor') switchMesh = model;
 
                 scene.add(model);
@@ -659,7 +691,7 @@
                 const pos = await new Promise((resolve, reject) => {
                     navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
                 });
-                
+         
                 const lat = pos.coords.latitude;
                 const lon = pos.coords.longitude;
                 const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
@@ -668,7 +700,7 @@
                 const code = data.current_weather.weathercode;
                 const isDay = data.current_weather.is_day; // 1 = día, 0 = noche
                 temperature = data.current_weather.temperature;
-
+                
                 if (code === 0) {
                     weatherName = isDay ? "Despejado" : "Noche despejada";
                     weatherEmoji = isDay ? "☀️" : "🌙";
@@ -728,19 +760,19 @@
 
             video.src = videoFile;
             video.play().catch(e => console.log('Autoplay bloqueado:', e));
-
+            
             const videoTexture = new THREE.VideoTexture(video);
             videoTexture.minFilter = THREE.LinearFilter;
             videoTexture.magFilter = THREE.LinearFilter;
             videoTexture.format = THREE.RGBAFormat;
             videoTexture.encoding = THREE.sRGBEncoding;
-
+            
             loader.load('cuadro.glb', (gltf) => {
                 const cuadroModel = gltf.scene;
                 
                 cuadroModel.traverse((node) => {
                     if (node.isMesh) {
-                         if (Array.isArray(node.material)) {
+                        if (Array.isArray(node.material)) {
                             node.material.forEach(mat => {
                                 mat.map = videoTexture;
                                 mat.needsUpdate = true;
@@ -815,7 +847,7 @@
             mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
-
+            
             // Chequeo de Luz
             if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
                 toggleLight();
@@ -841,14 +873,13 @@
             if(document.getElementById('inventory-modal').classList.contains('visible')) return;
             handleInteraction(e); 
         }, {passive: true});
-
+        
         // --- Calidad / Modo Humilde (MEJORADO PARA MÓVILES) ---
         function updateQuality() {
             const isLow = perfCheck.checked;
-            
             // Forzamos apagado de sombras si activas modo humilde o si es dispositivo móvil para asegurar fluidez
-            renderer.shadowMap.enabled = !isLow && deviceType !== 'mobile'; 
-
+            renderer.shadowMap.enabled = !isLow && deviceType !== 'mobile';
+            
             // Magia del rendimiento: Bajar la resolución de pixel si es móvil
             if (isLow) {
                 renderer.setPixelRatio(deviceType === 'mobile' ? 0.75 : 1);
@@ -866,7 +897,7 @@
             updateLighting(); 
         }
         perfCheck.addEventListener('change', updateQuality);
-
+        
         // --- LÓGICA DE INTERFAZ DEL INVENTARIO ---
         let currentCategory = 'cama';
         let openGroup = 'muebles';
@@ -875,7 +906,7 @@
             const sidebar = document.getElementById('inv-sidebar');
             const content = document.getElementById('inv-content');
             sidebar.innerHTML = ''; content.innerHTML = '';
-
+            
             inventoryGroups.forEach(group => {
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'inv-group';
@@ -920,7 +951,6 @@
 
                 const previewDiv = document.createElement('div');
                 previewDiv.className = 'item-preview';
-                
                 if (item.preview) {
                     const img = document.createElement('img');
                     img.src = item.preview;
@@ -944,6 +974,7 @@
                     <div>
                         ${previewDiv.outerHTML}
                         <h4>${item.name}</h4>
+              
                         <div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div>
                     </div>
                     ${btnHTML}
@@ -965,6 +996,7 @@
             document.querySelectorAll('.btn-equip').forEach(b => {
                 b.onclick = (e) => equipItem(currentCategory, e.target.getAttribute('data-id'));
             });
+            
             document.querySelectorAll('.btn-buy').forEach(b => {
                 b.onclick = (e) => buyItem(currentCategory, e.target.getAttribute('data-id'));
             });
@@ -1003,6 +1035,7 @@
         document.getElementById('close-inv').onclick = () => {
             document.getElementById('inventory-modal').classList.remove('visible');
         };
+        
         document.getElementById('settings-button').onclick = () => {
             document.getElementById('settings-panel').classList.toggle('visible');
         };
