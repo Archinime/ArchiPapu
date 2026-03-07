@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Habitación 3D - Inventario y Lunari</title>
     <style>
-        /* (Los estilos se mantienen exactamente igual que en tu versión anterior) */
+        /* --- RESET Y ESTILOS BASE --- */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
         body {
             margin: 0;
             overflow: hidden;
@@ -14,6 +18,7 @@
             width: 100%;
             height: 100%;
             background-color: #111;
+            color: white;
         }
 
         /* --- SCROLLBAR PERSONALIZADO --- */
@@ -42,9 +47,11 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s;
             user-select: none;
+            will-change: transform;
         }
         .top-btn:hover { transform: scale(1.15); background: rgba(50,50,60,0.95); }
         .top-btn:active { transform: scale(0.95); }
+        .top-btn:focus-visible { outline: 2px solid #4CAF50; outline-offset: 2px; }
         
         #settings-button { right: 20px; }
         #inventory-button { right: 75px; }
@@ -66,6 +73,7 @@
             user-select: none;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             transition: transform 0.3s;
+            will-change: transform;
         }
         #coin-display:hover { transform: scale(1.05); }
 
@@ -89,6 +97,10 @@
             align-items: center;
             gap: 8px;
             transition: opacity 0.3s;
+            max-width: 280px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         /* --- PANELES --- */
@@ -147,6 +159,7 @@
             color: white;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             animation: modalFadeIn 0.5s ease-out forwards;
+            will-change: transform, opacity;
         }
         .char-name {
             margin: 0 0 5px 0;
@@ -165,7 +178,10 @@
         }
 
         /* --- MODAL INVENTARIO / TIENDA --- */
-        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
         
         #inventory-modal {
             display: none;
@@ -175,18 +191,29 @@
             z-index: 1000; color: white; padding: 20px; box-sizing: border-box;
             box-shadow: 0 15px 40px rgba(0,0,0,0.8);
             flex-direction: column;
+            will-change: transform, opacity;
         }
         #inventory-modal.visible { display: flex; animation: modalFadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1); }
         
         #inv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
         #inv-header h2 { margin: 0; font-size: 24px; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        #close-inv { cursor: pointer; font-size: 24px; background: rgba(255,255,255,0.1); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; transition: 0.2s; }
+        #close-inv {
+            cursor: pointer; font-size: 24px; background: rgba(255,255,255,0.1); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
         #close-inv:hover { background: rgba(255,50,50,0.6); transform: rotate(90deg); }
+        #close-inv:focus-visible { outline: 2px solid #f44336; outline-offset: 2px; }
         
         #inv-body { display: flex; flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
         
         /* SISTEMA DE CATEGORÍAS ACORDEÓN */
-        #inv-sidebar { width: 30%; border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding-right: 10px; }
+        #inv-sidebar {
+            width: 30%;
+            border-right: 1px solid rgba(255,255,255,0.1);
+            overflow-y: auto;
+            padding-right: 10px;
+            scroll-behavior: smooth;
+        }
         
         .inv-group { margin-bottom: 10px; }
         .group-btn {
@@ -195,15 +222,20 @@
             color: white; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
             cursor: pointer; font-size: 15px; font-weight: bold;
             display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease;
+            will-change: transform, background;
         }
         .group-btn:hover { background: rgba(255,255,255,0.15); transform: translateX(2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .group-btn:focus-visible { outline: 2px solid #4CAF50; outline-offset: 2px; }
         .group-content {
             display: none;
             flex-direction: column; padding-left: 10px; margin-top: 5px;
             border-left: 2px solid rgba(255,255,255,0.1); margin-left: 8px;
             animation: slideDown 0.3s ease;
         }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         .group-content.open { display: flex; }
 
         .cat-btn { 
@@ -228,6 +260,7 @@
             text-align: center; display: flex; flex-direction: column;
             justify-content: space-between; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            will-change: transform, box-shadow;
         }
         .item-card:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 10px 25px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.2); }
         .item-preview {
@@ -262,6 +295,7 @@
             max-width: 90%; max-height: 85%; border-radius: 15px;
             box-shadow: 0 15px 40px rgba(0,0,0,0.8); object-fit: contain;
             transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            will-change: transform;
         }
         #poster-view-modal.visible img { transform: scale(1); }
         #close-poster-view {
@@ -271,6 +305,7 @@
             align-items: center; justify-content: center;
         }
         #close-poster-view:hover { background: rgba(255,50,50,0.8); transform: rotate(90deg); }
+        #close-poster-view:focus-visible { outline: 2px solid #f44336; outline-offset: 2px; }
 
         @media (max-width: 600px) {
             .top-btn { top: 10px; width: 40px; height: 40px; font-size: 20px; }
@@ -278,7 +313,7 @@
             #inventory-button { right: 60px; }
             #settings-panel { top: 60px; right: 10px; padding: 12px 15px; font-size: 13px; min-width: 180px; }
             #coin-display { top: 10px; left: 10px; font-size: 14px; padding: 8px 12px; }
-            #weather-status { top: 55px; left: 10px; font-size: 12px; padding: 6px 10px; }
+            #weather-status { top: 55px; left: 10px; font-size: 12px; padding: 6px 10px; max-width: 220px; }
             #inventory-modal { top: 2%; left: 2%; width: 96%; height: 96%; padding: 15px; }
             #inv-body { flex-direction: column; gap: 10px; }
             #inv-sidebar { width: 100%; height: 35%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; padding-right: 0; }
@@ -294,37 +329,41 @@
             position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); font-weight: bold;
         }
         #loading { right: 20px; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
         #light-status { left: 20px; transition: 0.3s; }
     </style>
 </head>
 <body>
-    <div id="coin-display">🪙 <span id="coin-amount">0</span></div>
+    <div id="coin-display" aria-label="Monedas actuales">🪙 <span id="coin-amount">0</span></div>
     
-    <div id="weather-status">🌍 Detectando clima...</div>
+    <div id="weather-status" role="status" aria-live="polite">🌍 Detectando clima...</div>
     
-    <div id="inventory-button" class="top-btn" title="Inventario y Tienda">🎒</div>
-    <div id="settings-button" class="top-btn" title="Ajustes">⚙️</div>
+    <button id="inventory-button" class="top-btn" title="Inventario y Tienda" aria-label="Abrir inventario">🎒</button>
+    <button id="settings-button" class="top-btn" title="Ajustes" aria-label="Abrir ajustes">⚙️</button>
 
-    <div id="settings-panel">
+    <div id="settings-panel" role="dialog" aria-labelledby="quality-indicator">
         <div id="quality-indicator">Calidad Alta</div>
         <label>
             <span>Modo humilde</span>
-            <input type="checkbox" id="performance-mode">
+            <input type="checkbox" id="performance-mode" aria-describedby="quality-indicator">
         </label>
     </div>
 
     <div id="character-layer">
-        <div id="dialogue-box">
+        <div id="dialogue-box" role="complementary" aria-label="Diálogo de Lunari">
             <h3 class="char-name">Lunari</h3>
             <p id="dialogue-text">¡Hola!<br>Bienvenido de nuevo a casa.<br>¿Vemos un anime hoy?</p>
         </div>
     </div>
 
-    <div id="inventory-modal">
+    <div id="inventory-modal" role="dialog" aria-modal="true" aria-labelledby="inv-header">
         <div id="inv-header">
             <h2>🎒 Inventario y Tienda</h2>
-            <button id="close-inv">✖</button>
+            <button id="close-inv" aria-label="Cerrar inventario">✖</button>
         </div>
         <div id="inv-body">
             <div id="inv-sidebar"></div>
@@ -332,13 +371,13 @@
         </div>
     </div>
 
-    <div id="poster-view-modal">
-        <button id="close-poster-view">&times;</button>
-        <img id="poster-enlarged-image" src="" alt="Póster">
+    <div id="poster-view-modal" role="dialog" aria-modal="true" aria-label="Vista ampliada del póster">
+        <button id="close-poster-view" aria-label="Cerrar vista del póster">&times;</button>
+        <img id="poster-enlarged-image" src="" alt="Póster ampliado">
     </div>
 
-    <div id="loading">Preparando habitación...</div>
-    <div id="light-status">💡 Luz encendida</div>
+    <div id="loading" role="status" aria-live="polite">Preparando habitación...</div>
+    <div id="light-status" role="status">💡 Luz encendida</div>
 
     <script type="importmap">
         {
@@ -681,6 +720,7 @@
             let temperature = "--";
     
             const statusBox = document.getElementById('weather-status');
+            statusBox.innerHTML = '🌍 Obteniendo clima...';
 
             // Función para obtener coordenadas (primero por GPS, luego por IP)
             async function getCoords() {
@@ -778,10 +818,12 @@
                     }
                 } catch (weatherError) {
                     console.warn('Error al obtener datos del clima:', weatherError);
+                    weatherName = "Error clima";
+                    weatherEmoji = "⚠️";
                 }
             } else {
                 weatherName = "Clima offline";
-                weatherEmoji = "❌";
+                weatherEmoji = "🌐";
             }
 
             // Actualizar la interfaz
@@ -790,8 +832,9 @@
             } else {
                 statusBox.innerHTML = `${weatherEmoji} ${weatherName}`;
             }
+            
             // Añadir versión al video para evitar caché
-            video.src = `${videoFile}?v=${MODEL_VERSION}`;
+            video.src = addVersion(videoFile);
 
             // Iniciar video con reproducción automática silenciosa
             video.play().catch(e => console.log('Autoplay bloqueado:', e));
@@ -1073,6 +1116,21 @@
             document.getElementById('settings-panel').classList.toggle('visible');
         };
         
+        // Cerrar modales con tecla ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (document.getElementById('inventory-modal').classList.contains('visible')) {
+                    document.getElementById('inventory-modal').classList.remove('visible');
+                }
+                if (posterViewModal.classList.contains('visible')) {
+                    posterViewModal.classList.remove('visible');
+                }
+                if (document.getElementById('settings-panel').classList.contains('visible')) {
+                    document.getElementById('settings-panel').classList.remove('visible');
+                }
+            }
+        });
+
         // --- Animación y Resize ---
         function animate() {
             requestAnimationFrame(animate);
