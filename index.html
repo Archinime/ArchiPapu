@@ -335,17 +335,6 @@
             100% { opacity: 0.7; }
         }
         #light-status { left: 20px; transition: 0.3s; }
-
-        /* --- MEDIDOR DE FPS (OPCIONAL) --- */
-        #stats-container {
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            opacity: 0.7;
-            pointer-events: none;
-        }
     </style>
 </head>
 <body>
@@ -390,9 +379,6 @@
     <div id="loading" role="status" aria-live="polite">Preparando habitación...</div>
     <div id="light-status" role="status">💡 Luz encendida</div>
 
-    <!-- Contenedor para stats.js (opcional) -->
-    <div id="stats-container"></div>
-
     <script type="importmap">
         {
             "imports": {
@@ -409,7 +395,7 @@
         import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
         // --- CONSTANTE PARA ACTUALIZAR MODELOS ---
-        const MODEL_VERSION = '4'; // Incrementa al modificar modelos
+        const MODEL_VERSION = '5'; // Incrementa al modificar modelos
 
         // --- DETECCIÓN DE DISPOSITIVO ---
         const ua = navigator.userAgent;
@@ -481,7 +467,7 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.5; // Aumentamos exposición
+        renderer.toneMappingExposure = 1.8; // Aumentamos exposición para que la luz se note más
         const maxPixelRatio = isMobile ? 1.5 : 2;
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
         document.body.appendChild(renderer.domElement);
@@ -498,15 +484,15 @@
 
         // --- ILUMINACIÓN ---
         // Luz ambiental base
-        const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+        const ambient = new THREE.AmbientLight(0xffffff, 0.15);
         scene.add(ambient);
 
         // Luz principal (foco) - será reubicada según el modelo
-        const mainLight = new THREE.SpotLight(0xffaa66, 15); // Intensidad alta
-        mainLight.angle = 0.8; // Ángulo amplio
-        mainLight.penumbra = 0.3;
-        mainLight.decay = 1; // Sin atenuación por distancia (para que ilumine toda la habitación)
-        mainLight.distance = 50;
+        const mainLight = new THREE.SpotLight(0xffaa55, 25); // Intensidad muy alta
+        mainLight.angle = 1.0; // Ángulo amplio para cubrir toda la habitación
+        mainLight.penumbra = 0.2;
+        mainLight.decay = 0; // Sin atenuación con la distancia
+        mainLight.distance = 100; // Largo alcance
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.width = 1024;
         mainLight.shadow.mapSize.height = 1024;
@@ -517,13 +503,19 @@
         scene.add(mainLight.target);
 
         // Luz hemisférica para iluminación ambiental suave
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
         scene.add(hemiLight);
 
         // Luz puntual auxiliar para relleno
-        const pointLight = new THREE.PointLight(0x446688, 1, 20);
-        pointLight.position.set(0, 3, 0);
+        const pointLight = new THREE.PointLight(0x446688, 1.5, 30);
+        pointLight.position.set(0, 4, 0);
         scene.add(pointLight);
+
+        // Segunda luz direccional para iluminar desde otro ángulo
+        const dirLight = new THREE.DirectionalLight(0xffeedd, 1.0);
+        dirLight.position.set(-2, 5, 3);
+        dirLight.castShadow = false;
+        scene.add(dirLight);
 
         let lightOn = localStorage.getItem('lightState') !== 'off';
         const perfCheck = document.getElementById('performance-mode');
@@ -549,7 +541,7 @@
                         node.receiveShadow = false;
                         if (node.material) {
                             node.material.emissive = new THREE.Color(0xffaa33);
-                            node.material.emissiveIntensity = lightOn ? 3.0 : 0;
+                            node.material.emissiveIntensity = lightOn ? (isLow ? 2.0 : 4.0) : 0;
                         }
                     } else {
                         node.castShadow = !isLow && !isMobile;
@@ -569,9 +561,8 @@
         // --- CONTADOR DE CARGA MEJORADO ---
         let totalModelsToLoad = 0;
         let modelsLoaded = 0;
-        const loadedModelKeys = new Set(); // Para evitar duplicados
+        const loadedModelKeys = new Set();
 
-        // Contar modelos: por cada categoría con item equipado, contar file y baseFile si es foco
         for (let cat in inventoryData) {
             let equippedItemId = inventoryData[cat].equipped;
             if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
@@ -580,11 +571,11 @@
                 if (cat === 'foco' && itemData.baseFile) totalModelsToLoad++;
             }
         }
-        totalModelsToLoad += 2; // Lunari (dos modelos)
+        totalModelsToLoad += 2; // Lunari
         totalModelsToLoad += 1; // Cuadro
 
         function checkLoading(key) {
-            if (loadedModelKeys.has(key)) return; // Evitar doble conteo
+            if (loadedModelKeys.has(key)) return;
             loadedModelKeys.add(key);
             modelsLoaded++;
             const loadingEl = document.getElementById('loading');
@@ -817,7 +808,7 @@
             
             let texture;
             try {
-                await video.play(); // Intentar reproducir
+                await video.play();
                 texture = new THREE.VideoTexture(video);
             } catch (e) {
                 console.warn('No se pudo reproducir video, usando imagen estática', e);
@@ -858,20 +849,24 @@
             if (lightOn) {
                 mainLight.visible = true;
                 pointLight.visible = true;
-                ambient.intensity = isLow ? 0.3 : 0.2;
-                hemiLight.intensity = isLow ? 0.4 : 0.6;
-                mainLight.intensity = isLow ? 10 : 15;
+                dirLight.visible = true;
+                ambient.intensity = isLow ? 0.25 : 0.15;
+                hemiLight.intensity = isLow ? 0.3 : 0.5;
+                mainLight.intensity = isLow ? 15 : 25;
+                pointLight.intensity = isLow ? 1.0 : 1.5;
+                dirLight.intensity = isLow ? 0.5 : 1.0;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
                 if (focoMesh) {
                     focoMesh.traverse((n) => {
                         if (n.isMesh && n.material) {
-                            n.material.emissiveIntensity = isLow ? 2.0 : 3.5;
+                            n.material.emissiveIntensity = isLow ? 2.0 : 4.0;
                         }
                     });
                 }
             } else {
                 mainLight.visible = false;
                 pointLight.visible = false;
+                dirLight.visible = false;
                 ambient.intensity = 0.05;
                 hemiLight.intensity = 0.1;
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
@@ -944,17 +939,21 @@
         function updateQuality() {
             const isLow = perfCheck.checked || isMobile;
             
+            // Control de sombras: solo en desktop y modo no humilde
             if (!isMobile) {
                 renderer.shadowMap.enabled = !isLow;
             } else {
-                renderer.shadowMap.enabled = false;
+                renderer.shadowMap.enabled = false; // nunca en móvil por rendimiento
             }
             
+            // Ajuste de pixel ratio
             const targetRatio = isLow ? 1 : Math.min(window.devicePixelRatio, 2);
             renderer.setPixelRatio(targetRatio);
             
+            // Actualizar indicador
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
             
+            // Aplicar lógica de materiales a todos los modelos
             for (let cat in loadedSlotMeshes) {
                 applyMaterialLogic(loadedSlotMeshes[cat], cat);
             }
