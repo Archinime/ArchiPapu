@@ -103,7 +103,7 @@
             text-overflow: ellipsis;
         }
 
-        /* --- PANELES --- */
+        /* --- PANEL DE CONFIGURACIÓN (AHORA SIEMPRE VISIBLE AL HACER CLIC) --- */
         #settings-panel {
             position: absolute;
             top: 70px;
@@ -114,11 +114,11 @@
             padding: 15px 20px;
             border-radius: 20px;
             border: 1px solid rgba(255,255,255,0.2);
-            z-index: 250;
+            z-index: 350; /* Más alto que otros elementos */
             font-size: 14px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
             pointer-events: auto;
-            display: none;
+            display: none; /* Oculto por defecto */
             min-width: 200px;
             animation: fadeInDown 0.3s ease forwards;
         }
@@ -348,9 +348,10 @@
     <div id="settings-panel" role="dialog" aria-labelledby="quality-indicator">
         <div id="quality-indicator">Calidad Alta</div>
         <label>
-            <span>Modo humilde</span>
+            <span>Modo humilde (menor calidad, mayor rendimiento)</span>
             <input type="checkbox" id="performance-mode" aria-describedby="quality-indicator">
         </label>
+        <p style="font-size: 12px; color: #aaa; margin-top: 10px;">Activa para mejorar rendimiento en dispositivos móviles. Desactiva para máxima calidad gráfica (sombras, alta resolución).</p>
     </div>
 
     <div id="character-layer">
@@ -446,6 +447,7 @@
         const loadedSlotMeshes = {};
         let switchMesh = null;
         let focoMesh = null;
+        let cuadroMesh = null; // Para referenciar el cuadro y colocar la luz climática
 
         // --- ESCENA, CÁMARA, RENDERIZADOR ---
         const scene = new THREE.Scene();
@@ -467,7 +469,7 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.8; // Aumentamos exposición para que la luz se note más
+        renderer.toneMappingExposure = 1.5;
         const maxPixelRatio = isMobile ? 1.5 : 2;
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
         document.body.appendChild(renderer.domElement);
@@ -483,39 +485,40 @@
         controls.rotateSpeed = isMobile ? 0.8 : 1.0;
 
         // --- ILUMINACIÓN ---
-        // Luz ambiental base
-        const ambient = new THREE.AmbientLight(0xffffff, 0.15);
+        // Luz ambiental base (siempre presente)
+        const ambient = new THREE.AmbientLight(0xffffff, 0.2);
         scene.add(ambient);
 
-        // Luz principal (foco) - será reubicada según el modelo
-        const mainLight = new THREE.SpotLight(0xffaa55, 25); // Intensidad muy alta
-        mainLight.angle = 1.0; // Ángulo amplio para cubrir toda la habitación
-        mainLight.penumbra = 0.2;
-        mainLight.decay = 0; // Sin atenuación con la distancia
-        mainLight.distance = 100; // Largo alcance
+        // Luz hemisférica para iluminación ambiental suave (siempre presente)
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+        scene.add(hemiLight);
+
+        // LUZ DEL FOCO (se enciende/apaga con interruptor)
+        const mainLight = new THREE.SpotLight(0xffaa33, 15); // Color amarillo foco
+        mainLight.angle = 0.5; // Ángulo más cerrado para simular foco
+        mainLight.penumbra = 0.3;
+        mainLight.decay = 2; // Atenuación realista
+        mainLight.distance = 30;
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.width = 1024;
         mainLight.shadow.mapSize.height = 1024;
         mainLight.shadow.bias = -0.0001;
         mainLight.shadow.normalBias = 0.02;
-        mainLight.position.set(2, 5, 2); // Temporal
+        mainLight.position.set(0, 5, 0); // Temporal
         scene.add(mainLight);
         scene.add(mainLight.target);
 
-        // Luz hemisférica para iluminación ambiental suave
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
-        scene.add(hemiLight);
+        // LUZ DEL CLIMA (exterior, independiente del interruptor)
+        const climateLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        climateLight.position.set(5, 10, 5); // Temporal, se ajustará con el cuadro
+        climateLight.target.position.set(0, 1, 0);
+        scene.add(climateLight);
+        scene.add(climateLight.target);
 
-        // Luz puntual auxiliar para relleno
-        const pointLight = new THREE.PointLight(0x446688, 1.5, 30);
-        pointLight.position.set(0, 4, 0);
-        scene.add(pointLight);
-
-        // Segunda luz direccional para iluminar desde otro ángulo
-        const dirLight = new THREE.DirectionalLight(0xffeedd, 1.0);
-        dirLight.position.set(-2, 5, 3);
-        dirLight.castShadow = false;
-        scene.add(dirLight);
+        // Luz de relleno para cuando está apagado
+        const fillLight = new THREE.DirectionalLight(0x446688, 0.3);
+        fillLight.position.set(1, 1, 1);
+        scene.add(fillLight);
 
         let lightOn = localStorage.getItem('lightState') !== 'off';
         const perfCheck = document.getElementById('performance-mode');
@@ -541,7 +544,7 @@
                         node.receiveShadow = false;
                         if (node.material) {
                             node.material.emissive = new THREE.Color(0xffaa33);
-                            node.material.emissiveIntensity = lightOn ? (isLow ? 2.0 : 4.0) : 0;
+                            node.material.emissiveIntensity = lightOn ? 3.0 : 0;
                         }
                     } else {
                         node.castShadow = !isLow && !isMobile;
@@ -666,15 +669,23 @@
                 
                 if (categoryKey === 'foco') {
                     focoMesh = model;
-                    // Posicionar la luz principal en la posición del foco
+                    // Posicionar la luz principal en el foco
                     const box = new THREE.Box3().setFromObject(model);
                     const center = new THREE.Vector3();
                     box.getCenter(center);
                     mainLight.position.copy(center).add(new THREE.Vector3(0, -0.2, 0));
-                    mainLight.target.position.set(0, 1, 0); // Apuntar al centro
-                    scene.add(mainLight.target);
+                    mainLight.target.position.set(0, 1, 0);
                 }
                 if (categoryKey === 'interruptor') switchMesh = model;
+                if (categoryKey === 'cuadro') {
+                    cuadroMesh = model;
+                    // Posicionar la luz climática en la posición del cuadro (simulando ventana)
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = new THREE.Vector3();
+                    box.getCenter(center);
+                    climateLight.position.copy(center).add(new THREE.Vector3(2, 0, 0)); // Desplazada hacia afuera
+                    climateLight.target.position.set(0, 1, 0);
+                }
 
                 scene.add(model);
                 loadedSlotMeshes[categoryKey] = model;
@@ -694,7 +705,7 @@
             }
         }
 
-        // --- CUADRO CON CLIMA (VIDEO SIEMPRE QUE SEA POSIBLE) ---
+        // --- CUADRO CON CLIMA Y LUZ CLIMÁTICA ---
         (async function setupWeatherVisual() {
             const statusBox = document.getElementById('weather-status');
             statusBox.innerHTML = '🌍 Obteniendo clima...';
@@ -704,6 +715,9 @@
             let temperature = "--";
             let videoFile = 'dia_soleado.mp4';
             let fallbackImage = 'dia_soleado.jpg';
+            let isDay = true; // Por defecto asumimos día
+            let climateIntensity = 1.5;
+            let climateColor = 0xffeedd;
 
             async function getCoords() {
                 try {
@@ -732,7 +746,7 @@
                     const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current_weather=true`);
                     const data = await response.json();
                     const code = data.current_weather.weathercode;
-                    const isDay = data.current_weather.is_day;
+                    isDay = data.current_weather.is_day === 1;
                     temperature = data.current_weather.temperature;
 
                     // Mapeo de códigos WMO
@@ -792,6 +806,15 @@
                 }
             }
 
+            // Ajustar luz climática según día/noche
+            if (isDay) {
+                climateLight.intensity = 1.5;
+                climateLight.color.setHex(0xffeedd);
+            } else {
+                climateLight.intensity = 0.3;
+                climateLight.color.setHex(0x446688);
+            }
+
             if (temperature !== "--") {
                 statusBox.innerHTML = `${weatherEmoji} ${weatherName} | ${temperature}°C`;
             } else {
@@ -839,34 +862,38 @@
                 applyMaterialLogic(cuadroModel, 'cuadro');
                 scene.add(cuadroModel);
                 loadedSlotMeshes['cuadro'] = cuadroModel;
+                
+                // Posicionar la luz climática en el cuadro
+                const box = new THREE.Box3().setFromObject(cuadroModel);
+                const center = new THREE.Vector3();
+                box.getCenter(center);
+                climateLight.position.copy(center).add(new THREE.Vector3(2, 0, 0)); // Hacia afuera
+                climateLight.target.position.set(0, 1, 0);
+                
                 checkLoading('cuadro');
             }, undefined, (e) => { console.error('Error cargando cuadro:', e); checkLoading('cuadro'); });
         })();
 
-        // --- ILUMINACIÓN ---
+        // --- ILUMINACIÓN (actualización según interruptor) ---
         function updateLighting() {
             const isLow = perfCheck.checked || isMobile;
             if (lightOn) {
                 mainLight.visible = true;
-                pointLight.visible = true;
-                dirLight.visible = true;
-                ambient.intensity = isLow ? 0.25 : 0.15;
-                hemiLight.intensity = isLow ? 0.3 : 0.5;
-                mainLight.intensity = isLow ? 15 : 25;
-                pointLight.intensity = isLow ? 1.0 : 1.5;
-                dirLight.intensity = isLow ? 0.5 : 1.0;
+                fillLight.visible = false;
+                ambient.intensity = isLow ? 0.3 : 0.2;
+                hemiLight.intensity = isLow ? 0.4 : 0.6;
+                mainLight.intensity = isLow ? 10 : 15;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
                 if (focoMesh) {
                     focoMesh.traverse((n) => {
                         if (n.isMesh && n.material) {
-                            n.material.emissiveIntensity = isLow ? 2.0 : 4.0;
+                            n.material.emissiveIntensity = isLow ? 2.0 : 3.5;
                         }
                     });
                 }
             } else {
                 mainLight.visible = false;
-                pointLight.visible = false;
-                dirLight.visible = false;
+                fillLight.visible = true;
                 ambient.intensity = 0.05;
                 hemiLight.intensity = 0.1;
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
@@ -939,21 +966,17 @@
         function updateQuality() {
             const isLow = perfCheck.checked || isMobile;
             
-            // Control de sombras: solo en desktop y modo no humilde
             if (!isMobile) {
                 renderer.shadowMap.enabled = !isLow;
             } else {
-                renderer.shadowMap.enabled = false; // nunca en móvil por rendimiento
+                renderer.shadowMap.enabled = false;
             }
             
-            // Ajuste de pixel ratio
             const targetRatio = isLow ? 1 : Math.min(window.devicePixelRatio, 2);
             renderer.setPixelRatio(targetRatio);
             
-            // Actualizar indicador
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
             
-            // Aplicar lógica de materiales a todos los modelos
             for (let cat in loadedSlotMeshes) {
                 applyMaterialLogic(loadedSlotMeshes[cat], cat);
             }
