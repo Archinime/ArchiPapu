@@ -409,7 +409,7 @@
         import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
         // --- CONSTANTE PARA ACTUALIZAR MODELOS ---
-        const MODEL_VERSION = '3'; // Incrementa al modificar modelos
+        const MODEL_VERSION = '4'; // Incrementa al modificar modelos
 
         // --- DETECCIÓN DE DISPOSITIVO ---
         const ua = navigator.userAgent;
@@ -472,16 +472,16 @@
 
         // Configuración inicial del renderizador según dispositivo
         const renderer = new THREE.WebGLRenderer({ 
-            antialias: !isMobile, // Antialiasing solo en desktop
+            antialias: !isMobile,
             powerPreference: "high-performance",
             precision: isMobile ? "mediump" : "highp"
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = !isMobile; // Sombras iniciales según dispositivo
+        renderer.shadowMap.enabled = !isMobile;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.2; // Un poco más de exposición
+        renderer.toneMappingExposure = 1.5; // Aumentamos exposición
         const maxPixelRatio = isMobile ? 1.5 : 2;
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
         document.body.appendChild(renderer.domElement);
@@ -498,32 +498,32 @@
 
         // --- ILUMINACIÓN ---
         // Luz ambiental base
-        const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+        const ambient = new THREE.AmbientLight(0xffffff, 0.2);
         scene.add(ambient);
 
         // Luz principal (foco) - será reubicada según el modelo
-        const mainLight = new THREE.SpotLight(0xffaa66, 8); // Color cálido, intensidad alta
-        mainLight.angle = 0.6;
-        mainLight.penumbra = 0.5;
-        mainLight.decay = 2;
-        mainLight.distance = 40;
+        const mainLight = new THREE.SpotLight(0xffaa66, 15); // Intensidad alta
+        mainLight.angle = 0.8; // Ángulo amplio
+        mainLight.penumbra = 0.3;
+        mainLight.decay = 1; // Sin atenuación por distancia (para que ilumine toda la habitación)
+        mainLight.distance = 50;
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.width = 1024;
         mainLight.shadow.mapSize.height = 1024;
         mainLight.shadow.bias = -0.0001;
         mainLight.shadow.normalBias = 0.02;
-        mainLight.position.set(2, 5, 2); // Posición temporal
+        mainLight.position.set(2, 5, 2); // Temporal
         scene.add(mainLight);
         scene.add(mainLight.target);
 
         // Luz hemisférica para iluminación ambiental suave
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
         scene.add(hemiLight);
 
-        // Luz direccional de relleno (para cuando el foco está apagado)
-        const fillLight = new THREE.DirectionalLight(0x445566, 0.5);
-        fillLight.position.set(1, 1, 1);
-        scene.add(fillLight);
+        // Luz puntual auxiliar para relleno
+        const pointLight = new THREE.PointLight(0x446688, 1, 20);
+        pointLight.position.set(0, 3, 0);
+        scene.add(pointLight);
 
         let lightOn = localStorage.getItem('lightState') !== 'off';
         const perfCheck = document.getElementById('performance-mode');
@@ -533,7 +533,7 @@
         if (savedPerf !== null) {
             perfCheck.checked = savedPerf === 'true';
         } else {
-            perfCheck.checked = isMobile; // Por defecto activado en móvil
+            perfCheck.checked = isMobile;
         }
 
         function applyMaterialLogic(model, categoryKey) {
@@ -549,7 +549,7 @@
                         node.receiveShadow = false;
                         if (node.material) {
                             node.material.emissive = new THREE.Color(0xffaa33);
-                            node.material.emissiveIntensity = lightOn ? 2.0 : 0;
+                            node.material.emissiveIntensity = lightOn ? 3.0 : 0;
                         }
                     } else {
                         node.castShadow = !isLow && !isMobile;
@@ -566,10 +566,12 @@
             });
         }
 
-        // --- CONTADOR DE CARGA ---
+        // --- CONTADOR DE CARGA MEJORADO ---
         let totalModelsToLoad = 0;
         let modelsLoaded = 0;
+        const loadedModelKeys = new Set(); // Para evitar duplicados
 
+        // Contar modelos: por cada categoría con item equipado, contar file y baseFile si es foco
         for (let cat in inventoryData) {
             let equippedItemId = inventoryData[cat].equipped;
             if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
@@ -578,10 +580,12 @@
                 if (cat === 'foco' && itemData.baseFile) totalModelsToLoad++;
             }
         }
-        totalModelsToLoad += 2; // Lunari
+        totalModelsToLoad += 2; // Lunari (dos modelos)
         totalModelsToLoad += 1; // Cuadro
 
-        function checkLoading() {
+        function checkLoading(key) {
+            if (loadedModelKeys.has(key)) return; // Evitar doble conteo
+            loadedModelKeys.add(key);
             modelsLoaded++;
             const loadingEl = document.getElementById('loading');
             if (loadingEl) {
@@ -620,8 +624,8 @@
                 baseAction.play();
                 currentAction = baseAction;
             }
-            checkLoading();
-        }, undefined, (e) => { console.error('Error cargando a Lunari:', e); checkLoading(); });
+            checkLoading('lunari1');
+        }, undefined, (e) => { console.error('Error cargando a Lunari:', e); checkLoading('lunari1'); });
 
         loader.load(addVersion(LUNARI_CDN + 'Lunari_Duerme_2.glb'), (gltf) => {
             if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
@@ -630,8 +634,8 @@
                 randomAction.loop = THREE.LoopOnce;
                 randomAction.clampWhenFinished = true;
             }
-            checkLoading();
-        }, undefined, (e) => { console.error('Error cargando animación aleatoria:', e); checkLoading(); });
+            checkLoading('lunari2');
+        }, undefined, (e) => { console.error('Error cargando animación aleatoria:', e); checkLoading('lunari2'); });
 
         setInterval(() => {
             if (!randomAction || !baseAction || !lunariMixer) return;
@@ -676,15 +680,18 @@
                     const center = new THREE.Vector3();
                     box.getCenter(center);
                     mainLight.position.copy(center).add(new THREE.Vector3(0, -0.2, 0));
-                    mainLight.target.position.set(0, 0, 0); // Apuntar al centro de la habitación
+                    mainLight.target.position.set(0, 1, 0); // Apuntar al centro
                     scene.add(mainLight.target);
                 }
                 if (categoryKey === 'interruptor') switchMesh = model;
 
                 scene.add(model);
                 loadedSlotMeshes[categoryKey] = model;
-                if (isInitialLoad) checkLoading();
-            }, undefined, (e) => { console.error(`Error cargando modelo [${categoryKey}]:`, itemFile); if (isInitialLoad) checkLoading(); });
+                if (isInitialLoad) checkLoading(categoryKey);
+            }, undefined, (e) => { 
+                console.error(`Error cargando modelo [${categoryKey}]:`, itemFile); 
+                if (isInitialLoad) checkLoading(categoryKey); 
+            });
         }
 
         for (let cat in inventoryData) {
@@ -696,7 +703,7 @@
             }
         }
 
-        // --- CUADRO CON CLIMA ---
+        // --- CUADRO CON CLIMA (VIDEO SIEMPRE QUE SEA POSIBLE) ---
         (async function setupWeatherVisual() {
             const statusBox = document.getElementById('weather-status');
             statusBox.innerHTML = '🌍 Obteniendo clima...';
@@ -705,7 +712,7 @@
             let weatherName = "Clima estándar";
             let temperature = "--";
             let videoFile = 'dia_soleado.mp4';
-            let staticImage = 'dia_soleado.jpg';
+            let fallbackImage = 'dia_soleado.jpg';
 
             async function getCoords() {
                 try {
@@ -742,52 +749,52 @@
                         weatherName = isDay ? "Despejado" : "Noche despejada";
                         weatherEmoji = isDay ? "☀️" : "🌙";
                         videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4';
-                        staticImage = isDay ? 'dia_soleado.jpg' : 'noche_despejada.jpg';
+                        fallbackImage = isDay ? 'dia_soleado.jpg' : 'noche_despejada.jpg';
                     } else if (code === 1 || code === 2) {
                         weatherName = isDay ? "Parcialmente nublado" : "Noche algo nublada";
                         weatherEmoji = isDay ? "⛅" : "☁️";
                         videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4';
-                        staticImage = isDay ? 'dia_nublado.jpg' : 'noche_nublada.jpg';
+                        fallbackImage = isDay ? 'dia_nublado.jpg' : 'noche_nublada.jpg';
                     } else if (code === 3) {
                         weatherName = "Muy nublado";
                         weatherEmoji = "☁️";
                         videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4';
-                        staticImage = isDay ? 'dia_nublado.jpg' : 'noche_nublada.jpg';
+                        fallbackImage = isDay ? 'dia_nublado.jpg' : 'noche_nublada.jpg';
                     } else if (code === 45 || code === 48) {
                         weatherName = "Niebla";
                         weatherEmoji = "🌫️";
                         videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4';
-                        staticImage = isDay ? 'dia_niebla.jpg' : 'noche_niebla.jpg';
+                        fallbackImage = isDay ? 'dia_niebla.jpg' : 'noche_niebla.jpg';
                     } else if ([51, 53, 55, 56, 57].includes(code)) {
                         weatherName = "Llovizna";
                         weatherEmoji = isDay ? "🌦️" : "🌧️";
                         videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
-                        staticImage = isDay ? 'dia_lluvia.jpg' : 'noche_lluvia.jpg';
+                        fallbackImage = isDay ? 'dia_lluvia.jpg' : 'noche_lluvia.jpg';
                     } else if ([61, 63, 65, 66, 67].includes(code)) {
                         weatherName = "Lluvia";
                         weatherEmoji = "🌧️";
                         videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
-                        staticImage = isDay ? 'dia_lluvia.jpg' : 'noche_lluvia.jpg';
+                        fallbackImage = isDay ? 'dia_lluvia.jpg' : 'noche_lluvia.jpg';
                     } else if ([71, 73, 75, 77].includes(code)) {
                         weatherName = "Nieve";
                         weatherEmoji = "❄️";
                         videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4';
-                        staticImage = isDay ? 'dia_nieve.jpg' : 'noche_nieve.jpg';
+                        fallbackImage = isDay ? 'dia_nieve.jpg' : 'noche_nieve.jpg';
                     } else if ([80, 81, 82].includes(code)) {
                         weatherName = "Aguaceros";
                         weatherEmoji = "🌧️";
                         videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
-                        staticImage = isDay ? 'dia_lluvia.jpg' : 'noche_lluvia.jpg';
+                        fallbackImage = isDay ? 'dia_lluvia.jpg' : 'noche_lluvia.jpg';
                     } else if ([85, 86].includes(code)) {
                         weatherName = "Chubascos de nieve";
                         weatherEmoji = "🌨️";
                         videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4';
-                        staticImage = isDay ? 'dia_nieve.jpg' : 'noche_nieve.jpg';
+                        fallbackImage = isDay ? 'dia_nieve.jpg' : 'noche_nieve.jpg';
                     } else if ([95, 96, 99].includes(code)) {
                         weatherName = "Tormenta";
                         weatherEmoji = "⛈️";
                         videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4';
-                        staticImage = isDay ? 'dia_tormenta.jpg' : 'noche_tormenta.jpg';
+                        fallbackImage = isDay ? 'dia_tormenta.jpg' : 'noche_tormenta.jpg';
                     }
                 } catch (weatherError) {
                     console.warn('Error al obtener datos del clima:', weatherError);
@@ -800,26 +807,28 @@
                 statusBox.innerHTML = `${weatherEmoji} ${weatherName}`;
             }
 
+            // Intentar cargar video, si falla usar imagen estática
+            const video = document.createElement('video');
+            video.loop = true;
+            video.muted = true;
+            video.playsInline = true;
+            video.crossOrigin = 'anonymous';
+            video.src = addVersion(videoFile);
+            
             let texture;
-            if (!isMobile || !perfCheck.checked) {
-                // Usar video si no estamos en modo humilde o si es desktop
-                const video = document.createElement('video');
-                video.loop = true;
-                video.muted = true;
-                video.playsInline = true;
-                video.crossOrigin = 'anonymous';
-                video.src = addVersion(videoFile);
-                video.play().catch(e => console.log('Autoplay bloqueado:', e));
+            try {
+                await video.play(); // Intentar reproducir
                 texture = new THREE.VideoTexture(video);
-            } else {
-                // Usar imagen estática en móvil con modo humilde
+            } catch (e) {
+                console.warn('No se pudo reproducir video, usando imagen estática', e);
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
-                img.src = addVersion(staticImage);
+                img.src = addVersion(fallbackImage);
                 await new Promise(resolve => { img.onload = resolve; });
                 texture = new THREE.CanvasTexture(img);
                 texture.colorSpace = THREE.SRGBColorSpace;
             }
+            
             texture.minFilter = THREE.LinearFilter;
             texture.magFilter = THREE.LinearFilter;
             texture.format = THREE.RGBAFormat;
@@ -839,8 +848,8 @@
                 applyMaterialLogic(cuadroModel, 'cuadro');
                 scene.add(cuadroModel);
                 loadedSlotMeshes['cuadro'] = cuadroModel;
-                checkLoading();
-            }, undefined, (e) => { console.error('Error cargando cuadro:', e); checkLoading(); });
+                checkLoading('cuadro');
+            }, undefined, (e) => { console.error('Error cargando cuadro:', e); checkLoading('cuadro'); });
         })();
 
         // --- ILUMINACIÓN ---
@@ -848,21 +857,21 @@
             const isLow = perfCheck.checked || isMobile;
             if (lightOn) {
                 mainLight.visible = true;
-                fillLight.visible = false;
-                ambient.intensity = isLow ? 0.4 : 0.2;
-                hemiLight.intensity = isLow ? 0.3 : 0.5;
-                mainLight.intensity = isLow ? 5 : 8;
+                pointLight.visible = true;
+                ambient.intensity = isLow ? 0.3 : 0.2;
+                hemiLight.intensity = isLow ? 0.4 : 0.6;
+                mainLight.intensity = isLow ? 10 : 15;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
                 if (focoMesh) {
                     focoMesh.traverse((n) => {
                         if (n.isMesh && n.material) {
-                            n.material.emissiveIntensity = isLow ? 1.5 : 2.5;
+                            n.material.emissiveIntensity = isLow ? 2.0 : 3.5;
                         }
                     });
                 }
             } else {
                 mainLight.visible = false;
-                fillLight.visible = true;
+                pointLight.visible = false;
                 ambient.intensity = 0.05;
                 hemiLight.intensity = 0.1;
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
@@ -904,7 +913,6 @@
 
         // --- INTERACCIÓN (unificada con click) ---
         function handleInteraction(event) {
-            // Prevenir comportamiento por defecto en táctil
             if (event.cancelable) event.preventDefault();
             
             const rect = renderer.domElement.getBoundingClientRect();
@@ -914,13 +922,11 @@
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
 
-            // Interruptor
             if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
                 toggleLight();
                 return;
             }
 
-            // Pósters
             const posterCategories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
             for (let cat of posterCategories) {
                 const posterMesh = loadedSlotMeshes[cat];
@@ -931,30 +937,24 @@
             }
         }
 
-        // Usar click (funciona en ratón y táctil como tap)
         renderer.domElement.addEventListener('click', handleInteraction);
-        // También en touchstart con passive false para poder prevenir default si es necesario
         renderer.domElement.addEventListener('touchstart', handleInteraction, { passive: false });
 
         // --- CALIDAD (modo humilde) ---
         function updateQuality() {
             const isLow = perfCheck.checked || isMobile;
             
-            // Activar/desactivar sombras (solo en desktop)
             if (!isMobile) {
                 renderer.shadowMap.enabled = !isLow;
             } else {
-                renderer.shadowMap.enabled = false; // nunca en móvil por rendimiento
+                renderer.shadowMap.enabled = false;
             }
             
-            // Ajustar pixel ratio
             const targetRatio = isLow ? 1 : Math.min(window.devicePixelRatio, 2);
             renderer.setPixelRatio(targetRatio);
             
-            // Actualizar indicador
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
             
-            // Aplicar lógica de materiales a todos los modelos
             for (let cat in loadedSlotMeshes) {
                 applyMaterialLogic(loadedSlotMeshes[cat], cat);
             }
@@ -1115,7 +1115,6 @@
                 if (!isMobile) {
                     lunariMixer.update(delta);
                 } else {
-                    // Limitar a 30 fps en móvil
                     lastAnimTime += delta * 1000;
                     if (lastAnimTime >= animInterval) {
                         lunariMixer.update(delta);
