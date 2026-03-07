@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Habitación 3D - Inventario y Lunari</title>
+    <title>Habitación 3D - Inventario y Lunari (Optimizado)</title>
     <style>
         /* --- RESET Y ESTILOS BASE --- */
         * {
@@ -335,12 +335,18 @@
             100% { opacity: 0.7; }
         }
         #light-status { left: 20px; transition: 0.3s; }
+
+        /* --- INDICADOR DE CARGA DEL CLIMA --- */
+        .weather-loading {
+            opacity: 0.7;
+            animation: pulse 1.5s infinite;
+        }
     </style>
 </head>
 <body>
     <div id="coin-display" aria-label="Monedas actuales">🪙 <span id="coin-amount">0</span></div>
     
-    <div id="weather-status" role="status" aria-live="polite">🌍 Detectando clima...</div>
+    <div id="weather-status" role="status" aria-live="polite" class="weather-loading">🌍 Detectando clima...</div>
     
     <button id="inventory-button" class="top-btn" title="Inventario y Tienda" aria-label="Abrir inventario">🎒</button>
     <button id="settings-button" class="top-btn" title="Ajustes" aria-label="Abrir ajustes">⚙️</button>
@@ -379,6 +385,15 @@
     <div id="loading" role="status" aria-live="polite">Preparando habitación...</div>
     <div id="light-status" role="status">💡 Luz encendida</div>
 
+    <!-- Service Worker para caché offline (opcional, pero mejora rendimiento) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration failed:', err));
+            });
+        }
+    </script>
+
     <script type="importmap">
         {
             "imports": {
@@ -392,7 +407,15 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
         import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
+
+        // --- CONFIGURACIÓN DRACO (para modelos comprimidos, mejora carga) ---
+        const dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+        
+        const loader = new GLTFLoader();
+        loader.setDRACOLoader(dracoLoader);
 
         // --- CONSTANTE PARA ACTUALIZAR MODELOS (CAMBIA ESTE NÚMERO CUANDO SUBAS NUEVAS VERSIONES) ---
         const MODEL_VERSION = '2'; // Incrementa cuando modifiques modelos 3D (p.ej., a 3, 4, etc.)
@@ -588,7 +611,6 @@
         }
 
         // --- CARGA DE MODELOS Y LUNARI CON ANIMACIONES (AHORA CON CDN) ---
-        const loader = new GLTFLoader();
         let lunariMixer = null;
         let baseAction = null;
         let randomAction = null;
@@ -721,6 +743,7 @@
     
             const statusBox = document.getElementById('weather-status');
             statusBox.innerHTML = '🌍 Obteniendo clima...';
+            statusBox.classList.add('weather-loading');
 
             // Función para obtener coordenadas (primero por GPS, luego por IP)
             async function getCoords() {
@@ -832,6 +855,7 @@
             } else {
                 statusBox.innerHTML = `${weatherEmoji} ${weatherName}`;
             }
+            statusBox.classList.remove('weather-loading');
             
             // Añadir versión al video para evitar caché
             video.src = addVersion(videoFile);
