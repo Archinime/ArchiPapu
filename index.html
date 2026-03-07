@@ -355,30 +355,33 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
-        // --- CONSTANTE PARA ACTUALIZAR MODELOS ---
-        const MODEL_VERSION = '2'; // Incrementa cuando subas nuevas versiones
+        // --- CONSTANTE PARA ACTUALIZAR MODELOS (CAMBIA ESTE NÚMERO CUANDO SUBAS NUEVAS VERSIONES) ---
+        const MODEL_VERSION = '2'; // Incrementa cuando modifiques modelos 3D (p.ej., a 3, 4, etc.)
 
         // --- SISTEMA DE DATOS E INVENTARIO ---
         let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
         document.getElementById('coin-amount').innerText = playerCoins;
 
-        // Cargar inventario guardado
+        // Cargar inventario guardado (si existe)
         let savedInventory = JSON.parse(localStorage.getItem('room_inventory')) || {};
 
-        // Sincronización estricta con defaultInventoryConfig
+        // Sincronización ESTRICTA: solo se conservan categorías e ítems que existen en defaultInventoryConfig
         const inventoryData = {};
 
         for (let cat in defaultInventoryConfig) {
             const defaultCat = defaultInventoryConfig[cat];
             const savedCat = savedInventory[cat] || {};
 
+            // Construir categoría nueva con valores por defecto + lo que se pueda recuperar
             const newCat = {
                 label: defaultCat.label,
                 emoji: defaultCat.emoji,
+                // Si el ítem equipado guardado todavía existe en la configuración, se conserva; si no, se usa el defecto
                 equipped: (savedCat.equipped && defaultCat.items[savedCat.equipped]) ? savedCat.equipped : defaultCat.equipped,
                 items: {}
             };
 
+            // Copiar cada ítem de la configuración por defecto, preservando owned si ya existía
             for (let itemId in defaultCat.items) {
                 const defaultItem = defaultCat.items[itemId];
                 const savedItem = savedCat.items ? savedCat.items[itemId] : null;
@@ -390,13 +393,16 @@
                     owned: savedItem ? savedItem.owned : (defaultItem.owned || false),
                     preview: defaultItem.preview
                 };
+                // Conservar baseFile si existe
                 if (defaultItem.baseFile) {
                     newCat.items[itemId].baseFile = defaultItem.baseFile;
                 }
             }
+
             inventoryData[cat] = newCat;
         }
 
+        // Guardamos el inventario limpio inmediatamente para que el almacenamiento refleje la realidad
         localStorage.setItem('room_inventory', JSON.stringify(inventoryData));
 
         function saveGame() {
@@ -409,28 +415,15 @@
         let switchMesh = null;
         let focoMesh = null;
 
-        // --- DETECCIÓN DE DISPOSITIVO ---
+        // --- Detección de dispositivo para optimizaciones ---
         const ua = navigator.userAgent;
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
         const width = window.innerWidth;
-        const deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
+        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
 
-        // --- CONFIGURACIÓN DE CALIDAD POR DISPOSITIVO ---
-        // En móvil/tablet, forzamos modo humilde siempre (no se guarda estado)
-        const forceLowQuality = deviceType !== 'desktop'; // true para móvil/tablet, false para desktop
-
-        const perfCheck = document.getElementById('performance-mode');
-        // Inicializar checkbox: en móvil siempre true; en desktop desde localStorage
-        if (forceLowQuality) {
-            perfCheck.checked = true;
-            // No guardamos el estado en móvil
-        } else {
-            perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
-        }
-
-        // --- ESCENA, CÁMARA, RENDERIZADOR ---
+        // --- Escena, Cámara y Reloj (Para Animaciones) ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050508);
+        scene.background = new THREE.Color(0x050508); 
         const clock = new THREE.Clock();
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
@@ -438,46 +431,48 @@
         if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
         camera.position.set(0, camPosY, camPosZ);
 
+        // --- RENDERIZADOR CON OPTIMIZACIONES ---
         const renderer = new THREE.WebGLRenderer({ 
-            antialias: !forceLowQuality, // Sin antialiasing en móvil
+            antialias: deviceType !== 'mobile', // Desactivar antialiasing en móvil para rendimiento
             powerPreference: "high-performance" 
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = !forceLowQuality; // Sin sombras en móvil
+        renderer.shadowMap.enabled = deviceType === 'desktop'; // Sombras solo en escritorio
         renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
         renderer.outputEncoding = THREE.sRGBEncoding;
         renderer.toneMapping = THREE.ACESFilmicToneMapping; 
         renderer.toneMappingExposure = 1.0;
-        const maxPixelRatio = forceLowQuality ? 1 : (deviceType === 'tablet' ? 1.5 : 2);
+        // Ajustar pixel ratio según dispositivo
+        const maxPixelRatio = deviceType === 'mobile' ? 1.5 : (deviceType === 'tablet' ? 2 : 2);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
         document.body.appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.dampingFactor = forceLowQuality ? 0.15 : 0.05;
+        controls.dampingFactor = deviceType === 'mobile' ? 0.1 : 0.05; // Mayor damping en móvil para suavizar
         controls.target.set(0, targetY, 0);
         controls.maxPolarAngle = Math.PI / 2 - 0.05;
         controls.minDistance = 2.5; 
-        controls.maxDistance = forceLowQuality ? 12 : 16;
+        controls.maxDistance = deviceType === 'mobile' ? 12 : 16; // Menor distancia en móvil
         controls.enablePan = false;
-        controls.rotateSpeed = forceLowQuality ? 0.7 : 1.0;
+        controls.rotateSpeed = deviceType === 'mobile' ? 0.8 : 1.0; // Rotación más lenta en móvil
 
-        // --- LUCES ---
-        const ambient = new THREE.AmbientLight(0xffffff, forceLowQuality ? 0.8 : 0.3);
+        // --- LUCES OPTIMIZADAS ---
+        const ambient = new THREE.AmbientLight(0xffffff, deviceType === 'desktop' ? 0.3 : 0.5);
         scene.add(ambient);
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, forceLowQuality ? 0.8 : 0.4);
-        hemiLight.position.set(0, 20, 0);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, deviceType === 'desktop' ? 0.4 : 0.6); 
+        hemiLight.position.set(0, 20, 0); 
         scene.add(hemiLight);
         
-        const mainLight = new THREE.SpotLight(0xffeedd, forceLowQuality ? 4 : 6);
+        const mainLight = new THREE.SpotLight(0xffeedd, deviceType === 'desktop' ? 6 : 4);
         mainLight.position.set(2, 22, 2); 
         mainLight.angle = Math.PI / 3; 
         mainLight.penumbra = 0.8; 
         mainLight.decay = 2; 
         mainLight.distance = 60;
-        mainLight.castShadow = !forceLowQuality;
-        if (!forceLowQuality) {
-            mainLight.shadow.mapSize.set(1024, 1024);
+        mainLight.castShadow = deviceType === 'desktop'; // Sombras solo en escritorio
+        if (deviceType === 'desktop') {
+            mainLight.shadow.mapSize.set(1024, 1024); // Reducir resolución de sombras
             mainLight.shadow.camera.near = 0.5; 
             mainLight.shadow.camera.far = 40; 
             mainLight.shadow.bias = -0.0001; 
@@ -488,11 +483,12 @@
         scene.add(mainLight.target);
         
         let lightOn = localStorage.getItem('lightState') !== 'off';
+        const perfCheck = document.getElementById('performance-mode');
+        perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
 
         function applyMaterialLogic(model, categoryKey) {
             if(!model) return;
-            // isLow = forceLowQuality o el checkbox (en desktop)
-            const isLow = forceLowQuality || perfCheck.checked;
+            const isLow = perfCheck.checked || deviceType !== 'desktop'; // Modo bajo automático en móvil/tablet
             const isFoco = categoryKey === 'foco';
             
             model.traverse((node) => {
@@ -506,21 +502,14 @@
                             node.material.emissiveIntensity = lightOn ? 1.5 : 0;
                         }
                     } else {
-                        node.castShadow = !isLow && !forceLowQuality; 
-                        node.receiveShadow = !isLow && !forceLowQuality;
+                        node.castShadow = !isLow && deviceType === 'desktop'; 
+                        node.receiveShadow = !isLow && deviceType === 'desktop';
                         if(node.material) {
-                            // En móvil, evitar doble cara para prevenir artefactos
-                            if (forceLowQuality) {
-                                node.material.side = THREE.FrontSide;
-                                node.material.shadowSide = null; // No aplica
-                            } else {
-                                // En desktop, mantener comportamiento original
-                                node.material.shadowSide = THREE.FrontSide;
-                                if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
-                                    node.material.shadowSide = THREE.BackSide;
-                                }
-                                node.material.side = THREE.DoubleSide;
+                            node.material.shadowSide = THREE.FrontSide;
+                            if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
+                                node.material.shadowSide = THREE.BackSide;
                             }
+                            node.material.side = THREE.DoubleSide;
                             node.material.needsUpdate = true;
                         }
                     }
@@ -528,7 +517,7 @@
             });
         }
 
-        // --- CARGA DE MODELOS ---
+        // --- CÁLCULO DINÁMICO DE CARGA ---
         let totalModelsToLoad = 0;
         let modelsLoaded = 0;
 
@@ -540,6 +529,7 @@
                 if (cat === 'foco' && itemData.baseFile) totalModelsToLoad++;
             }
         }
+
         totalModelsToLoad += 2; // Lunari
         totalModelsToLoad += 1; // Cuadro
 
@@ -558,17 +548,19 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // --- LUNARI CON CDN ---
+        // --- CARGA DE MODELOS Y LUNARI CON ANIMACIONES (AHORA CON CDN) ---
         const loader = new GLTFLoader();
         let lunariMixer = null;
         let baseAction = null;
         let randomAction = null;
         let currentAction = null;
 
+        // Función auxiliar para agregar versión a las URLs
         function addVersion(url) {
             return `${url}?v=${MODEL_VERSION}`;
         }
 
+        // CDN base para Lunari
         const LUNARI_CDN = 'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/';
 
         loader.load(addVersion(LUNARI_CDN + 'lunari_durmiendo1.glb'), (gltf) => {
@@ -626,6 +618,7 @@
             if (!itemFile) return;
             if (loadedSlotMeshes[categoryKey]) {
                 scene.remove(loadedSlotMeshes[categoryKey]);
+                // Liberar geometrías y materiales para evitar memory leaks
                 loadedSlotMeshes[categoryKey].traverse(obj => {
                     if (obj.geometry) obj.geometry.dispose();
                     if (obj.material) {
@@ -673,7 +666,7 @@
             }
         }
 
-        // --- CLIMA CON VIDEO (con fallback por IP) ---
+        // --- CARGA DEL CUADRO CON VIDEO Y CLIMA API (CON FALLBACK POR IP) ---
         (async function setupWeatherVideo() {
             const video = document.createElement('video');
             video.loop = true;
@@ -681,6 +674,7 @@
             video.playsInline = true;
             video.crossOrigin = 'anonymous';
             
+            // Valores por defecto
             let videoFile = 'dia_soleado.mp4'; 
             let weatherEmoji = "☀️";
             let weatherName = "Clima estándar";
@@ -688,7 +682,9 @@
     
             const statusBox = document.getElementById('weather-status');
 
+            // Función para obtener coordenadas (primero por GPS, luego por IP)
             async function getCoords() {
+                // Intentar con GPS (permiso del usuario)
                 try {
                     const pos = await new Promise((resolve, reject) => {
                         navigator.geolocation.getCurrentPosition(resolve, reject, { 
@@ -696,20 +692,29 @@
                             maximumAge: 60000
                         });
                     });
-                    return { lat: pos.coords.latitude, lon: pos.coords.longitude, source: 'gps' };
+                    return {
+                        lat: pos.coords.latitude,
+                        lon: pos.coords.longitude,
+                        source: 'gps'
+                    };
                 } catch (gpsError) {
-                    console.warn('GPS falló:', gpsError.message);
+                    console.warn('Geolocalización por GPS falló:', gpsError.message);
+                    // Fallback a IP
                     try {
                         const ipRes = await fetch('https://ipapi.co/json/');
                         if (!ipRes.ok) throw new Error('IP API error');
                         const ipData = await ipRes.json();
                         if (ipData.latitude && ipData.longitude) {
-                            return { lat: ipData.latitude, lon: ipData.longitude, source: 'ip' };
+                            return {
+                                lat: ipData.latitude,
+                                lon: ipData.longitude,
+                                source: 'ip'
+                            };
                         } else {
-                            throw new Error('No coordinates from IP');
+                            throw new Error('No se obtuvieron coordenadas de IP');
                         }
                     } catch (ipError) {
-                        console.warn('IP fallback falló:', ipError);
+                        console.warn('Fallback por IP también falló:', ipError);
                         return null;
                     }
                 }
@@ -726,6 +731,7 @@
                     const isDay = data.current_weather.is_day;
                     temperature = data.current_weather.temperature;
                     
+                    // MAPEADO COMPLETO WMO
                     if (code === 0) {
                         weatherName = isDay ? "Despejado" : "Noche despejada";
                         weatherEmoji = isDay ? "☀️" : "🌙";
@@ -778,12 +784,16 @@
                 weatherEmoji = "❌";
             }
 
+            // Actualizar la interfaz
             if (temperature !== "--") {
                 statusBox.innerHTML = `${weatherEmoji} ${weatherName} | ${temperature}°C`;
             } else {
                 statusBox.innerHTML = `${weatherEmoji} ${weatherName}`;
             }
+            // Añadir versión al video para evitar caché
             video.src = `${videoFile}?v=${MODEL_VERSION}`;
+
+            // Iniciar video con reproducción automática silenciosa
             video.play().catch(e => console.log('Autoplay bloqueado:', e));
             
             const videoTexture = new THREE.VideoTexture(video);
@@ -792,8 +802,10 @@
             videoTexture.format = THREE.RGBAFormat;
             videoTexture.encoding = THREE.sRGBEncoding;
             
+            // Cargar el cuadro
             loader.load(addVersion('cuadro.glb'), (gltf) => {
                 const cuadroModel = gltf.scene;
+                
                 cuadroModel.traverse((node) => {
                     if (node.isMesh) {
                         if (Array.isArray(node.material)) {
@@ -807,6 +819,7 @@
                         }
                     }
                 });
+       
                 applyMaterialLogic(cuadroModel, 'cuadro');
                 scene.add(cuadroModel);
                 loadedSlotMeshes['cuadro'] = cuadroModel;
@@ -815,11 +828,12 @@
                 console.error('Error cargando cuadro:', e);
                 checkLoading();
             });
+
         })();
 
-        // --- ILUMINACIÓN ---
+        // --- SISTEMA DE ILUMINACIÓN ---
         function updateLighting() {
-            const isLow = forceLowQuality || perfCheck.checked;
+            const isLow = perfCheck.checked || deviceType !== 'desktop';
             if (lightOn) {
                 mainLight.visible = true;
                 ambient.intensity = isLow ? 0.8 : 0.3; 
@@ -844,7 +858,7 @@
             updateLighting();
         }
 
-        // --- POSTERS ---
+        // --- FUNCIONES PARA LOS POSTERS ---
         const posterViewModal = document.getElementById('poster-view-modal');
         const posterEnlargedImage = document.getElementById('poster-enlarged-image');
         const closePosterBtn = document.getElementById('close-poster-view');
@@ -863,7 +877,7 @@
             if (e.target === posterViewModal) posterViewModal.classList.remove('visible');
         };
 
-        // --- INTERACCIÓN ---
+        // --- SISTEMA DE INTERACCIÓN GENERAL ---
         function handleInteraction(event) {
             const rect = renderer.domElement.getBoundingClientRect();
             const x = event.touches ? event.touches[0].clientX : event.clientX;
@@ -872,11 +886,13 @@
             mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
             
+            // Chequeo de Luz
             if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
                 toggleLight();
                 return; 
             }
 
+            // Chequeo de Pósters Dinámicos
             const posterCategories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
             for (let cat of posterCategories) {
                 const posterMesh = loadedSlotMeshes[cat];
@@ -896,24 +912,22 @@
             handleInteraction(e); 
         }, {passive: true});
         
-        // --- CALIDAD / MODO HUMILDE ---
+        // --- Calidad / Modo Humilde (ahora con detección de dispositivo) ---
         function updateQuality() {
-            const isLow = forceLowQuality || perfCheck.checked;
-            renderer.shadowMap.enabled = !isLow && !forceLowQuality;
+            const isLow = perfCheck.checked || deviceType !== 'desktop';
+            renderer.shadowMap.enabled = !isLow && deviceType === 'desktop';
             renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
             document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
             for (let cat in loadedSlotMeshes) {
                 applyMaterialLogic(loadedSlotMeshes[cat], cat);
             }
             
-            if (!forceLowQuality) {
-                localStorage.setItem('performanceMode', perfCheck.checked);
-            }
+            localStorage.setItem('performanceMode', perfCheck.checked);
             updateLighting(); 
         }
         perfCheck.addEventListener('change', updateQuality);
         
-        // --- INVENTARIO UI ---
+        // --- LÓGICA DE INTERFAZ DEL INVENTARIO ---
         let currentCategory = 'cama';
         let openGroup = 'muebles';
 
@@ -942,6 +956,7 @@
 
                 group.categories.forEach(catKey => {
                     const catData = inventoryData[catKey];
+          
                     if(!catData) return;
                     
                     const btn = document.createElement('button');
@@ -974,7 +989,7 @@
                     const img = document.createElement('img');
                     img.src = item.preview;
                     img.alt = item.name;
-                    img.loading = 'lazy';
+                    img.loading = 'lazy'; // Carga diferida para mejorar rendimiento
                     img.onerror = () => { previewDiv.innerHTML = `<span>${catData.emoji}</span>`; };
                     previewDiv.appendChild(img);
                 } else {
@@ -1058,11 +1073,12 @@
             document.getElementById('settings-panel').classList.toggle('visible');
         };
         
-        // Animación
+        // --- Animación y Resize ---
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
             if (lunariMixer) lunariMixer.update(delta);
+
             controls.update();
             renderer.render(scene, camera); 
         }
@@ -1074,6 +1090,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
         
+        // Inicializar calidad
         updateQuality();
     </script>
 </body>
