@@ -396,8 +396,6 @@
         const loadedSlotMeshes = {};
         let switchMesh = null;
         let focoMesh = null;
-        let quadroLight = null;
-        let sunLightDir = null; // Luz direccional solar
 
         // --- Detección de dispositivo ---
         const ua = navigator.userAgent;
@@ -422,7 +420,7 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
         renderer.outputEncoding = THREE.sRGBEncoding;
         renderer.toneMapping = THREE.ACESFilmicToneMapping; 
-        renderer.toneMappingExposure = 1.2; // Aumentamos un poco la exposición para que los colores resalten
+        renderer.toneMappingExposure = 1.0;
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
@@ -433,29 +431,17 @@
         controls.minDistance = 2.5; controls.maxDistance = 16;
         controls.enablePan = false;
 
-        // --- LUCES BASE ---
+        // --- LUCES ---
         const ambient = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambient);
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); 
-        hemiLight.position.set(0, 20, 0); 
-        scene.add(hemiLight);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
         
-        // Luz principal del foco (interior)
         const mainLight = new THREE.SpotLight(0xffeedd, 6);
-        mainLight.position.set(2, 22, 2); 
-        mainLight.angle = Math.PI / 3; 
-        mainLight.penumbra = 0.8; 
-        mainLight.decay = 2; 
-        mainLight.distance = 60;
+        mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.set(2048, 2048);
-        mainLight.shadow.camera.near = 0.5; 
-        mainLight.shadow.camera.far = 40; 
-        mainLight.shadow.bias = -0.0001; 
-        mainLight.shadow.normalBias = 0.02; 
-        mainLight.shadow.radius = 4; 
-        scene.add(mainLight); 
-        scene.add(mainLight.target);
+        mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
+        scene.add(mainLight); scene.add(mainLight.target);
         
         let lightOn = localStorage.getItem('lightState') !== 'off';
         const perfCheck = document.getElementById('performance-mode');
@@ -633,7 +619,6 @@
             let weatherEmoji = "☀️";
             let weatherName = "Clima estándar";
             let temperature = "--";
-            let isDay = 1; // por defecto asumimos día
     
             const statusBox = document.getElementById('weather-status');
 
@@ -649,7 +634,7 @@
                 const data = await response.json();
                 
                 const code = data.current_weather.weathercode;
-                isDay = data.current_weather.is_day; // 1 = día, 0 = noche
+                const isDay = data.current_weather.is_day; // 1 = día, 0 = noche
                 temperature = data.current_weather.temperature;
                 
                 // MAPEADO COMPLETO WMO CON VERIFICACIÓN DÍA Y NOCHE
@@ -702,7 +687,6 @@
                 console.warn('Error con el clima, usando defecto:', error);
                 weatherEmoji = "❌";
                 weatherName = "Clima offline";
-                isDay = 1; // por defecto día
             }
 
             // Actualizar la interfaz con el clima y la TEMPERATURA
@@ -727,20 +711,15 @@
             loader.load('cuadro.glb', (gltf) => {
                 const cuadroModel = gltf.scene;
                 
-                // Aplicar textura de video sin emisión (colores originales)
                 cuadroModel.traverse((node) => {
                     if (node.isMesh) {
                         if (Array.isArray(node.material)) {
                             node.material.forEach(mat => {
                                 mat.map = videoTexture;
-                                mat.emissive = new THREE.Color(0x000000);
-                                mat.emissiveIntensity = 0.0;
                                 mat.needsUpdate = true;
                             });
                         } else if (node.material) {
                             node.material.map = videoTexture;
-                            node.material.emissive = new THREE.Color(0x000000);
-                            node.material.emissiveIntensity = 0.0;
                             node.material.needsUpdate = true;
                         }
                     }
@@ -749,28 +728,6 @@
                 applyMaterialLogic(cuadroModel, 'cuadro');
                 scene.add(cuadroModel);
                 loadedSlotMeshes['cuadro'] = cuadroModel;
-
-                // --- Crear luces que emanan del cuadro (simulan luz solar) ---
-                // Calculamos el centro del cuadro para colocar las luces
-                const box = new THREE.Box3().setFromObject(cuadroModel);
-                const center = new THREE.Vector3();
-                box.getCenter(center);
-                
-                // 1. Luz direccional (simula rayos de sol) - apunta hacia el centro de la habitación
-                sunLightDir = new THREE.DirectionalLight(0xfff5e6, isDay ? 4.0 : 0);
-                sunLightDir.position.copy(center);
-                // Calculamos dirección hacia el centro de la escena (0,3,0 aproximadamente)
-                const targetPos = new THREE.Vector3(0, 3, 0);
-                sunLightDir.target.position.copy(targetPos);
-                scene.add(sunLightDir.target);
-                scene.add(sunLightDir);
-                
-                // 2. Luz puntual (relleno suave)
-                quadroLight = new THREE.PointLight(0xfff5e6, isDay ? 2.0 : 0, 20, 1);
-                quadroLight.position.copy(center);
-                quadroLight.position.z += 0.5; // ligero desplazamiento hacia adelante
-                scene.add(quadroLight);
-
                 checkLoading();
             }, undefined, (e) => {
                 console.error('Error cargando cuadro:', e);
@@ -785,18 +742,15 @@
             const isLow = perfCheck.checked;
             if (lightOn) {
                 mainLight.visible = true;
-                ambient.intensity = isLow ? 0.8 : 0.3; 
-                hemiLight.intensity = isLow ? 0.8 : 0.4;
+                ambient.intensity = isLow ? 0.8 : 0.3; hemiLight.intensity = isLow ? 0.8 : 0.4;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
                 if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 1.5; });
             } else {
                 mainLight.visible = false;
-                ambient.intensity = 0.02; 
-                hemiLight.intensity = 0.05; 
+                ambient.intensity = 0.02; hemiLight.intensity = 0.05; 
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
                 if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; });
             }
-            // Las luces del cuadro se controlan por isDay, no se tocan aquí
         }
 
         const raycaster = new THREE.Raycaster();
