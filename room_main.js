@@ -46,20 +46,27 @@ const loadedSlotMeshes = {};
 let switchMesh = null;
 let focoMesh = null;
 
+// --- VARIABLES DEL FOCO DE DÍA ---
+let focoDiaMesh = null;
+let luzFocoDia = null;
+let esDeDiaLocal = true;
+
 // --- Detección de dispositivo ---
 const ua = navigator.userAgent;
 const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 const width = window.innerWidth;
-let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
+let deviceType = (width < 768 || (isMobileUA && width < 1024)) ?
+'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
 
 // --- Escena, Cámara y Reloj (Para Animaciones) ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x050508); 
+scene.background = new THREE.Color(0x050508);
 const clock = new THREE.Clock();
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
 let camPosY = 6, camPosZ = 14, targetY = 6;
-if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
+if (deviceType === 'mobile') { camPosY = 6;
+camPosZ = 12; targetY = 5; }
 camera.position.set(0, camPosY, camPosZ);
 
 // --- RENDERIZADOR ---
@@ -86,7 +93,8 @@ scene.add(ambient);
 const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
 
 const mainLight = new THREE.SpotLight(0xffeedd, 6);
-mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
+mainLight.position.set(2, 22, 2);
+mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
 mainLight.castShadow = true;
 mainLight.shadow.mapSize.set(2048, 2048);
 mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
@@ -100,7 +108,7 @@ function applyMaterialLogic(model, categoryKey) {
     if(!model) return;
     const isLow = perfCheck.checked;
     const isFoco = categoryKey === 'foco';
-    
+
     model.traverse((node) => {
         if (node.isMesh) {
             node.frustumCulled = false;
@@ -140,6 +148,7 @@ for (let cat in inventoryData) {
 
 totalModelsToLoad += 2; // Lunari
 totalModelsToLoad += 1; // Cuadro
+totalModelsToLoad += 1; // Foco de Día
 
 function checkLoading() {
     modelsLoaded++;
@@ -193,6 +202,32 @@ loader.load('Lunari_Duerme_2.glb', (gltf) => {
     checkLoading();
 });
 
+// Carga del Foco de Día Condicional
+loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb', (gltf) => {
+    focoDiaMesh = gltf.scene;
+    applyMaterialLogic(focoDiaMesh, 'foco'); 
+    
+    // Luz clonada para el foco de día
+    luzFocoDia = new THREE.PointLight(0xffeedd, lightOn ? 1.5 : 0, 40);
+    const box = new THREE.Box3().setFromObject(focoDiaMesh);
+    const center = new THREE.Vector3(); box.getCenter(center);
+    luzFocoDia.position.copy(center);
+    luzFocoDia.position.y -= 0.2;
+    luzFocoDia.castShadow = true;
+    
+    scene.add(luzFocoDia);
+    scene.add(focoDiaMesh);
+    
+    // Visibilidad inicial (se actualizará con el clima)
+    focoDiaMesh.visible = esDeDiaLocal;
+    luzFocoDia.visible = esDeDiaLocal;
+    
+    checkLoading();
+}, undefined, (e) => {
+    console.error('Error cargando foco de dia:', e);
+    checkLoading();
+});
+
 setInterval(() => {
     if (!randomAction || !baseAction || !lunariMixer) return;
     if (currentAction === randomAction) return;
@@ -216,6 +251,7 @@ setInterval(() => {
 
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
+
     if (loadedSlotMeshes[categoryKey]) {
         scene.remove(loadedSlotMeshes[categoryKey]);
     }
@@ -244,8 +280,10 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
 
 for (let cat in inventoryData) {
     let equippedItemId = inventoryData[cat].equipped;
+
     if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
         let itemData = inventoryData[cat].items[equippedItemId];
+
         if (itemData.file) {
             loadItemForSlot(cat, itemData.file, true);
         }
@@ -284,8 +322,15 @@ for (let cat in inventoryData) {
         
         const code = data.current_weather.weathercode;
         const isDay = data.current_weather.is_day; // 1 = día, 0 = noche
-        temperature = data.current_weather.temperature;
         
+        // --- ACTUALIZACIÓN DE FOCO DE DÍA BASADO EN CLIMA ---
+        esDeDiaLocal = (isDay === 1);
+        if (focoDiaMesh) focoDiaMesh.visible = esDeDiaLocal;
+        if (luzFocoDia) luzFocoDia.visible = esDeDiaLocal;
+        // ----------------------------------------------------
+
+        temperature = data.current_weather.temperature;
+
         // MAPEADO COMPLETO WMO CON VERIFICACIÓN DÍA Y NOCHE
         if (code === 0) {
             weatherName = isDay ? "Despejado" : "Noche despejada";
@@ -348,7 +393,7 @@ for (let cat in inventoryData) {
 
     // Iniciar video
     video.play().catch(e => console.log('Autoplay bloqueado:', e));
-    
+
     // Configurar textura 3D
     const videoTexture = new THREE.VideoTexture(video);
     videoTexture.minFilter = THREE.LinearFilter;
@@ -382,7 +427,6 @@ for (let cat in inventoryData) {
         console.error('Error cargando cuadro:', e);
         checkLoading();
     });
-
 })();
 
 
@@ -391,14 +435,22 @@ function updateLighting() {
     const isLow = perfCheck.checked;
     if (lightOn) {
         mainLight.visible = true;
-        ambient.intensity = isLow ? 0.8 : 0.3; hemiLight.intensity = isLow ? 0.8 : 0.4;
+        ambient.intensity = isLow ? 0.8 : 0.3;
+        hemiLight.intensity = isLow ? 0.8 : 0.4;
         document.getElementById('light-status').innerText = '💡 Luz encendida';
+        
         if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 1.5; });
+        if (focoDiaMesh) focoDiaMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 1.5; });
+        if (luzFocoDia) luzFocoDia.intensity = 1.5;
+        
     } else {
         mainLight.visible = false;
-        ambient.intensity = 0.02; hemiLight.intensity = 0.05; 
+        ambient.intensity = 0.02; hemiLight.intensity = 0.05;
         document.getElementById('light-status').innerText = '💡 Luz apagada';
+        
         if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; });
+        if (focoDiaMesh) focoDiaMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; });
+        if (luzFocoDia) luzFocoDia.intensity = 0;
     }
 }
 
@@ -407,7 +459,8 @@ const mouse = new THREE.Vector2();
 
 function toggleLight() {
     lightOn = !lightOn;
-    localStorage.setItem('lightState', lightOn ? 'on' : 'off'); updateLighting();
+    localStorage.setItem('lightState', lightOn ? 'on' : 'off'); 
+    updateLighting();
 }
 
 // --- FUNCIONES PARA LOS POSTERS ---
@@ -434,10 +487,11 @@ function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     const x = event.touches ? event.touches[0].clientX : event.clientX;
     const y = event.touches ? event.touches[0].clientY : event.clientY;
+
     mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
-    
+
     // Chequeo de Luz
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
         toggleLight();
@@ -470,6 +524,7 @@ function updateQuality() {
     renderer.shadowMap.enabled = !isLow;
     renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
     document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
+
     for (let cat in loadedSlotMeshes) {
         applyMaterialLogic(loadedSlotMeshes[cat], cat);
     }
@@ -487,7 +542,7 @@ function renderInventory() {
     const sidebar = document.getElementById('inv-sidebar');
     const content = document.getElementById('inv-content');
     sidebar.innerHTML = ''; content.innerHTML = '';
-    
+
     inventoryGroups.forEach(group => {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'inv-group';
@@ -509,7 +564,7 @@ function renderInventory() {
             const catData = inventoryData[catKey];
   
             if(!catData) return;
-            
+    
             const btn = document.createElement('button');
             btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
             btn.innerHTML = `<span class="cat-icon-emoji">${catData.emoji}</span> <span>${catData.label}</span>`;
@@ -523,7 +578,7 @@ function renderInventory() {
 
     const catData = inventoryData[currentCategory];
     if (!catData) return;
-    
+
     for (let itemId in catData.items) {
         const item = catData.items[itemId];
         const isEquipped = catData.equipped === itemId;
@@ -533,6 +588,7 @@ function renderInventory() {
 
         const previewDiv = document.createElement('div');
         previewDiv.className = 'item-preview';
+
         if (item.preview) {
             const img = document.createElement('img');
             img.src = item.preview;
@@ -560,6 +616,7 @@ function renderInventory() {
             </div>
             ${btnHTML}
         `;
+
         const previewContainer = card.querySelector('.item-preview');
         if (previewContainer && item.preview) {
             previewContainer.innerHTML = '';
@@ -576,6 +633,7 @@ function renderInventory() {
     document.querySelectorAll('.btn-equip').forEach(b => {
         b.onclick = (e) => equipItem(currentCategory, e.target.getAttribute('data-id'));
     });
+
     document.querySelectorAll('.btn-buy').forEach(b => {
         b.onclick = (e) => buyItem(currentCategory, e.target.getAttribute('data-id'));
     });
@@ -611,6 +669,7 @@ document.getElementById('inventory-button').onclick = () => {
     document.getElementById('inventory-modal').classList.add('visible');
     renderInventory();
 };
+
 document.getElementById('close-inv').onclick = () => {
     document.getElementById('inventory-modal').classList.remove('visible');
 };
