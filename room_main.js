@@ -54,7 +54,7 @@ let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (wid
 
 // --- Escena, Cámara y Reloj (Para Animaciones) ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x050508); 
+scene.background = new THREE.Color(0x050508);
 const clock = new THREE.Clock();
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
@@ -83,22 +83,32 @@ controls.enablePan = false;
 // --- LUCES ---
 const ambient = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(ambient);
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
+
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); 
+hemiLight.position.set(0, 20, 0); 
+scene.add(hemiLight);
 
 const mainLight = new THREE.SpotLight(0xffeedd, 6);
-mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
+mainLight.position.set(2, 22, 2);
+mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
 mainLight.castShadow = true;
 mainLight.shadow.mapSize.set(2048, 2048);
-mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
+mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; 
+mainLight.shadow.bias = -0.0005; // Ajustado ligeramente para emparejar
+mainLight.shadow.normalBias = 0.02; 
+mainLight.shadow.radius = 4; 
 scene.add(mainLight); scene.add(mainLight.target);
 
-// NUEVA LUZ: Foco de día (Comienza apagada, se controla por el clima)
-const dayLight = new THREE.SpotLight(0xffffee, 0); 
-dayLight.angle = Math.PI / 3; dayLight.penumbra = 0.8; dayLight.decay = 2; dayLight.distance = 60;
+// NUEVA LUZ: Foco de día (Ahora es PointLight para 360 grados)
+// Argumentos PointLight: color, intensidad, distancia(rango), decaimiento
+const dayLight = new THREE.PointLight(0xffffee, 0, 100, 1.5); 
 dayLight.castShadow = true;
 dayLight.shadow.mapSize.set(2048, 2048);
-dayLight.shadow.bias = -0.0001;
-scene.add(dayLight); scene.add(dayLight.target);
+// Estos dos valores de Bias son la clave para arreglar las "rayas" (Shadow Acne)
+dayLight.shadow.bias = -0.001; 
+dayLight.shadow.normalBias = 0.05;
+scene.add(dayLight); 
+// Nota: PointLight no necesita "target" porque ilumina en todas direcciones.
 
 let lightOn = localStorage.getItem('lightState') !== 'off';
 const perfCheck = document.getElementById('performance-mode');
@@ -171,7 +181,7 @@ let baseAction = null;
 let randomAction = null;
 let currentAction = null;
 
-loader.load('lunari_durmiendo1.glb', (gltf) => {
+loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/lunari_durmiendo1.glb', (gltf) => {
     const lunariModel = gltf.scene;
     applyMaterialLogic(lunariModel, 'lunari');
     scene.add(lunariModel);
@@ -188,7 +198,7 @@ loader.load('lunari_durmiendo1.glb', (gltf) => {
     checkLoading();
 });
 
-loader.load('Lunari_Duerme_2.glb', (gltf) => {
+loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/Lunari_Duerme_2.glb', (gltf) => {
     if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
         const clip = gltf.animations[0];
         randomAction = lunariMixer.clipAction(clip);
@@ -277,9 +287,11 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
     const box = new THREE.Box3().setFromObject(focoDiaModel);
     const center = new THREE.Vector3(); 
     box.getCenter(center);
+    
+    // Para la PointLight, solo necesitamos la posición central
     dayLight.position.copy(center); 
     dayLight.position.y -= 0.2;
-    dayLight.target.position.set(center.x, 0, center.z);
+    // (Se eliminó el código del target porque las PointLights iluminan en 360 grados)
     
     checkLoading();
 }, undefined, (e) => {
@@ -312,7 +324,7 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
         const lon = pos.coords.longitude;
         const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
         const data = await response.json();
-        
+    
         const code = data.current_weather.weathercode;
         const isDay = data.current_weather.is_day; // 1 = día, 0 = noche
         temperature = data.current_weather.temperature;
@@ -320,7 +332,8 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
         // --- INTEGRACIÓN LUZ FOCO DÍA ---
         // Si la API confirma que es de día (1), la luz del foco_dia se activa
         if (isDay === 1) {
-            dayLight.intensity = 6;
+            // Aumenté ligeramente la intensidad base dado que ahora es una PointLight
+            dayLight.intensity = 8;
         } else {
             dayLight.intensity = 0;
         }
@@ -375,7 +388,7 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
         console.warn('Error con el clima, usando defecto:', error);
         weatherEmoji = "❌";
         weatherName = "Clima offline";
-        // En caso de error dejamos la luz apagada o encendida según prefieras. Aquí la dejamos apagada.
+        // En caso de error la dejamos apagada
         dayLight.intensity = 0; 
     }
 
@@ -388,6 +401,7 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
     video.src = videoFile;
     // Iniciar video
     video.play().catch(e => console.log('Autoplay bloqueado:', e));
+
     // Configurar textura 3D
     const videoTexture = new THREE.VideoTexture(video);
     videoTexture.minFilter = THREE.LinearFilter;
@@ -396,7 +410,7 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
     videoTexture.encoding = THREE.sRGBEncoding;
     
     // Cargar el cuadro
-    loader.load('cuadro.glb', (gltf) => {
+    loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cuadro.glb', (gltf) => {
         const cuadroModel = gltf.scene;
         
         cuadroModel.traverse((node) => {
@@ -415,30 +429,30 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
        
         applyMaterialLogic(cuadroModel, 'cuadro');
         scene.add(cuadroModel);
+     
         loadedSlotMeshes['cuadro'] = cuadroModel;
         checkLoading();
     }, undefined, (e) => {
         console.error('Error cargando cuadro:', e);
         checkLoading();
     });
-
 })();
 
 // --- SISTEMA DE ILUMINACIÓN ---
 function updateLighting() {
     const isLow = perfCheck.checked;
-    
     // Ajustamos las sombras de la luz de día según el modo rendimiento
     dayLight.castShadow = !isLow;
 
     if (lightOn) {
         mainLight.visible = true;
-        ambient.intensity = isLow ? 0.8 : 0.3; hemiLight.intensity = isLow ? 0.8 : 0.4;
+        ambient.intensity = isLow ? 0.8 : 0.3;
+        hemiLight.intensity = isLow ? 0.8 : 0.4;
         document.getElementById('light-status').innerText = '💡 Luz encendida';
         if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 1.5; });
     } else {
         mainLight.visible = false;
-        ambient.intensity = 0.02; hemiLight.intensity = 0.05; 
+        ambient.intensity = 0.02; hemiLight.intensity = 0.05;
         document.getElementById('light-status').innerText = '💡 Luz apagada';
         if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; });
     }
@@ -479,7 +493,7 @@ function handleInteraction(event) {
     mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
-    
+
     // Chequeo de Luz (sólo interactúa con el manual, la luz de día es independiente)
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
         toggleLight();
@@ -512,6 +526,7 @@ function updateQuality() {
     renderer.shadowMap.enabled = !isLow;
     renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
     document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
+
     for (let cat in loadedSlotMeshes) {
         applyMaterialLogic(loadedSlotMeshes[cat], cat);
     }
@@ -529,7 +544,7 @@ function renderInventory() {
     const sidebar = document.getElementById('inv-sidebar');
     const content = document.getElementById('inv-content');
     sidebar.innerHTML = ''; content.innerHTML = '';
-    
+
     inventoryGroups.forEach(group => {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'inv-group';
@@ -549,22 +564,21 @@ function renderInventory() {
 
         group.categories.forEach(catKey => {
             const catData = inventoryData[catKey];
-  
             if(!catData) return;
+    
             const btn = document.createElement('button');
             btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
             btn.innerHTML = `<span class="cat-icon-emoji">${catData.emoji}</span> <span>${catData.label}</span>`;
             btn.onclick = () => { currentCategory = catKey; renderInventory(); };
             groupContent.appendChild(btn);
         });
-
         groupDiv.appendChild(groupContent);
         sidebar.appendChild(groupDiv);
     });
 
     const catData = inventoryData[currentCategory];
     if (!catData) return;
-    
+
     for (let itemId in catData.items) {
         const item = catData.items[itemId];
         const isEquipped = catData.equipped === itemId;
@@ -574,6 +588,7 @@ function renderInventory() {
 
         const previewDiv = document.createElement('div');
         previewDiv.className = 'item-preview';
+
         if (item.preview) {
             const img = document.createElement('img');
             img.src = item.preview;
@@ -601,7 +616,7 @@ function renderInventory() {
             </div>
             ${btnHTML}
         `;
-        
+
         const previewContainer = card.querySelector('.item-preview');
         if (previewContainer && item.preview) {
             previewContainer.innerHTML = '';
@@ -618,6 +633,7 @@ function renderInventory() {
     document.querySelectorAll('.btn-equip').forEach(b => {
         b.onclick = (e) => equipItem(currentCategory, e.target.getAttribute('data-id'));
     });
+
     document.querySelectorAll('.btn-buy').forEach(b => {
         b.onclick = (e) => buyItem(currentCategory, e.target.getAttribute('data-id'));
     });
@@ -630,7 +646,6 @@ function equipItem(category, itemId) {
     
     const itemData = inventoryData[category].items[itemId];
     loadItemForSlot(category, itemData.file, false);
-
     if (category === 'foco' && itemData.baseFile) {
         loadItemForSlot('base_foco', itemData.baseFile, false);
     }
@@ -653,6 +668,7 @@ document.getElementById('inventory-button').onclick = () => {
     document.getElementById('inventory-modal').classList.add('visible');
     renderInventory();
 };
+
 document.getElementById('close-inv').onclick = () => {
     document.getElementById('inventory-modal').classList.remove('visible');
 };
