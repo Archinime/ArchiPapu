@@ -396,6 +396,7 @@
         const loadedSlotMeshes = {};
         let switchMesh = null;
         let focoMesh = null;
+        let quadroLight = null; // Luz que sale del cuadro
 
         // --- Detección de dispositivo ---
         const ua = navigator.userAgent;
@@ -435,13 +436,6 @@
         const ambient = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambient);
         const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
-        
-        // LUZ SOLAR (día) - se activará/desactivará según el clima
-        const sunLight = new THREE.DirectionalLight(0xfff5e6, 0); // intensidad 0 por defecto
-        sunLight.position.set(5, 15, 8); // posición que simula el sol entrando por una ventana
-        sunLight.target.position.set(0, 0, 0);
-        scene.add(sunLight);
-        scene.add(sunLight.target);
         
         const mainLight = new THREE.SpotLight(0xffeedd, 6);
         mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
@@ -706,11 +700,6 @@
             }
             video.src = videoFile;
 
-            // Configurar la luz solar según si es de día o de noche
-            // Intensidad: 2.5 para día, 0 para noche (puedes ajustar)
-            sunLight.intensity = isDay ? 2.5 : 0;
-            // Opcional: cambiar color ligeramente según el clima (no necesario)
-
             // Iniciar video
             video.play().catch(e => console.log('Autoplay bloqueado:', e));
             
@@ -742,6 +731,20 @@
                 applyMaterialLogic(cuadroModel, 'cuadro');
                 scene.add(cuadroModel);
                 loadedSlotMeshes['cuadro'] = cuadroModel;
+
+                // --- Crear la luz que emana del cuadro (luz de día) ---
+                // Calculamos el centro del cuadro para colocar la luz
+                const box = new THREE.Box3().setFromObject(cuadroModel);
+                const center = new THREE.Vector3();
+                box.getCenter(center);
+                
+                // Crear una luz puntual (PointLight) que simule la luz exterior entrando por el cuadro
+                quadroLight = new THREE.PointLight(0xfff5e6, isDay ? 2.5 : 0, 20, 1);
+                quadroLight.position.copy(center);
+                // Opcional: moverla ligeramente hacia adelante para que la luz parezca venir de la imagen
+                quadroLight.position.z += 0.5; // Ajusta según la orientación del cuadro
+                scene.add(quadroLight);
+
                 checkLoading();
             }, undefined, (e) => {
                 console.error('Error cargando cuadro:', e);
@@ -756,16 +759,18 @@
             const isLow = perfCheck.checked;
             if (lightOn) {
                 mainLight.visible = true;
-                ambient.intensity = isLow ? 0.8 : 0.3; hemiLight.intensity = isLow ? 0.8 : 0.4;
+                ambient.intensity = isLow ? 0.8 : 0.3; 
+                hemiLight.intensity = isLow ? 0.8 : 0.4;
                 document.getElementById('light-status').innerText = '💡 Luz encendida';
                 if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 1.5; });
             } else {
                 mainLight.visible = false;
-                ambient.intensity = 0.02; hemiLight.intensity = 0.05; 
+                ambient.intensity = 0.02; 
+                hemiLight.intensity = 0.05; 
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
                 if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; });
             }
-            // La luz solar (sunLight) se controla aparte según el día/noche y no se modifica aquí
+            // La luz del cuadro (quadroLight) se controla aparte según el día/noche y no se modifica aquí
         }
 
         const raycaster = new THREE.Raycaster();
