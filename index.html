@@ -27,140 +27,266 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* UI Base */
-        #ui-container {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 10;
-        }
+        /* --- SCROLLBAR ESTILIZADO --- */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.25); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.5); }
 
+        /* --- CLASES UTILITARIAS GLASSMORPHISM --- */
         .glass-panel {
             background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            pointer-events: auto;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
         }
 
-        /* Botones y controles */
-        .btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--glass-border);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Poppins', sans-serif;
-        }
-        .btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            box-shadow: var(--accent-glow);
-        }
-
-        /* Top Bar */
-        #top-bar {
+        /* --- BOTONES SUPERIORES --- */
+        .top-btn {
             position: absolute;
             top: 20px;
-            left: 20px;
-            right: 20px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
             display: flex;
-            justify-content: space-between;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            cursor: pointer;
+            z-index: 300;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            user-select: none;
         }
+        .top-btn:hover { 
+            transform: translateY(-3px) scale(1.1);
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255,255,255,0.4);
+        }
+        .top-btn:active { transform: scale(0.95); }
+        
+        #settings-button { right: 20px; }
+        #inventory-button { right: 80px; }
 
-        /* Ajustes */
+        /* --- WIDGETS DE ESTADO (MONEDAS Y CLIMA) --- */
+        .status-widget {
+            position: absolute;
+            left: 20px;
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 15px;
+            z-index: 300;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .status-widget:hover { transform: translateY(-2px); }
+
+        #coin-display { top: 20px; color: #FFD700; border-color: rgba(255,215,0,0.4); }
+        #coin-display:hover { box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2); }
+
+        #weather-status { top: 75px; color: #E0F7FA; border-color: rgba(100,200,255,0.4); font-size: 13px; }
+
+        /* --- PANEL DE AJUSTES --- */
         #settings-panel {
             position: absolute;
-            top: 70px;
+            top: 80px;
             right: 20px;
-            padding: 15px;
+            padding: 20px;
+            border-radius: 20px;
+            z-index: 250;
+            font-size: 14px;
+            pointer-events: auto;
             display: none;
-            flex-direction: column;
-            gap: 10px;
+            min-width: 220px;
+            animation: fadeInDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
-        #settings-panel.visible { display: flex; }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        #settings-panel.visible { display: block; }
+        
+        #settings-panel label { display: flex; align-items: center; justify-content: space-between; gap: 15px; cursor: pointer; user-select: none; margin-bottom: 5px; transition: color 0.2s; font-weight: 400;}
+        #settings-panel label:hover { color: var(--accent-color); }
+        #settings-panel input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-color); }
+        
+        #quality-indicator {
+            background: linear-gradient(135deg, var(--accent-color), #2E7D32);
+            color: white; padding: 6px 12px; border-radius: 50px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; text-align: center; margin-bottom: 20px;
+            box-shadow: var(--accent-glow);
+            text-transform: uppercase;
+        }
 
-        /* Inventario */
-        #inventory-modal {
+        /* --- DIÁLOGO DE LUNARI --- */
+        #character-layer {
             position: absolute;
-            bottom: -100%;
+            bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
+            z-index: 150;
+            pointer-events: none;
             width: 90%;
-            max-width: 600px;
-            height: 60vh;
-            padding: 20px;
-            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex;
+            max-width: 450px;
+        }
+        #dialogue-box {
+            border-left: 4px solid var(--accent-color);
+            border-radius: 16px;
+            padding: 18px 20px;
+            animation: modalFadeIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .char-name { margin: 0 0 8px 0; color: var(--accent-color); font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
+        #dialogue-text { margin: 0; font-size: 15px; line-height: 1.5; font-weight: 300; }
+
+        /* --- MODALES --- */
+        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        
+        #inventory-modal {
+            display: none;
+            position: fixed; top: 5%; left: 5%; width: 90%; height: 90%;
+            border-radius: 24px;
+            z-index: 1000; padding: 25px; box-sizing: border-box;
             flex-direction: column;
         }
-        #inventory-modal.visible { bottom: 20px; }
-
-        #close-inv {
-            align-self: flex-end;
-            margin-bottom: 10px;
+        #inventory-modal.visible { display: flex; animation: modalFadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1); }
+        
+        #inv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 20px; }
+        #inv-header h2 { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: 0.5px; }
+        
+        #close-inv, #close-poster-view {
+            background: rgba(255,255,255,0.1);
+            border: none; color: white; width: 44px; height: 44px; border-radius: 50%; transition: all 0.3s ease; cursor: pointer; display: flex; align-items: center;
+            justify-content: center; font-size: 20px;
         }
+        #close-inv:hover, #close-poster-view:hover { background: rgba(255,70,70,0.8); transform: rotate(90deg) scale(1.1); }
 
-        /* Loader */
-        #loader {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--glass-bg);
-            padding: 20px 40px;
-            border-radius: 12px;
-            display: none;
-            pointer-events: none;
-            text-align: center;
+        #inv-body { display: flex; flex: 1; margin-top: 20px; gap: 25px; overflow: hidden; }
+        
+        /* SIDEBAR INVENTARIO */
+        #inv-sidebar { width: 30%; border-right: 1px solid var(--glass-border); overflow-y: auto; padding-right: 15px; }
+        
+        .inv-group { margin-bottom: 12px; }
+        .group-btn {
+            width: 100%;
+            text-align: left; padding: 14px 18px; background: rgba(0,0,0,0.3); color: white; border: 1px solid transparent; border-radius: 14px; cursor: pointer; font-size: 15px;
+            font-weight: 600; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease;
+        }
+        .group-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--glass-border); transform: translateX(4px); }
+        
+        .group-content { display: none; flex-direction: column; padding-left: 10px; margin-top: 8px; border-left: 2px solid var(--glass-border); margin-left: 10px; animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .group-content.open { display: flex; }
+
+        .cat-btn { width: 100%; text-align: left; padding: 12px 15px; background: transparent; color: #ccc; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 5px; font-size: 14px; transition: all 0.2s; display: flex; align-items: center; gap: 12px; font-family: 'Poppins', sans-serif;}
+        .cat-btn:hover { color: white; background: rgba(255,255,255,0.05); padding-left: 20px; }
+        .cat-btn.active { background: linear-gradient(135deg, var(--accent-color), #2E7D32); color: white; font-weight: 600; box-shadow: var(--accent-glow); }
+        
+        /* GRID DE ÍTEMS */
+        #inv-content { width: 70%; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; align-content: start; padding-right: 10px; }
+        
+        .item-card {
+            background: rgba(30,30,35,0.4);
+            padding: 18px; border-radius: 20px; border: 1px solid var(--glass-border); text-align: center; display: flex; flex-direction: column; justify-content: space-between;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .item-card:hover { transform: translateY(-8px); background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.3); box-shadow: 0 12px 30px rgba(0,0,0,0.4); }
+        
+        .item-preview { width: 100%; height: 130px; background: rgba(0,0,0,0.5); border-radius: 14px; margin-bottom: 15px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: inset 1px rgba(255,255,255,0.05); }
+        .item-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .item-preview span { font-size: 50px; }
+        
+        .item-card h4 { margin: 0 0 10px 0; font-size: 16px; font-weight: 600; }
+        .item-price { color: #FFD700; font-weight: 700; margin-bottom: 15px; font-size: 15px; }
+        
+        .item-btn { padding: 12px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; font-family: 'Poppins', sans-serif;}
+        .btn-buy { background: linear-gradient(135deg, #FF9800, #F57C00); color: white; box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3); }
+        .btn-buy:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 152, 0, 0.5); filter: brightness(1.1); }
+        .btn-equip { background: linear-gradient(135deg, #2196F3, #1976D2); color: white; box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3); }
+        .btn-equip:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(33, 150, 243, 0.5); filter: brightness(1.1); }
+        .btn-equipped { background: rgba(76, 175, 80, 0.2); color: var(--accent-color); cursor: default; border: 1px solid var(--accent-color); }
+
+        /* --- MODAL POSTERS --- */
+        #poster-view-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; justify-content: center; align-items: center; flex-direction: column; opacity: 0; transition: opacity 0.4s ease; }
+        #poster-view-modal.visible { display: flex; opacity: 1; }
+        #poster-view-modal img { max-width: 90%; max-height: 85%; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); object-fit: contain; transform: scale(0.9); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #poster-view-modal.visible img { transform: scale(1); }
+        #close-poster-view { position: absolute; top: 25px; right: 25px; }
+
+        /* --- ESTADOS (CARGA Y LUZ) --- */
+        #loading, #light-status { position: absolute; bottom: 30px; padding: 10px 20px; border-radius: 50px; font-size: 13px; font-weight: 600; z-index: 100; pointer-events: none; }
+        #loading { right: 20px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+        #light-status { left: 20px; transition: 0.4s ease; border: 1px solid transparent; }
+
+        /* --- RESPONSIVE MOBILE --- */
+        @media (max-width: 600px) {
+            .top-btn { top: 15px; width: 40px; height: 40px; font-size: 18px; }
+            #settings-button { right: 15px; }
+            #inventory-button { right: 65px; }
+            .status-widget { padding: 8px 14px; font-size: 13px; }
+            #coin-display { top: 15px; left: 15px; }
+            #weather-status { top: 65px; left: 15px; }
+            #settings-panel { top: 70px; right: 15px; padding: 15px; }
+            #inventory-modal { top: 2%; left: 2%; width: 96%; height: 96%; padding: 15px; border-radius: 16px; }
+            #inv-body { flex-direction: column; gap: 15px; }
+            #inv-sidebar { width: 100%; height: 35%; border-right: none; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; padding-right: 0; }
+            #inv-content { width: 100%; height: 65%; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); padding-right: 0; gap: 10px;}
+            .item-card { padding: 12px; border-radius: 14px; }
+            .item-preview { height: 100px; border-radius: 10px; }
+            .item-preview span { font-size: 40px; }
+            .item-btn { padding: 10px; font-size: 11px; }
+            #character-layer { bottom: 80px; width: 95%; }
+            #loading, #light-status { bottom: 20px; font-size: 11px; padding: 8px 15px; }
         }
     </style>
+</head>
+<body>
+    <div id="coin-display" class="glass-panel status-widget">🪙 <span id="coin-amount">0</span></div>
+    <div id="weather-status" class="glass-panel status-widget">🌍 Detectando clima...</div>
+    
+    <div id="inventory-button" class="top-btn glass-panel" title="Inventario y Tienda">🎒</div>
+    <div id="settings-button" class="top-btn glass-panel" title="Ajustes">⚙️</div>
+
+    <div id="settings-panel" class="glass-panel">
+        <div id="quality-indicator">Calidad Alta</div>
+        <label>
+            <span>Modo humilde (Rendimiento)</span>
+            <input type="checkbox" id="performance-mode">
+        </label>
+    </div>
+
+    <div id="character-layer">
+        <div id="dialogue-box" class="glass-panel">
+            <h3 class="char-name">Lunari</h3>
+            <p id="dialogue-text">¡Hola!<br>Bienvenido de nuevo a casa.<br>¿Vemos un anime hoy?</p>
+        </div>
+    </div>
+
+    <div id="inventory-modal" class="glass-panel">
+        <div id="inv-header">
+            <h2>🎒 Inventario y Tienda</h2>
+            <button id="close-inv">&times;</button>
+        </div>
+        <div id="inv-body">
+            <div id="inv-sidebar"></div>
+            <div id="inv-content"></div>
+        </div>
+    </div>
+
+    <div id="poster-view-modal" class="glass-panel">
+        <button id="close-poster-view">&times;</button>
+        <img id="poster-enlarged-image" src="" alt="Póster">
+    </div>
+
+    <div id="loading" class="glass-panel">Preparando entorno 3D...</div>
+    <div id="light-status" class="glass-panel">💡 Luz encendida</div>
 
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
             }
-        }
-    </script>
-</head>
-<body>
-    <div id="ui-container">
-        <div id="top-bar">
-            <button class="btn glass-panel" id="open-inv">📦 Inventario</button>
-            <div style="display:flex; gap: 10px;">
-                <button class="btn glass-panel" id="toggle-light">💡 Luz</button>
-                <button class="btn glass-panel" id="settings-button">⚙️</button>
-            </div>
-        </div>
-
-        <div id="settings-panel" class="glass-panel">
-            <h3 style="margin:0 0 10px 0; font-size: 16px;">Ajustes</h3>
-            <label><input type="checkbox" id="shadows-toggle" checked> Sombras Suaves</label>
-            <label><input type="checkbox" id="hd-toggle"> Alta Calidad (HD)</label>
-        </div>
-
-        <div id="inventory-modal" class="glass-panel">
-            <button class="btn" id="close-inv">Cerrar ❌</button>
-            <div id="inventory-content" style="overflow-y: auto; flex-grow: 1;">
-                </div>
-        </div>
-
-        <div id="loader" class="glass-panel">Cargando modelo...</div>
-    </div>
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').then(registration => {
-                    console.log('SW registrado con éxito:', registration.scope);
-                }).catch(error => {
-                    console.log('Error al registrar el SW:', error);
-                });
-            });
         }
     </script>
 
@@ -168,196 +294,645 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
         import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-        
-        // Importamos los datos de tu inventario
         import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
-        // --- 1. CONFIGURACIÓN BASE Y OPTIMIZACIÓN EXTREMA ---
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050508);
+        // --- SISTEMA DE DATOS E INVENTARIO ---
+        let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
+        document.getElementById('coin-amount').innerText = playerCoins;
 
-        // powerPreference fuerza la GPU dedicada. antialias: false sube los FPS.
-        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+        let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
+        if (inventoryData.base_foco) delete inventoryData.base_foco;
         
-        // Limitamos los píxeles para que no haya lag en móviles de alta gama
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        // Sincronizar objetos nuevos y verificar integridad
+        for (let cat in defaultInventoryConfig) {
+            if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
+            inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
+            inventoryData[cat].label = defaultInventoryConfig[cat].label;
+
+            if (!inventoryData[cat].items[inventoryData[cat].equipped]) {
+                inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
+            }
+
+            for(let item in defaultInventoryConfig[cat].items) {
+                if(!inventoryData[cat].items[item]) {
+                    inventoryData[cat].items[item] = defaultInventoryConfig[cat].items[item];
+                } else {
+                    inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file;
+                    inventoryData[cat].items[item].name = defaultInventoryConfig[cat].items[item].name;
+                    if(defaultInventoryConfig[cat].items[item].baseFile) {
+                        inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile;
+                    }
+                    if(defaultInventoryConfig[cat].items[item].preview) {
+                        inventoryData[cat].items[item].preview = defaultInventoryConfig[cat].items[item].preview;
+                    }
+                }
+            }
+        }
+
+        function saveGame() {
+            localStorage.setItem('room_coins', playerCoins);
+            localStorage.setItem('room_inventory', JSON.stringify(inventoryData));
+            document.getElementById('coin-amount').innerText = playerCoins;
+        }
+
+        const loadedSlotMeshes = {};
+        let switchMesh = null;
+        let focoMesh = null;
+
+        // --- Detección de dispositivo ---
+        const ua = navigator.userAgent;
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+        const width = window.innerWidth;
+        let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
+        
+        // --- Escena, Cámara y Reloj ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050508); 
+        const clock = new THREE.Clock();
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
+        let camPosY = 6, camPosZ = 14, targetY = 6;
+        if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
+        camera.position.set(0, camPosY, camPosZ);
+        
+        // --- RENDERIZADOR (Optimizado y Realista) ---
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        
-        // Realismo: Colores de cine y sombras suaves
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.0;
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.1;
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
-
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(5, 3, 5);
+        
+        // --- ENTORNO PBR REALISTA ---
+        const pmremGenerator = new THREE.PMREMGenerator(renderer);
+        scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
-        controls.maxPolarAngle = Math.PI / 2 - 0.05; // Bloquea ver debajo del suelo
-        controls.minDistance = 2;
-        controls.maxDistance = 10;
-
-        // --- 2. ENTORNO Y LUCES (ARREGLO DE OSCURIDAD) ---
-        const environment = new RoomEnvironment();
-        const pmremGenerator = new THREE.PMREMGenerator(renderer);
-        scene.environment = pmremGenerator.fromScene(environment).texture;
+        controls.target.set(0, targetY, 0);
+        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+        controls.minDistance = 2.5; 
+        controls.maxDistance = 16;
+        controls.enablePan = false;
         
-        // Luz base (suave)
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
-        scene.add(ambientLight);
-
-        // Foco Principal (cálido)
-        const mainLight = new THREE.PointLight(0xffebc2, 1.5, 20);
-        mainLight.position.set(0, 2.5, 0);
+        // --- LUCES ---
+        const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambient);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.3); 
+        hemiLight.position.set(0, 20, 0);
+        scene.add(hemiLight);
+        
+        const mainLight = new THREE.SpotLight(0xfff5e6, 7);
+        mainLight.position.set(2, 22, 2);
+        mainLight.angle = Math.PI / 3; 
+        mainLight.penumbra = 0.8; 
+        mainLight.decay = 2; 
+        mainLight.distance = 60;
         mainLight.castShadow = true;
-        mainLight.shadow.mapSize.width = 1024;
-        mainLight.shadow.mapSize.height = 1024;
-        mainLight.shadow.bias = -0.001; 
+        // Optimización brutal de sombras: Bajado de 2048 a 1024 para evitar lag en móviles
+        mainLight.shadow.mapSize.set(1024, 1024); 
+        mainLight.shadow.camera.near = 0.5; 
+        mainLight.shadow.camera.far = 40;
+        mainLight.shadow.bias = -0.0001; 
+        mainLight.shadow.normalBias = 0.02; 
+        mainLight.shadow.radius = 4;
         scene.add(mainLight);
-
-        // Lógica de apagado realista
-        let isLightOn = true;
-        document.getElementById('toggle-light').onclick = () => {
-            isLightOn = !isLightOn;
-            if (isLightOn) {
-                mainLight.intensity = 1.5;
-                ambientLight.intensity = 0.3;
-                scene.environmentIntensity = 1.0; // Vuelve el entorno 3D
-                document.getElementById('toggle-light').innerText = "💡 Luz";
-            } else {
-                mainLight.intensity = 0;
-                ambientLight.intensity = 0.02; // Oscuridad casi total
-                scene.environmentIntensity = 0.05; // Apaga los reflejos falsos
-                document.getElementById('toggle-light').innerText = "🌙 Luz";
-            }
-        };
-
-        // --- 3. CARGA DE MODELOS (OPTIMIZADO CON DRACO) ---
-        const dracoLoader = new DRACOLoader();
-        dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
-        const gltfLoader = new GLTFLoader();
-        gltfLoader.setDRACOLoader(dracoLoader);
-
-        let lunariMixer = null;
-        const clock = new THREE.Clock();
-        const loadedModels = {}; 
-        let activeMeshes = {}; // Para reemplazar partes cuando te equipas algo nuevo
-        const loaderUI = document.getElementById('loader');
-
-        // Función de carga que usa tu lógica de inventario
-        function loadModel(url, category) {
-            if (!url) return;
-            loaderUI.style.display = 'block';
-
-            gltfLoader.load(url, (gltf) => {
-                const model = gltf.scene;
-                
-                // Aplicar sombras a todo lo cargado
-                model.traverse((child) => {
-                    if (child.isMesh) {
-                        child.castShadow = true;
-                        child.receiveShadow = true;
+        scene.add(mainLight.target);
+        
+        let lightOn = localStorage.getItem('lightState') !== 'off';
+        const perfCheck = document.getElementById('performance-mode');
+        perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
+        
+        function applyMaterialLogic(model, categoryKey) {
+            if(!model) return;
+            const isLow = perfCheck.checked;
+            const isFoco = categoryKey === 'foco';
+            
+            model.traverse((node) => {
+                if (node.isMesh) {
+                    // Eliminado node.frustumCulled = false para mejorar rendimiento
+                    if (isFoco) {
+                        node.castShadow = false; node.receiveShadow = false;
+                        if (node.material) {
+                            node.material.emissive = new THREE.Color(0xfff5e6);
+                            node.material.emissiveIntensity = lightOn ? 2.0 : 0;
+                        }
+                    } else {
+                        node.castShadow = !isLow; node.receiveShadow = !isLow;
+                        if(node.material) {
+                            node.material.shadowSide = THREE.FrontSide;
+                            // Intensidad dinámica del PBR según la luz
+                            node.material.envMapIntensity = lightOn ? 1.0 : 0.02; 
+                            if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso')) {
+                                node.material.shadowSide = THREE.BackSide;
+                            }
+                            node.material.side = THREE.DoubleSide;
+                            node.material.needsUpdate = true;
+                        }
                     }
-                });
-
-                // Si ya había un modelo en esa categoría (ej. cambiamos de cama), lo borramos
-                if (activeMeshes[category]) {
-                    scene.remove(activeMeshes[category]);
                 }
+            });
+        }
+
+        // --- CÁLCULO DINÁMICO DE CARGA ---
+        let totalModelsToLoad = 0;
+        let modelsLoaded = 0;
+
+        for (let cat in inventoryData) {
+            let equippedItemId = inventoryData[cat].equipped;
+            if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
+                let itemData = inventoryData[cat].items[equippedItemId];
+                if (itemData.file) totalModelsToLoad++;
+                if (cat === 'foco' && itemData.baseFile) totalModelsToLoad++;
+            }
+        }
+
+        totalModelsToLoad += 2; // Lunari
+        totalModelsToLoad += 1; // Cuadro
+
+        function checkLoading() {
+            modelsLoaded++;
+            const loadingEl = document.getElementById('loading');
+            if(loadingEl) {
+                loadingEl.innerText = `Cargando entorno: ${modelsLoaded}/${totalModelsToLoad}`;
+                if (modelsLoaded >= totalModelsToLoad) {
+                    loadingEl.style.opacity = '0';
+                    setTimeout(() => loadingEl.style.display = 'none', 500);
+                }
+            }
+        }
+
+        if(totalModelsToLoad === 0 && document.getElementById('loading')) {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // --- CARGA DE MODELOS Y LUNARI ---
+        const loader = new GLTFLoader();
+        let lunariMixer = null;
+        let baseAction = null;
+        let randomAction = null;
+        let currentAction = null;
+        
+        loader.load('lunari_durmiendo1.glb', (gltf) => {
+            const lunariModel = gltf.scene;
+            applyMaterialLogic(lunariModel, 'lunari');
+            scene.add(lunariModel);
+
+            if (gltf.animations && gltf.animations.length > 0) {
+                lunariMixer = new THREE.AnimationMixer(lunariModel);
+                baseAction = lunariMixer.clipAction(gltf.animations[0]);
+                baseAction.play();
+                currentAction = baseAction;
+            }
+            checkLoading();
+        }, undefined, (e) => {
+            console.error('Error cargando a Lunari:', e);
+            checkLoading();
+        });
+
+        loader.load('Lunari_Duerme_2.glb', (gltf) => {
+            if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
+                const clip = gltf.animations[0];
+                randomAction = lunariMixer.clipAction(clip);
+                randomAction.loop = THREE.LoopOnce;
+                randomAction.clampWhenFinished = true;
+            }
+            checkLoading();
+        }, undefined, (e) => {
+            console.error('Error cargando animación aleatoria:', e);
+            checkLoading();
+        });
+        
+        setInterval(() => {
+            if (!randomAction || !baseAction || !lunariMixer) return;
+            if (currentAction === randomAction) return;
+
+            if (baseAction && randomAction) {
+                baseAction.fadeOut(0.5);
+                randomAction.reset().fadeIn(0.5).play();
+                currentAction = randomAction;
+
+                const onFinished = (event) => {
+                    if (event.action === randomAction) {
+                        randomAction.fadeOut(0.5);
+                        baseAction.reset().fadeIn(0.5).play();
+                        currentAction = baseAction;
+                        lunariMixer.removeEventListener('finished', onFinished);
+                    }
+                };
+                lunariMixer.addEventListener('finished', onFinished);
+            }
+        }, 60000);
+        
+        function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
+            if (!itemFile) return;
+            if (loadedSlotMeshes[categoryKey]) {
+                scene.remove(loadedSlotMeshes[categoryKey]);
+            }
+
+            loader.load(itemFile, (gltf) => {
+                const model = gltf.scene;
+                applyMaterialLogic(model, categoryKey);
+                
+                if (categoryKey === 'foco') {
+                    focoMesh = model;
+                    const box = new THREE.Box3().setFromObject(model);
+                    const center = new THREE.Vector3(); box.getCenter(center);
+                    mainLight.position.copy(center); mainLight.position.y -= 0.2; 
+                }
+                if (categoryKey === 'interruptor') switchMesh = model;
 
                 scene.add(model);
-                activeMeshes[category] = model;
+                loadedSlotMeshes[categoryKey] = model; 
+                if(isInitialLoad) checkLoading();
+            }, undefined, (e) => { 
+                console.error(`Error cargando modelo [${categoryKey}]:`, itemFile); 
+                if(isInitialLoad) checkLoading();
+            });
+        }
 
-                // Animaciones
-                if (gltf.animations && gltf.animations.length > 0) {
-                    lunariMixer = new THREE.AnimationMixer(model);
-                    const action = lunariMixer.clipAction(gltf.animations[0]);
-                    action.play();
+        for (let cat in inventoryData) {
+            let equippedItemId = inventoryData[cat].equipped;
+            if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
+                let itemData = inventoryData[cat].items[equippedItemId];
+                if (itemData.file) {
+                    loadItemForSlot(cat, itemData.file, true);
                 }
-
-                loaderUI.style.display = 'none';
-            }, undefined, (error) => {
-                console.error("Error cargando modelo:", error);
-                loaderUI.style.display = 'none';
-            });
-        }
-
-        // --- 4. LÓGICA DE TU INVENTARIO ---
-        let userInventory = JSON.parse(JSON.stringify(defaultInventoryConfig));
-
-        function renderInventory() {
-            const container = document.getElementById('inventory-content');
-            container.innerHTML = ''; 
-
-            inventoryGroups.forEach(group => {
-                const groupTitle = document.createElement('h3');
-                groupTitle.innerText = `${group.emoji} ${group.label}`;
-                groupTitle.style.borderBottom = "1px solid rgba(255,255,255,0.2)";
-                groupTitle.style.paddingBottom = "5px";
-                container.appendChild(groupTitle);
-
-                const itemsGrid = document.createElement('div');
-                itemsGrid.style.display = 'grid';
-                itemsGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(120px, 1fr))';
-                itemsGrid.style.gap = '10px';
-                itemsGrid.style.marginBottom = '20px';
-
-                group.categories.forEach(category => {
-                    const catData = userInventory[category];
-                    if (!catData) return;
-
-                    const activeItemId = catData.equipped;
-                    const activeItem = catData.items[activeItemId];
-
-                    const itemCard = document.createElement('div');
-                    itemCard.style.background = 'rgba(0,0,0,0.3)';
-                    itemCard.style.padding = '10px';
-                    itemCard.style.borderRadius = '8px';
-                    itemCard.style.textAlign = 'center';
-
-                    itemCard.innerHTML = `
-                        <div style="font-size: 12px; color: #aaa;">${catData.label}</div>
-                        <img src="${activeItem.preview}" style="width:100%; height:80px; object-fit:cover; border-radius:4px; margin:5px 0;">
-                        <div style="font-size: 14px; font-weight: bold;">${activeItem.name}</div>
-                    `;
-                    itemsGrid.appendChild(itemCard);
-                });
-
-                container.appendChild(itemsGrid);
-            });
-        }
-
-        // Cargar los objetos equipados al iniciar
-        function loadEquippedItems() {
-            for (const category in userInventory) {
-                const equippedId = userInventory[category].equipped;
-                const fileUrl = userInventory[category].items[equippedId].file;
-                loadModel(fileUrl, category);
+                if (cat === 'foco' && itemData.baseFile) {
+                    loadItemForSlot('base_foco', itemData.baseFile, true);
+                }
             }
         }
 
-        // Inicializamos los modelos de la habitación
-        loadEquippedItems();
+        // --- CARGA DEL CUADRO CON VIDEO Y CLIMA API ---
+        (async function setupWeatherVideo() {
+            const video = document.createElement('video');
+            video.loop = true;
+            video.muted = true;
+            video.playsInline = true;
+            video.crossOrigin = 'anonymous';
+            
+            let videoFile = 'dia_soleado.mp4'; 
+            let weatherEmoji = "☀️";
+            let weatherName = "Clima estándar";
+            let temperature = "--";
+    
+            const statusBox = document.getElementById('weather-status');
 
-        // --- 5. EVENTOS DE UI (LOS TUYOS, INTACTOS) ---
-        document.getElementById('open-inv').onclick = () => {
-            document.getElementById('inventory-modal').classList.add('visible');
-            renderInventory(); // Llamamos a tu función al abrir
-        };
+            try {
+                const pos = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+                });
+                
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+                const data = await response.json();
+                
+                const code = data.current_weather.weathercode;
+                const isDay = data.current_weather.is_day; // 1 = día, 0 = noche
+                temperature = data.current_weather.temperature;
+                
+                if (code === 0) {
+                    weatherName = isDay ? "Despejado" : "Noche despejada";
+                    weatherEmoji = isDay ? "☀️" : "🌙";
+                    videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4';
+                } else if (code === 1 || code === 2) {
+                    weatherName = isDay ? "Parcialmente nublado" : "Noche algo nublada";
+                    weatherEmoji = isDay ? "⛅" : "☁️";
+                    videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4';
+                } else if (code === 3) {
+                    weatherName = "Muy nublado";
+                    weatherEmoji = "☁️";
+                    videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4';
+                } else if (code === 45 || code === 48) {
+                    weatherName = "Niebla";
+                    weatherEmoji = "🌫️";
+                    videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4';
+                } else if ([51, 53, 55, 56, 57].includes(code)) {
+                    weatherName = "Llovizna";
+                    weatherEmoji = isDay ? "🌦️" : "🌧️";
+                    videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
+                } else if ([61, 63, 65, 66, 67].includes(code)) {
+                    weatherName = "Lluvia";
+                    weatherEmoji = "🌧️";
+                    videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
+                } else if ([71, 73, 75, 77].includes(code)) {
+                    weatherName = "Nieve";
+                    weatherEmoji = "❄️";
+                    videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4';
+                } else if ([80, 81, 82].includes(code)) {
+                    weatherName = "Aguaceros";
+                    weatherEmoji = "🌧️";
+                    videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
+                } else if ([85, 86].includes(code)) {
+                    weatherName = "Chubascos de nieve";
+                    weatherEmoji = "🌨️";
+                    videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4';
+                } else if ([95, 96, 99].includes(code)) {
+                    weatherName = "Tormenta";
+                    weatherEmoji = "⛈️";
+                    videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4';
+                } else {
+                    weatherName = "Desconocido";
+                    videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4';
+                }
+
+            } catch (error) {
+                console.warn('Error con el clima, usando defecto:', error);
+                weatherEmoji = "❌";
+                weatherName = "Clima offline";
+            }
+
+            if (temperature !== "--") {
+                statusBox.innerHTML = `${weatherEmoji} ${weatherName} | ${temperature}°C`;
+            } else {
+                statusBox.innerHTML = `${weatherEmoji} ${weatherName}`;
+            }
+            
+            video.src = videoFile;
+            video.play().catch(e => console.log('Autoplay bloqueado:', e));
+            
+            const videoTexture = new THREE.VideoTexture(video);
+            videoTexture.minFilter = THREE.LinearFilter;
+            videoTexture.magFilter = THREE.LinearFilter;
+            videoTexture.format = THREE.RGBAFormat;
+            videoTexture.encoding = THREE.sRGBEncoding;
+            
+            loader.load('cuadro.glb', (gltf) => {
+                const cuadroModel = gltf.scene;
+                cuadroModel.traverse((node) => {
+                    if (node.isMesh) {
+                        if (Array.isArray(node.material)) {
+                            node.material.forEach(mat => {
+                                mat.map = videoTexture;
+                                // Hacer que la pantalla emita su propia luz (brilla en la oscuridad)
+                                mat.emissive = new THREE.Color(0xffffff);
+                                mat.emissiveMap = videoTexture;
+                                mat.emissiveIntensity = 0.8;
+                                mat.needsUpdate = true;
+                            });
+                        } else if (node.material) {
+                            node.material.map = videoTexture;
+                            node.material.emissive = new THREE.Color(0xffffff);
+                            node.material.emissiveMap = videoTexture;
+                            node.material.emissiveIntensity = 0.8;
+                            node.material.needsUpdate = true;
+                        }
+                    }
+                });
+                applyMaterialLogic(cuadroModel, 'cuadro');
+                scene.add(cuadroModel);
+                loadedSlotMeshes['cuadro'] = cuadroModel;
+                checkLoading();
+            }, undefined, (e) => {
+                console.error('Error cargando cuadro:', e);
+                checkLoading();
+            });
+        })();
+
+        // --- SISTEMA DE ILUMINACIÓN Y OSCURIDAD REALISTA ---
+        function updateLighting() {
+            const isLow = perfCheck.checked;
+            const statusBadge = document.getElementById('light-status');
+            
+            if (lightOn) {
+                mainLight.visible = true;
+                ambient.intensity = isLow ? 0.8 : 0.4; 
+                hemiLight.intensity = isLow ? 0.8 : 0.3;
+                statusBadge.innerText = '💡 Luz encendida';
+                statusBadge.style.color = 'var(--text-main)';
+                statusBadge.style.borderColor = 'rgba(255,255,255,0.2)';
+                if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 2.0; });
+            } else {
+                mainLight.visible = false;
+                // Ajuste para oscuridad real
+                ambient.intensity = 0.01; 
+                hemiLight.intensity = 0.02; 
+                statusBadge.innerText = '🌙 Luz apagada';
+                statusBadge.style.color = '#888';
+                statusBadge.style.borderColor = 'transparent';
+                if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; });
+            }
+
+            // Actualizar intensidad del mapa de entorno PBR en todos los modelos
+            scene.traverse((node) => {
+                if (node.isMesh && node.material && node.material.envMapIntensity !== undefined) {
+                    node.material.envMapIntensity = lightOn ? 1.0 : 0.02;
+                    node.material.needsUpdate = true;
+                }
+            });
+        }
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
         
+        function toggleLight() {
+            lightOn = !lightOn;
+            localStorage.setItem('lightState', lightOn ? 'on' : 'off'); 
+            updateLighting();
+        }
+
+        // --- FUNCIONES PARA LOS POSTERS ---
+        const posterViewModal = document.getElementById('poster-view-modal');
+        const posterEnlargedImage = document.getElementById('poster-enlarged-image');
+        const closePosterBtn = document.getElementById('close-poster-view');
+
+        function openPosterPreview(categoryKey) {
+            const equippedId = inventoryData[categoryKey].equipped;
+            const itemData = inventoryData[categoryKey].items[equippedId];
+            if (itemData && itemData.preview) {
+                posterEnlargedImage.src = itemData.preview;
+                posterViewModal.classList.add('visible');
+            }
+        }
+
+        closePosterBtn.onclick = () => posterViewModal.classList.remove('visible');
+        posterViewModal.onclick = (e) => { 
+            if (e.target === posterViewModal) posterViewModal.classList.remove('visible');
+        };
+
+        // --- SISTEMA DE INTERACCIÓN GENERAL ---
+        function handleInteraction(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            const x = event.touches ? event.touches[0].clientX : event.clientX;
+            const y = event.touches ? event.touches[0].clientY : event.clientY;
+            mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            
+            if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
+                toggleLight();
+                return; 
+            }
+
+            const posterCategories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
+            for (let cat of posterCategories) {
+                const posterMesh = loadedSlotMeshes[cat];
+                if (posterMesh) {
+                    const intersects = raycaster.intersectObject(posterMesh, true);
+                    if (intersects.length > 0) {
+                        openPosterPreview(cat);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        renderer.domElement.addEventListener('click', handleInteraction);
+        renderer.domElement.addEventListener('touchstart', (e) => { 
+            if(document.getElementById('inventory-modal').classList.contains('visible')) return;
+            handleInteraction(e); 
+        }, {passive: true});
+        
+        // --- Calidad / Modo Humilde ---
+        function updateQuality() {
+            const isLow = perfCheck.checked;
+            renderer.shadowMap.enabled = !isLow;
+            renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
+            document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
+            for (let cat in loadedSlotMeshes) {
+                applyMaterialLogic(loadedSlotMeshes[cat], cat);
+            }
+            
+            localStorage.setItem('performanceMode', isLow);
+            updateLighting(); 
+        }
+        perfCheck.addEventListener('change', updateQuality);
+        
+        // --- LÓGICA DE INTERFAZ DEL INVENTARIO ---
+        let currentCategory = 'cama';
+        let openGroup = 'muebles';
+
+        function renderInventory() {
+            const sidebar = document.getElementById('inv-sidebar');
+            const content = document.getElementById('inv-content');
+            sidebar.innerHTML = ''; content.innerHTML = '';
+            
+            inventoryGroups.forEach(group => {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'inv-group';
+
+                const groupBtn = document.createElement('button');
+                groupBtn.className = 'group-btn';
+                // Implementados iconos de mayor que y v en lugar de los indicadores rotativos
+                groupBtn.innerHTML = `<span>${group.emoji} ${group.label}</span> <span>${openGroup === group.id ? 'v' : '>'}</span>`;
+                groupBtn.onclick = () => {
+                    openGroup = openGroup === group.id ? null : group.id;
+                    renderInventory();
+                };
+                groupDiv.appendChild(groupBtn);
+
+                const groupContent = document.createElement('div');
+                groupContent.className = `group-content ${openGroup === group.id ? 'open' : ''}`;
+
+                group.categories.forEach(catKey => {
+                    const catData = inventoryData[catKey];
+                    if(!catData) return;
+                    const btn = document.createElement('button');
+                    btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
+                    btn.innerHTML = `<span style="font-size:18px;">${catData.emoji}</span> <span>${catData.label}</span>`;
+                    btn.onclick = () => { currentCategory = catKey; renderInventory(); };
+                    groupContent.appendChild(btn);
+                });
+
+                groupDiv.appendChild(groupContent);
+                sidebar.appendChild(groupDiv);
+            });
+
+            const catData = inventoryData[currentCategory];
+            if (!catData) return;
+            
+            for (let itemId in catData.items) {
+                const item = catData.items[itemId];
+                const isEquipped = catData.equipped === itemId;
+                
+                const card = document.createElement('div');
+                card.className = 'item-card';
+
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'item-preview';
+                if (item.preview) {
+                    const img = document.createElement('img');
+                    img.src = item.preview;
+                    img.alt = item.name;
+                    img.onerror = () => { previewDiv.innerHTML = `<span>${catData.emoji}</span>`; };
+                    previewDiv.appendChild(img);
+                } else {
+                    previewDiv.innerHTML = `<span>${catData.emoji}</span>`;
+                }
+                
+                let btnHTML = '';
+                if (isEquipped) {
+                    btnHTML = `<button class="item-btn btn-equipped" disabled>Equipado ✓</button>`;
+                } else if (item.owned) {
+                    btnHTML = `<button class="item-btn btn-equip" data-id="${itemId}">Equipar</button>`;
+                } else {
+                    btnHTML = `<button class="item-btn btn-buy" data-id="${itemId}">Comprar 🪙${item.price}</button>`;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        ${previewDiv.outerHTML}
+                        <h4>${item.name}</h4>
+                        <div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div>
+                    </div>
+                    ${btnHTML}
+                `;
+                content.appendChild(card);
+            }
+
+            document.querySelectorAll('.btn-equip').forEach(b => {
+                b.onclick = (e) => equipItem(currentCategory, e.target.getAttribute('data-id'));
+            });
+            document.querySelectorAll('.btn-buy').forEach(b => {
+                b.onclick = (e) => buyItem(currentCategory, e.target.getAttribute('data-id'));
+            });
+        }
+
+        function equipItem(category, itemId) {
+            inventoryData[category].equipped = itemId;
+            saveGame();
+            renderInventory(); 
+            
+            const itemData = inventoryData[category].items[itemId];
+            loadItemForSlot(category, itemData.file, false);
+
+            if (category === 'foco' && itemData.baseFile) {
+                loadItemForSlot('base_foco', itemData.baseFile, false);
+            }
+        }
+
+        function buyItem(category, itemId) {
+            let item = inventoryData[category].items[itemId];
+            if (playerCoins >= item.price) {
+                playerCoins -= item.price;
+                item.owned = true;
+                saveGame();
+                renderInventory();
+            } else {
+                alert("No tienes suficientes monedas.");
+            }
+        }
+
+        // Eventos UI
+        document.getElementById('inventory-button').onclick = () => {
+            document.getElementById('inventory-modal').classList.add('visible');
+            renderInventory();
+        };
         document.getElementById('close-inv').onclick = () => {
             document.getElementById('inventory-modal').classList.remove('visible');
         };
-        
         document.getElementById('settings-button').onclick = () => {
             document.getElementById('settings-panel').classList.toggle('visible');
         };
         
+        // Cerrar panel de ajustes si se hace clic fuera
         document.addEventListener('click', (e) => {
             const panel = document.getElementById('settings-panel');
             const btn = document.getElementById('settings-button');
@@ -366,29 +941,13 @@
             }
         });
 
-        // Controles de calidad
-        function updateQuality() {
-            const isHD = document.getElementById('hd-toggle').checked;
-            renderer.setPixelRatio(isHD ? window.devicePixelRatio : Math.min(window.devicePixelRatio, 1.5));
-        }
-
-        document.getElementById('hd-toggle').addEventListener('change', updateQuality);
-
-        document.getElementById('shadows-toggle').addEventListener('change', (e) => {
-            renderer.shadowMap.enabled = e.target.checked;
-            scene.traverse((child) => {
-                if (child.material) child.material.needsUpdate = true;
-            });
-        });
-
-        // --- 6. BUCLE DE ANIMACIÓN Y RESIZE ---
+        // --- Animación y Resize ---
         function animate() {
             requestAnimationFrame(animate);
             const delta = clock.getDelta();
-            
             if (lunariMixer) lunariMixer.update(delta);
+
             controls.update();
-            
             renderer.render(scene, camera); 
         }
         animate();
@@ -398,8 +957,8 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
-
-        updateQuality(); // Aplicar calidad inicial
+        
+        updateQuality();
     </script>
 </body>
 </html>
