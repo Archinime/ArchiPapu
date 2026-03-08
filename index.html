@@ -714,21 +714,21 @@
             loader.load('cuadro.glb', (gltf) => {
                 const cuadroModel = gltf.scene;
                 
-                // Aplicar textura de video y configuración de emisión según el día/noche
+                // Aplicar textura de video sin ninguna emisión (para mantener colores originales)
                 cuadroModel.traverse((node) => {
                     if (node.isMesh) {
                         if (Array.isArray(node.material)) {
                             node.material.forEach(mat => {
                                 mat.map = videoTexture;
-                                // Emisión cálida y suave para que el video brille sin perder color
-                                mat.emissive = isDay ? new THREE.Color(0xfff5e6) : new THREE.Color(0x000000);
-                                mat.emissiveIntensity = isDay ? 0.8 : 0.0;
+                                // Sin emisión
+                                mat.emissive = new THREE.Color(0x000000);
+                                mat.emissiveIntensity = 0.0;
                                 mat.needsUpdate = true;
                             });
                         } else if (node.material) {
                             node.material.map = videoTexture;
-                            node.material.emissive = isDay ? new THREE.Color(0xfff5e6) : new THREE.Color(0x000000);
-                            node.material.emissiveIntensity = isDay ? 0.8 : 0.0;
+                            node.material.emissive = new THREE.Color(0x000000);
+                            node.material.emissiveIntensity = 0.0;
                             node.material.needsUpdate = true;
                         }
                     }
@@ -745,7 +745,8 @@
                 box.getCenter(center);
                 
                 // Crear una luz puntual (PointLight) que simule la luz exterior entrando por el cuadro
-                quadroLight = new THREE.PointLight(0xfff5e6, isDay ? 1.5 : 0, 20, 1);
+                // Intensidad alta durante el día para iluminar la escena y el propio cuadro
+                quadroLight = new THREE.PointLight(0xfff5e6, isDay ? 3.0 : 0, 20, 1);
                 quadroLight.position.copy(center);
                 // Moverla ligeramente hacia adelante para que la luz parezca venir de la imagen
                 quadroLight.position.z += 0.5; // Ajusta según la orientación del cuadro
