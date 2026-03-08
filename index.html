@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Habitación 3D - Inventario y Lunari</title>
     <style>
+        /* (Estilos sin cambios, se mantienen igual que en tu archivo original) */
         body {
             margin: 0;
             overflow: hidden;
@@ -453,16 +454,20 @@
         mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.set(2048, 2048);
-        mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
+        mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; 
+        mainLight.shadow.bias = -0.0005;      // Ajustado para reducir artefactos
+        mainLight.shadow.normalBias = 0.02;
+        mainLight.shadow.radius = 4; 
         scene.add(mainLight); scene.add(mainLight.target);
 
-        // NUEVA LUZ: Foco de día (Comienza apagada, se controla por el clima)
-        const dayLight = new THREE.SpotLight(0xffffee, 0); 
-        dayLight.angle = Math.PI / 3; dayLight.penumbra = 0.8; dayLight.decay = 2; dayLight.distance = 60;
+        // NUEVA LUZ: Foco de día (PointLight para iluminación omnidireccional)
+        const dayLight = new THREE.PointLight(0xffffee, 0, 30, 1); // color, intensidad, distancia, decay
         dayLight.castShadow = true;
-        dayLight.shadow.mapSize.set(2048, 2048);
-        dayLight.shadow.bias = -0.0001;
-        scene.add(dayLight); scene.add(dayLight.target);
+        dayLight.shadow.mapSize.set(1024, 1024); // Menor resolución para evitar conflictos
+        dayLight.shadow.bias = 0.05;
+        dayLight.shadow.normalBias = 0.02;
+        dayLight.shadow.radius = 2;
+        scene.add(dayLight);
 
         let lightOn = localStorage.getItem('lightState') !== 'off';
         const perfCheck = document.getElementById('performance-mode');
@@ -642,8 +647,7 @@
             const center = new THREE.Vector3(); 
             box.getCenter(center);
             dayLight.position.copy(center); 
-            dayLight.position.y -= 0.2;
-            dayLight.target.position.set(center.x, 0, center.z);
+            dayLight.position.y -= 0.2; // Ajuste fino
             
             checkLoading();
         }, undefined, (e) => {
@@ -684,7 +688,7 @@
                 // --- INTEGRACIÓN LUZ FOCO DÍA ---
                 // Si la API confirma que es de día (1), la luz del foco_dia se activa
                 if (isDay === 1) {
-                    dayLight.intensity = 6;
+                    dayLight.intensity = 2.5; // Ajuste de intensidad para PointLight
                 } else {
                     dayLight.intensity = 0;
                 }
@@ -739,7 +743,7 @@
                 console.warn('Error con el clima, usando defecto:', error);
                 weatherEmoji = "❌";
                 weatherName = "Clima offline";
-                // En caso de error dejamos la luz apagada o encendida según prefieras. Aquí la dejamos apagada.
+                // En caso de error dejamos la luz apagada
                 dayLight.intensity = 0; 
             }
 
