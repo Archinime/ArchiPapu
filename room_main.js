@@ -50,7 +50,8 @@ let focoMesh = null;
 const ua = navigator.userAgent;
 const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 const width = window.innerWidth;
-let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
+let deviceType = (width < 768 || (isMobileUA && width < 1024)) ?
+'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
 
 // --- Escena, Cámara y Reloj (Para Animaciones) ---
 const scene = new THREE.Scene();
@@ -99,15 +100,19 @@ mainLight.shadow.normalBias = 0.02;
 mainLight.shadow.radius = 4; 
 scene.add(mainLight); scene.add(mainLight.target);
 
-// NUEVA LUZ: Foco de día (Ahora es PointLight para 360 grados)
-// Argumentos PointLight: color, intensidad, distancia(rango), decaimiento
-const dayLight = new THREE.PointLight(0xffffee, 0, 40, 1.8); // <-- Rango reducido a 40 y decaimiento en 1.8
+// --- NUEVA LUZ: Foco de día (Cambiado a SpotLight para direccionar en ">" y suavizar) ---
+const dayLight = new THREE.SpotLight(0xffffee, 0);
+dayLight.distance = 60; // Rango máximo
+dayLight.decay = 2; // Decaimiento realista
+dayLight.angle = Math.PI / 2.5; // Ángulo de apertura ancho
+dayLight.penumbra = 1.0; // Borde extremadamente suave para el efecto "escala/degradado"
 dayLight.castShadow = true;
 dayLight.shadow.mapSize.set(2048, 2048);
-// Estos dos valores de Bias son la clave para arreglar las "rayas" (Shadow Acne)
 dayLight.shadow.bias = -0.001; 
 dayLight.shadow.normalBias = 0.05;
+dayLight.shadow.camera.near = 1.0; // Ayuda a ignorar la pared más cercana al generar sombras
 scene.add(dayLight); 
+scene.add(dayLight.target); // Imprescindible para el SpotLight
 
 let lightOn = localStorage.getItem('lightState') !== 'off';
 const perfCheck = document.getElementById('performance-mode');
@@ -287,9 +292,11 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
     const center = new THREE.Vector3(); 
     box.getCenter(center);
     
-    // Para la PointLight, solo necesitamos la posición central
     dayLight.position.copy(center); 
-    dayLight.position.y -= 0.2;
+    
+    // Hacemos que la luz apunte hacia el centro de la habitación y ligeramente hacia abajo
+    // Esto asegura el efecto "mayor que" (>) y previene iluminar la pared que queda atrás.
+    dayLight.target.position.set(0, center.y - 4, 0); 
     
     checkLoading();
 }, undefined, (e) => {
@@ -328,9 +335,9 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
         temperature = data.current_weather.temperature;
 
         // --- INTEGRACIÓN LUZ FOCO DÍA ---
-        // Si la API confirma que es de día (1), la luz del foco_dia se activa
+        // Si la API confirma que es de día (1), la luz del foco_dia se activa con más intensidad
         if (isDay === 1) {
-            dayLight.intensity = 8;
+            dayLight.intensity = 12; // Un poco más intenso porque SpotLight se difumina más
         } else {
             dayLight.intensity = 0;
         }
@@ -386,7 +393,7 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
         weatherEmoji = "❌";
         weatherName = "Clima offline";
         // En caso de error la dejamos apagada
-        dayLight.intensity = 0; 
+        dayLight.intensity = 0;
     }
 
     // Actualizar la interfaz con el clima y la TEMPERATURA
@@ -395,10 +402,11 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
     } else {
         statusBox.innerHTML = `${weatherEmoji} ${weatherName}`;
     }
+    
     video.src = videoFile;
     // Iniciar video
     video.play().catch(e => console.log('Autoplay bloqueado:', e));
-
+    
     // Configurar textura 3D
     const videoTexture = new THREE.VideoTexture(video);
     videoTexture.minFilter = THREE.LinearFilter;
@@ -438,9 +446,10 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
 // --- SISTEMA DE ILUMINACIÓN ---
 function updateLighting() {
     const isLow = perfCheck.checked;
+    
     // Ajustamos las sombras de la luz de día según el modo rendimiento
     dayLight.castShadow = !isLow;
-
+    
     if (lightOn) {
         mainLight.visible = true;
         ambient.intensity = isLow ? 0.8 : 0.3;
@@ -487,10 +496,11 @@ function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     const x = event.touches ? event.touches[0].clientX : event.clientX;
     const y = event.touches ? event.touches[0].clientY : event.clientY;
+    
     mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
-
+    
     // Chequeo de Luz (sólo interactúa con el manual, la luz de día es independiente)
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
         toggleLight();
@@ -523,7 +533,7 @@ function updateQuality() {
     renderer.shadowMap.enabled = !isLow;
     renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
     document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-
+    
     for (let cat in loadedSlotMeshes) {
         applyMaterialLogic(loadedSlotMeshes[cat], cat);
     }
@@ -541,7 +551,7 @@ function renderInventory() {
     const sidebar = document.getElementById('inv-sidebar');
     const content = document.getElementById('inv-content');
     sidebar.innerHTML = ''; content.innerHTML = '';
-
+    
     inventoryGroups.forEach(group => {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'inv-group';
@@ -569,13 +579,14 @@ function renderInventory() {
             btn.onclick = () => { currentCategory = catKey; renderInventory(); };
             groupContent.appendChild(btn);
         });
+        
         groupDiv.appendChild(groupContent);
         sidebar.appendChild(groupDiv);
     });
 
     const catData = inventoryData[currentCategory];
     if (!catData) return;
-
+    
     for (let itemId in catData.items) {
         const item = catData.items[itemId];
         const isEquipped = catData.equipped === itemId;
@@ -585,7 +596,7 @@ function renderInventory() {
 
         const previewDiv = document.createElement('div');
         previewDiv.className = 'item-preview';
-
+        
         if (item.preview) {
             const img = document.createElement('img');
             img.src = item.preview;
@@ -613,7 +624,7 @@ function renderInventory() {
             </div>
             ${btnHTML}
         `;
-
+        
         const previewContainer = card.querySelector('.item-preview');
         if (previewContainer && item.preview) {
             previewContainer.innerHTML = '';
@@ -630,7 +641,7 @@ function renderInventory() {
     document.querySelectorAll('.btn-equip').forEach(b => {
         b.onclick = (e) => equipItem(currentCategory, e.target.getAttribute('data-id'));
     });
-
+    
     document.querySelectorAll('.btn-buy').forEach(b => {
         b.onclick = (e) => buyItem(currentCategory, e.target.getAttribute('data-id'));
     });
@@ -643,6 +654,7 @@ function equipItem(category, itemId) {
     
     const itemData = inventoryData[category].items[itemId];
     loadItemForSlot(category, itemData.file, false);
+    
     if (category === 'foco' && itemData.baseFile) {
         loadItemForSlot('base_foco', itemData.baseFile, false);
     }
@@ -665,7 +677,6 @@ document.getElementById('inventory-button').onclick = () => {
     document.getElementById('inventory-modal').classList.add('visible');
     renderInventory();
 };
-
 document.getElementById('close-inv').onclick = () => {
     document.getElementById('inventory-modal').classList.remove('visible');
 };
