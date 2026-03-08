@@ -436,6 +436,13 @@
         scene.add(ambient);
         const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
         
+        // LUZ SOLAR (día) - se activará/desactivará según el clima
+        const sunLight = new THREE.DirectionalLight(0xfff5e6, 0); // intensidad 0 por defecto
+        sunLight.position.set(5, 15, 8); // posición que simula el sol entrando por una ventana
+        sunLight.target.position.set(0, 0, 0);
+        scene.add(sunLight);
+        scene.add(sunLight.target);
+        
         const mainLight = new THREE.SpotLight(0xffeedd, 6);
         mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
         mainLight.castShadow = true;
@@ -619,6 +626,7 @@
             let weatherEmoji = "☀️";
             let weatherName = "Clima estándar";
             let temperature = "--";
+            let isDay = 1; // por defecto asumimos día
     
             const statusBox = document.getElementById('weather-status');
 
@@ -634,7 +642,7 @@
                 const data = await response.json();
                 
                 const code = data.current_weather.weathercode;
-                const isDay = data.current_weather.is_day; // 1 = día, 0 = noche
+                isDay = data.current_weather.is_day; // 1 = día, 0 = noche
                 temperature = data.current_weather.temperature;
                 
                 // MAPEADO COMPLETO WMO CON VERIFICACIÓN DÍA Y NOCHE
@@ -687,6 +695,7 @@
                 console.warn('Error con el clima, usando defecto:', error);
                 weatherEmoji = "❌";
                 weatherName = "Clima offline";
+                isDay = 1; // por defecto día
             }
 
             // Actualizar la interfaz con el clima y la TEMPERATURA
@@ -696,6 +705,11 @@
                 statusBox.innerHTML = `${weatherEmoji} ${weatherName}`;
             }
             video.src = videoFile;
+
+            // Configurar la luz solar según si es de día o de noche
+            // Intensidad: 2.5 para día, 0 para noche (puedes ajustar)
+            sunLight.intensity = isDay ? 2.5 : 0;
+            // Opcional: cambiar color ligeramente según el clima (no necesario)
 
             // Iniciar video
             video.play().catch(e => console.log('Autoplay bloqueado:', e));
@@ -751,6 +765,7 @@
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
                 if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; });
             }
+            // La luz solar (sunLight) se controla aparte según el día/noche y no se modifica aquí
         }
 
         const raycaster = new THREE.Raycaster();
