@@ -6,6 +6,7 @@ const urlsToCache = [
     'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/lunari_durmiendo1.glb',
     'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/Lunari_Duerme_2.glb',
     'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cuadro.glb',
+    'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb', // Añadido
     // Añade aquí otros assets importantes (imágenes de preview, etc.)
 ];
 
