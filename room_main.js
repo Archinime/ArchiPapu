@@ -94,21 +94,20 @@ mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; ma
 mainLight.castShadow = true;
 mainLight.shadow.mapSize.set(2048, 2048);
 mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; 
-mainLight.shadow.bias = -0.0005; // Ajustado ligeramente para emparejar
+mainLight.shadow.bias = -0.0005; 
 mainLight.shadow.normalBias = 0.02; 
 mainLight.shadow.radius = 4; 
 scene.add(mainLight); scene.add(mainLight.target);
 
 // NUEVA LUZ: Foco de día (Ahora es PointLight para 360 grados)
 // Argumentos PointLight: color, intensidad, distancia(rango), decaimiento
-const dayLight = new THREE.PointLight(0xffffee, 0, 100, 1.5); 
+const dayLight = new THREE.PointLight(0xffffee, 0, 40, 1.8); // <-- Rango reducido a 40 y decaimiento en 1.8
 dayLight.castShadow = true;
 dayLight.shadow.mapSize.set(2048, 2048);
 // Estos dos valores de Bias son la clave para arreglar las "rayas" (Shadow Acne)
 dayLight.shadow.bias = -0.001; 
 dayLight.shadow.normalBias = 0.05;
 scene.add(dayLight); 
-// Nota: PointLight no necesita "target" porque ilumina en todas direcciones.
 
 let lightOn = localStorage.getItem('lightState') !== 'off';
 const perfCheck = document.getElementById('performance-mode');
@@ -291,7 +290,6 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
     // Para la PointLight, solo necesitamos la posición central
     dayLight.position.copy(center); 
     dayLight.position.y -= 0.2;
-    // (Se eliminó el código del target porque las PointLights iluminan en 360 grados)
     
     checkLoading();
 }, undefined, (e) => {
@@ -332,7 +330,6 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
         // --- INTEGRACIÓN LUZ FOCO DÍA ---
         // Si la API confirma que es de día (1), la luz del foco_dia se activa
         if (isDay === 1) {
-            // Aumenté ligeramente la intensidad base dado que ahora es una PointLight
             dayLight.intensity = 8;
         } else {
             dayLight.intensity = 0;
