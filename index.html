@@ -714,15 +714,21 @@
             loader.load('cuadro.glb', (gltf) => {
                 const cuadroModel = gltf.scene;
                 
+                // Aplicar textura de video y configuración de emisión según el día/noche
                 cuadroModel.traverse((node) => {
                     if (node.isMesh) {
                         if (Array.isArray(node.material)) {
                             node.material.forEach(mat => {
                                 mat.map = videoTexture;
+                                // Hacer que el material emita luz (blanco) durante el día para que el video se vea brillante
+                                mat.emissive = isDay ? new THREE.Color(0xffffff) : new THREE.Color(0x000000);
+                                mat.emissiveIntensity = isDay ? 1.5 : 0.0;
                                 mat.needsUpdate = true;
                             });
                         } else if (node.material) {
                             node.material.map = videoTexture;
+                            node.material.emissive = isDay ? new THREE.Color(0xffffff) : new THREE.Color(0x000000);
+                            node.material.emissiveIntensity = isDay ? 1.5 : 0.0;
                             node.material.needsUpdate = true;
                         }
                     }
@@ -741,7 +747,7 @@
                 // Crear una luz puntual (PointLight) que simule la luz exterior entrando por el cuadro
                 quadroLight = new THREE.PointLight(0xfff5e6, isDay ? 2.5 : 0, 20, 1);
                 quadroLight.position.copy(center);
-                // Opcional: moverla ligeramente hacia adelante para que la luz parezca venir de la imagen
+                // Moverla ligeramente hacia adelante para que la luz parezca venir de la imagen
                 quadroLight.position.z += 0.5; // Ajusta según la orientación del cuadro
                 scene.add(quadroLight);
 
