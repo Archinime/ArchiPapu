@@ -294,9 +294,10 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
     
     dayLight.position.copy(center); 
     
-    // Hacemos que la luz apunte hacia el centro de la habitación y ligeramente hacia abajo
-    // Esto asegura el efecto "mayor que" (>) y previene iluminar la pared que queda atrás.
-    dayLight.target.position.set(0, center.y - 4, 0); 
+    // CORRECCIÓN DE DIRECCIÓN:
+    // Ahora apuntamos la luz exactamente hacia el lado opuesto (multiplicando x y z por 2)
+    // Esto aleja el "target" de la pared en la que está el foco en la dirección contraria.
+    dayLight.target.position.set(center.x * 2, center.y - 4, center.z * 2); 
     
     checkLoading();
 }, undefined, (e) => {
