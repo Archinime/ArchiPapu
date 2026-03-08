@@ -334,9 +334,9 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
         temperature = data.current_weather.temperature;
 
         // --- INTEGRACIÓN LUZ FOCO DÍA ---
-        // Intensidad suavizada: bajamos el valor a 6 para un toque más delicado
+        // Aumentamos la fuerza de la luz para que ilumine más (intensidad 15)
         if (isDay === 1) {
-            dayLight.intensity = 6; 
+            dayLight.intensity = 15; 
         } else {
             dayLight.intensity = 0;
         }
