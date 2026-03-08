@@ -185,8 +185,7 @@ body {
     width: 100%;
     text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.5);
     color: white; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
-    cursor: pointer; font-size: 15px;
-    font-weight: bold;
+    cursor: pointer; font-size: 15px; font-weight: bold;
     display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease;
 }
 .group-btn:hover { background: rgba(255,255,255,0.15); transform: translateX(2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
@@ -203,8 +202,7 @@ body {
     width: 100%;
     text-align: left; padding: 10px 15px; background: transparent; 
     color: #bbb; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 4px; 
-    font-size: 14px;
-    transition: 0.2s; display: flex; align-items: center; gap: 10px;
+    font-size: 14px; transition: 0.2s; display: flex; align-items: center; gap: 10px;
 }
 .cat-btn:hover { background: rgba(255,255,255,0.08); color: white; padding-left: 18px; }
 .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
@@ -212,8 +210,7 @@ body {
 
 /* CONTENIDO DE ÍTEMS */
 #inv-content {
-    width: 70%;
-    overflow-y: auto; display: grid;
+    width: 70%; overflow-y: auto; display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 15px; align-content: start; padding-right: 5px;
 }
@@ -221,14 +218,12 @@ body {
     background: linear-gradient(145deg, rgba(40,40,50,0.9), rgba(25,25,30,0.9));
     padding: 15px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.05);
     text-align: center; display: flex; flex-direction: column;
-    justify-content: space-between;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    justify-content: space-between; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 .item-card:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 10px 25px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.2); }
 .item-preview {
-    width: 100%;
-    height: 120px; background: rgba(0,0,0,0.3); border-radius: 12px; margin-bottom: 12px;
+    width: 100%; height: 120px; background: rgba(0,0,0,0.3); border-radius: 12px; margin-bottom: 12px;
     overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1);
 }
 .item-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -236,8 +231,7 @@ body {
 .item-card h4 { margin: 0 0 8px 0; font-size: 16px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
 .item-price { color: #FFD700; font-weight: bold; margin-bottom: 15px; font-size: 14px; text-shadow: 0 0 5px rgba(255, 215, 0, 0.3); }
 .item-btn {
-    padding: 10px;
-    border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
+    padding: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
 }
 
 .btn-buy { background: linear-gradient(135deg, #FF9800, #F57C00); color: white; box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3); }
@@ -250,27 +244,22 @@ body {
 
 /* --- MODAL PARA VER POSTERS --- */
 #poster-view-modal {
-    display: none;
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 2000;
-    justify-content: center; align-items: center;
-    flex-direction: column;
+    justify-content: center; align-items: center; flex-direction: column;
     opacity: 0; transition: opacity 0.3s ease;
 }
 #poster-view-modal.visible { display: flex; opacity: 1; }
 #poster-view-modal img {
-    max-width: 90%;
-    max-height: 85%; border-radius: 15px;
+    max-width: 90%; max-height: 85%; border-radius: 15px;
     box-shadow: 0 15px 40px rgba(0,0,0,0.8); object-fit: contain;
     transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 #poster-view-modal.visible img { transform: scale(1); }
 #close-poster-view {
-    position: absolute;
-    top: 20px; right: 20px; background: rgba(255,255,255,0.1);
+    position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1);
     border: none; color: white; font-size: 30px; cursor: pointer; width: 50px;
-    height: 50px; border-radius: 50%;
-    transition: 0.2s; display: flex;
+    height: 50px; border-radius: 50%; transition: 0.2s; display: flex;
     align-items: center; justify-content: center;
 }
 #close-poster-view:hover { background: rgba(255,50,50,0.8); transform: rotate(90deg); }
@@ -294,9 +283,7 @@ body {
 
 /* --- ESTADOS --- */
 #loading, #light-status {
-    position: absolute;
-    bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px);
-    border: 1px solid rgba(255,255,255,0.1); font-weight: bold;
+    position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); font-weight: bold;
 }
 #loading { right: 20px; animation: pulse 1.5s infinite; }
 @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
