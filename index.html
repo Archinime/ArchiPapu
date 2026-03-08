@@ -396,7 +396,8 @@
         const loadedSlotMeshes = {};
         let switchMesh = null;
         let focoMesh = null;
-        let quadroLight = null; // Luz que sale del cuadro
+        let quadroLight = null;
+        let sunLightDir = null; // Luz direccional solar
 
         // --- Detección de dispositivo ---
         const ua = navigator.userAgent;
@@ -421,7 +422,7 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
         renderer.outputEncoding = THREE.sRGBEncoding;
         renderer.toneMapping = THREE.ACESFilmicToneMapping; 
-        renderer.toneMappingExposure = 1.0;
+        renderer.toneMappingExposure = 1.2; // Aumentamos un poco la exposición para que los colores resalten
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
@@ -432,17 +433,29 @@
         controls.minDistance = 2.5; controls.maxDistance = 16;
         controls.enablePan = false;
 
-        // --- LUCES ---
+        // --- LUCES BASE ---
         const ambient = new THREE.AmbientLight(0xffffff, 0.3);
         scene.add(ambient);
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); 
+        hemiLight.position.set(0, 20, 0); 
+        scene.add(hemiLight);
         
+        // Luz principal del foco (interior)
         const mainLight = new THREE.SpotLight(0xffeedd, 6);
-        mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
+        mainLight.position.set(2, 22, 2); 
+        mainLight.angle = Math.PI / 3; 
+        mainLight.penumbra = 0.8; 
+        mainLight.decay = 2; 
+        mainLight.distance = 60;
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.set(2048, 2048);
-        mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.0001; mainLight.shadow.normalBias = 0.02; mainLight.shadow.radius = 4; 
-        scene.add(mainLight); scene.add(mainLight.target);
+        mainLight.shadow.camera.near = 0.5; 
+        mainLight.shadow.camera.far = 40; 
+        mainLight.shadow.bias = -0.0001; 
+        mainLight.shadow.normalBias = 0.02; 
+        mainLight.shadow.radius = 4; 
+        scene.add(mainLight); 
+        scene.add(mainLight.target);
         
         let lightOn = localStorage.getItem('lightState') !== 'off';
         const perfCheck = document.getElementById('performance-mode');
@@ -714,13 +727,12 @@
             loader.load('cuadro.glb', (gltf) => {
                 const cuadroModel = gltf.scene;
                 
-                // Aplicar textura de video sin ninguna emisión (para mantener colores originales)
+                // Aplicar textura de video sin emisión (colores originales)
                 cuadroModel.traverse((node) => {
                     if (node.isMesh) {
                         if (Array.isArray(node.material)) {
                             node.material.forEach(mat => {
                                 mat.map = videoTexture;
-                                // Sin emisión
                                 mat.emissive = new THREE.Color(0x000000);
                                 mat.emissiveIntensity = 0.0;
                                 mat.needsUpdate = true;
@@ -738,18 +750,25 @@
                 scene.add(cuadroModel);
                 loadedSlotMeshes['cuadro'] = cuadroModel;
 
-                // --- Crear la luz que emana del cuadro (luz de día) ---
-                // Calculamos el centro del cuadro para colocar la luz
+                // --- Crear luces que emanan del cuadro (simulan luz solar) ---
+                // Calculamos el centro del cuadro para colocar las luces
                 const box = new THREE.Box3().setFromObject(cuadroModel);
                 const center = new THREE.Vector3();
                 box.getCenter(center);
                 
-                // Crear una luz puntual (PointLight) que simule la luz exterior entrando por el cuadro
-                // Intensidad alta durante el día para iluminar la escena y el propio cuadro
-                quadroLight = new THREE.PointLight(0xfff5e6, isDay ? 3.0 : 0, 20, 1);
+                // 1. Luz direccional (simula rayos de sol) - apunta hacia el centro de la habitación
+                sunLightDir = new THREE.DirectionalLight(0xfff5e6, isDay ? 4.0 : 0);
+                sunLightDir.position.copy(center);
+                // Calculamos dirección hacia el centro de la escena (0,3,0 aproximadamente)
+                const targetPos = new THREE.Vector3(0, 3, 0);
+                sunLightDir.target.position.copy(targetPos);
+                scene.add(sunLightDir.target);
+                scene.add(sunLightDir);
+                
+                // 2. Luz puntual (relleno suave)
+                quadroLight = new THREE.PointLight(0xfff5e6, isDay ? 2.0 : 0, 20, 1);
                 quadroLight.position.copy(center);
-                // Moverla ligeramente hacia adelante para que la luz parezca venir de la imagen
-                quadroLight.position.z += 0.5; // Ajusta según la orientación del cuadro
+                quadroLight.position.z += 0.5; // ligero desplazamiento hacia adelante
                 scene.add(quadroLight);
 
                 checkLoading();
@@ -777,7 +796,7 @@
                 document.getElementById('light-status').innerText = '💡 Luz apagada';
                 if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; });
             }
-            // La luz del cuadro (quadroLight) se controla aparte según el día/noche y no se modifica aquí
+            // Las luces del cuadro se controlan por isDay, no se tocan aquí
         }
 
         const raycaster = new THREE.Raycaster();
