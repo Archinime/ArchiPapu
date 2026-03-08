@@ -457,14 +457,12 @@
         scene.add(mainLight); scene.add(mainLight.target);
 
         // NUEVA LUZ: Foco de día (Comienza apagada, se controla por el clima)
-        // Convertido a PointLight: emite en 360 grados, ideal para luz de rebote ambiental. 
-        // Parámetros: Color, Intensidad Inicial (0), Distancia Máxima (100), Decaimiento (2)
-        const dayLight = new THREE.PointLight(0xffffee, 0, 100, 2); 
+        const dayLight = new THREE.SpotLight(0xffffee, 0); 
+        dayLight.angle = Math.PI / 3; dayLight.penumbra = 0.8; dayLight.decay = 2; dayLight.distance = 60;
         dayLight.castShadow = true;
         dayLight.shadow.mapSize.set(2048, 2048);
         dayLight.shadow.bias = -0.0001;
-        scene.add(dayLight); 
-        // Nota: PointLight no usa .target, así que se elimina del scene.add()
+        scene.add(dayLight); scene.add(dayLight.target);
 
         let lightOn = localStorage.getItem('lightState') !== 'off';
         const perfCheck = document.getElementById('performance-mode');
@@ -644,7 +642,8 @@
             const center = new THREE.Vector3(); 
             box.getCenter(center);
             dayLight.position.copy(center); 
-            // Eliminamos el seteo de la propiedad target porque los PointLights emiten a todos lados de forma nativa.
+            dayLight.position.y -= 0.2;
+            dayLight.target.position.set(center.x, 0, center.z);
             
             checkLoading();
         }, undefined, (e) => {
@@ -685,7 +684,7 @@
                 // --- INTEGRACIÓN LUZ FOCO DÍA ---
                 // Si la API confirma que es de día (1), la luz del foco_dia se activa
                 if (isDay === 1) {
-                    dayLight.intensity = 8; // Le damos un poco más de fuerza ya que se esparce en 360 grados
+                    dayLight.intensity = 6;
                 } else {
                     dayLight.intensity = 0;
                 }
@@ -740,7 +739,7 @@
                 console.warn('Error con el clima, usando defecto:', error);
                 weatherEmoji = "❌";
                 weatherName = "Clima offline";
-                // En caso de error dejamos la luz apagada
+                // En caso de error dejamos la luz apagada o encendida según prefieras. Aquí la dejamos apagada.
                 dayLight.intensity = 0; 
             }
 
