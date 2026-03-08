@@ -100,19 +100,19 @@ mainLight.shadow.normalBias = 0.02;
 mainLight.shadow.radius = 4; 
 scene.add(mainLight); scene.add(mainLight.target);
 
-// --- NUEVA LUZ: Foco de día (Cambiado a SpotLight para direccionar en ">" y suavizar) ---
+// --- NUEVA LUZ: Foco de día (Rango extendido y distribución más amplia) ---
 const dayLight = new THREE.SpotLight(0xffffee, 0);
-dayLight.distance = 60; // Rango máximo
+dayLight.distance = 120; // Rango máximo aumentado para llegar más lejos
 dayLight.decay = 2; // Decaimiento realista
-dayLight.angle = Math.PI / 2.5; // Ángulo de apertura ancho
-dayLight.penumbra = 1.0; // Borde extremadamente suave para el efecto "escala/degradado"
+dayLight.angle = Math.PI / 2; // Apertura más ancha para diluir la fuerza de la luz
+dayLight.penumbra = 1.0; // Borde extremadamente suave
 dayLight.castShadow = true;
 dayLight.shadow.mapSize.set(2048, 2048);
 dayLight.shadow.bias = -0.001; 
 dayLight.shadow.normalBias = 0.05;
-dayLight.shadow.camera.near = 1.0; // Ayuda a ignorar la pared más cercana al generar sombras
+dayLight.shadow.camera.near = 1.0; 
 scene.add(dayLight); 
-scene.add(dayLight.target); // Imprescindible para el SpotLight
+scene.add(dayLight.target); 
 
 let lightOn = localStorage.getItem('lightState') !== 'off';
 const perfCheck = document.getElementById('performance-mode');
@@ -294,9 +294,7 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
     
     dayLight.position.copy(center); 
     
-    // CORRECCIÓN DE DIRECCIÓN:
-    // Ahora apuntamos la luz exactamente hacia el lado opuesto (multiplicando x y z por 2)
-    // Esto aleja el "target" de la pared en la que está el foco en la dirección contraria.
+    // Direccionamos la luz exactamente hacia el lado opuesto
     dayLight.target.position.set(center.x * 2, center.y - 4, center.z * 2); 
     
     checkLoading();
@@ -336,9 +334,9 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
         temperature = data.current_weather.temperature;
 
         // --- INTEGRACIÓN LUZ FOCO DÍA ---
-        // Si la API confirma que es de día (1), la luz del foco_dia se activa con más intensidad
+        // Intensidad suavizada: bajamos el valor a 6 para un toque más delicado
         if (isDay === 1) {
-            dayLight.intensity = 12; // Un poco más intenso porque SpotLight se difumina más
+            dayLight.intensity = 6; 
         } else {
             dayLight.intensity = 0;
         }
