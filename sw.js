@@ -1,13 +1,12 @@
 // sw.js
-const CACHE_NAME = 'room-cache-v1';
+const CACHE_NAME = 'room-cache-v2'; // <-- VERSIÓN ACTUALIZADA PARA FORZAR RECARGA
 const urlsToCache = [
     './',
     './inventory-data.js',
     'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/lunari_durmiendo1.glb',
     'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/Lunari_Duerme_2.glb',
     'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cuadro.glb',
-    'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb', // Agregado el nuevo foco de día
-    // Añade aquí otros assets importantes (imágenes de preview, etc.)
+    'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
 ];
 
 // Instalación: cachea los archivos esenciales

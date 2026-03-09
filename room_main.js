@@ -100,7 +100,7 @@ mainLight.castShadow = true;
 mainLight.shadow.mapSize.set(2048, 2048);
 mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; 
 // CORRECCIÓN DE ACNÉ DE SOMBRAS PARA LA LUZ PRINCIPAL
-mainLight.shadow.bias = -0.002; 
+mainLight.shadow.bias = -0.002;
 mainLight.shadow.normalBias = 0.05; 
 mainLight.shadow.radius = 4; 
 scene.add(mainLight); scene.add(mainLight.target);
@@ -178,7 +178,8 @@ function applyMaterialLogic(model, categoryKey) {
                 if(node.material) {
                     node.material.shadowSide = THREE.FrontSide;
                     // CORRECCIÓN ADICIONAL PARA TECHOS Y PAREDES
-                    if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo')) {
+                    if(node.name.toLowerCase().includes('pared') ||
+                       node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo')) {
                         node.material.shadowSide = THREE.BackSide;
                     }
                     node.material.side = THREE.DoubleSide;
@@ -259,7 +260,9 @@ loader.load('Lunari_Duerme_2.glb', (gltf) => {
 });
 
 // --- CARGA DEL FOCO DE DÍA DINÁMICO ---
-loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb', (gltf) => {
+// Agregamos un timestamp dinámico para eludir la caché en el frontend.
+const cacheBuster = Date.now(); 
+loader.load(`https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb?v=${cacheBuster}`, (gltf) => {
     focoDiaMesh = gltf.scene;
     applyMaterialLogic(focoDiaMesh, 'foco_dia'); 
     
@@ -279,9 +282,9 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
     scene.add(luzFocoDia);
     scene.add(focoDiaMesh);
     
-    // Siempre visibles, el estilo lo define la hora
-    focoDiaMesh.visible = true;
-    luzFocoDia.visible = true;
+    // El objeto físico ahora se mantiene oculto, pero su lógica y luz seguirán activas.
+    focoDiaMesh.visible = false; // <-- AQUÍ SE OCULTA EL OBJETO
+    luzFocoDia.visible = true; 
     
     actualizarIluminacionFocoDia();
     checkLoading();
@@ -328,7 +331,7 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             const center = new THREE.Vector3(); box.getCenter(center);
             mainLight.position.copy(center); mainLight.position.y -= 0.2; 
         }
- 
+
         if (categoryKey === 'interruptor') switchMesh = model;
 
         scene.add(model);
@@ -479,7 +482,6 @@ for (let cat in inventoryData) {
                 }
             }
         });
-   
         applyMaterialLogic(cuadroModel, 'cuadro');
         scene.add(cuadroModel);
         loadedSlotMeshes['cuadro'] = cuadroModel;
@@ -575,7 +577,7 @@ function updateQuality() {
     renderer.shadowMap.enabled = !isLow;
     renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
     document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-    
+
     for (let cat in loadedSlotMeshes) {
         applyMaterialLogic(loadedSlotMeshes[cat], cat);
     }
@@ -626,6 +628,7 @@ function renderInventory() {
             btn.onclick = () => { currentCategory = catKey; renderInventory(); };
             groupContent.appendChild(btn);
         });
+
         groupDiv.appendChild(groupContent);
         sidebar.appendChild(groupDiv);
     });
@@ -642,7 +645,6 @@ function renderInventory() {
 
         const previewDiv = document.createElement('div');
         previewDiv.className = 'item-preview';
-        
         if (item.preview) {
             const img = document.createElement('img');
             img.src = item.preview;
@@ -670,7 +672,7 @@ function renderInventory() {
             </div>
             ${btnHTML}
         `;
-        
+
         const previewContainer = card.querySelector('.item-preview');
         if (previewContainer && item.preview) {
             previewContainer.innerHTML = '';
@@ -687,7 +689,6 @@ function renderInventory() {
     document.querySelectorAll('.btn-equip').forEach(b => {
         b.onclick = (e) => equipItem(currentCategory, e.target.getAttribute('data-id'));
     });
-    
     document.querySelectorAll('.btn-buy').forEach(b => {
         b.onclick = (e) => buyItem(currentCategory, e.target.getAttribute('data-id'));
     });
@@ -700,7 +701,6 @@ function equipItem(category, itemId) {
     
     const itemData = inventoryData[category].items[itemId];
     loadItemForSlot(category, itemData.file, false);
-    
     if (category === 'foco' && itemData.baseFile) {
         loadItemForSlot('base_foco', itemData.baseFile, false);
     }
