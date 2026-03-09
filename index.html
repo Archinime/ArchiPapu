@@ -9,109 +9,76 @@
 <body>
     <video id="tv-video" style="display:none;" crossorigin="anonymous" playsinline></video>
 
+    <div id="fps-counter" style="display: none;">FPS: <span>60</span></div>
+
     <div id="coin-display">🪙 <span id="coin-amount">0</span></div>
-    <div id="weather-status">🌍 Detectando clima...</div>
     
-    <div id="fps-counter" style="display:none;">FPS: <span>0</span></div>
+    <div id="weather-status">🌍 Detectando clima...</div>
     
     <div id="inventory-button" class="top-btn" title="Inventario y Tienda">🎒</div>
     <div id="settings-button" class="top-btn" title="Ajustes">⚙️</div>
 
     <div id="ff-settings-modal">
-        <div class="ff-settings-container">
+        <div class="ff-modal-content">
             <div class="ff-header">
-                <h2>CONFIGURACIÓN</h2>
-                <button id="close-ff-settings">&times;</button>
+                <h2>AJUSTES</h2>
+                <button id="close-ff-settings">✖</button>
             </div>
-            
             <div class="ff-body">
                 <div class="ff-sidebar">
-                    <button class="ff-tab active" data-tab="graficos">🖥️ Gráficos</button>
-                    <button class="ff-tab" data-tab="sonido">🔊 Sonido</button>
-                    <button class="ff-tab" data-tab="sistema">⚙️ Sistema</button>
+                    <button class="ff-tab active" data-target="tab-graficos">Gráficos</button>
+                    <button class="ff-tab" data-target="tab-sonido">Sonido</button>
+                    <button class="ff-tab" data-target="tab-sistema">Sistema</button>
                 </div>
-
+                
                 <div class="ff-content">
-                    
                     <div id="tab-graficos" class="ff-tab-pane active">
                         <div class="ff-setting-group">
-                            <h3>Rendimiento Visual</h3>
-                            
-                            <div class="ff-setting-row">
-                                <div class="ff-setting-info">
-                                    <label>Resolución</label>
-                                    <span>Define la nitidez del juego.</span>
-                                </div>
-                                <select id="set-resolution">
-                                    <option value="low">Suave (Baja)</option>
-                                    <option value="normal">Estándar</option>
-                                    <option value="high">Ultra (HD)</option>
-                                </select>
+                            <label>Calidad General (Detectado Automáticamente)</label>
+                            <div class="ff-radio-group" id="setting-calidad">
+                                <button data-val="baja">Suave</button>
+                                <button data-val="media">Estándar</button>
+                                <button data-val="alta">Ultra</button>
                             </div>
+                        </div>
 
-                            <div class="ff-setting-row">
-                                <div class="ff-setting-info">
-                                    <label>Sombras Dinámicas</label>
-                                    <span>Consume mucha batería en móviles.</span>
-                                </div>
-                                <label class="ff-switch">
-                                    <input type="checkbox" id="set-shadows">
-                                    <span class="ff-slider"></span>
-                                </label>
-                            </div>
+                        <div class="ff-setting-group">
+                            <label>Sombras Dinámicas</label>
+                            <select id="setting-sombras">
+                                <option value="0">Apagadas (Mejor Rendimiento)</option>
+                                <option value="1">Básicas</option>
+                                <option value="2">Detalladas</option>
+                            </select>
+                        </div>
 
-                            <div class="ff-setting-row">
-                                <div class="ff-setting-info">
-                                    <label>Límite de FPS</label>
-                                    <span>Fluidez de las animaciones.</span>
-                                </div>
-                                <select id="set-fps">
-                                    <option value="30">30 FPS (Ahorro)</option>
-                                    <option value="60">60 FPS (Fluido)</option>
-                                </select>
+                        <div class="ff-setting-group">
+                            <label>Cuadros por Segundo (FPS)</label>
+                            <div class="ff-radio-group" id="setting-fps">
+                                <button data-val="30">Normal (30)</button>
+                                <button data-val="60">Alto (60)</button>
                             </div>
                         </div>
                     </div>
 
                     <div id="tab-sonido" class="ff-tab-pane">
                         <div class="ff-setting-group">
-                            <h3>Volumen</h3>
-                            <div class="ff-setting-row">
-                                <div class="ff-setting-info">
-                                    <label>Volumen de la TV</label>
-                                </div>
-                                <input type="range" id="set-volume" min="0" max="1" step="0.1" value="0.5">
-                            </div>
-                            <div class="ff-setting-row">
-                                <div class="ff-setting-info">
-                                    <label>Silenciar todo</label>
-                                </div>
-                                <label class="ff-switch">
-                                    <input type="checkbox" id="set-mute">
-                                    <span class="ff-slider"></span>
-                                </label>
-                            </div>
+                            <label>Volumen Multimedia (TV) - <span id="vol-tv-val">50%</span></label>
+                            <input type="range" id="setting-volumen" min="0" max="100" value="50" class="ff-slider">
                         </div>
                     </div>
 
                     <div id="tab-sistema" class="ff-tab-pane">
                         <div class="ff-setting-group">
-                            <h3>Interfaz</h3>
-                            <div class="ff-setting-row">
-                                <div class="ff-setting-info">
-                                    <label>Mostrar FPS en pantalla</label>
-                                </div>
-                                <label class="ff-switch">
-                                    <input type="checkbox" id="set-showfps">
-                                    <span class="ff-slider"></span>
-                                </label>
-                            </div>
-                            <div class="ff-setting-row" style="margin-top: 20px;">
-                                <button id="btn-reset-settings" class="btn-danger">Restaurar Valores por Defecto</button>
-                            </div>
+                            <label>Mostrar FPS en pantalla</label>
+                            <label class="ff-switch">
+                                <input type="checkbox" id="setting-showfps">
+                                <span class="ff-slider-round"></span>
+                            </label>
+                        </div>
+                        <div class="ff-setting-group" style="margin-top: 20px; color: #ffeb3b; font-size: 12px;">
+                            <i>*Los cambios en la calidad gráfica aplican restricciones automáticas en sombras y resolución según tu dispositivo.</i>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>

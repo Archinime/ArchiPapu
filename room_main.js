@@ -3,53 +3,31 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
+// --- NUEVO: SISTEMA ANTI-CACHÉ ---
 function getFreshUrl(url) {
     if (!url) return url;
     const separator = url.includes('?') ? '&' : '?';
     return `${url}${separator}nocache=${Date.now()}`;
 }
 
+// --- UTILIDAD DE LIMPIEZA DE MEMORIA ---
 function disposeThreeJSObject(node) {
     if (!node) return;
     if (node.geometry) node.geometry.dispose();
     if (node.material) {
         if (Array.isArray(node.material)) {
-            node.material.forEach(mat => { if(mat.map) mat.map.dispose(); mat.dispose(); });
+            node.material.forEach(mat => {
+                if(mat.map) mat.map.dispose();
+                mat.dispose();
+            });
         } else {
-            if(node.material.map) node.material.map.dispose(); node.material.dispose();
+            if(node.material.map) node.material.map.dispose();
+            node.material.dispose();
         }
     }
     if (node.children) {
         node.children.forEach(child => disposeThreeJSObject(child));
     }
-}
-
-// --- Detección de dispositivo ---
-const ua = navigator.userAgent;
-const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-const width = window.innerWidth;
-let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
-
-// --- NUEVO: SISTEMA DE AJUSTES (ESTILO FREE FIRE) ---
-const defaultSettings = {
-    resolution: isMobileUA ? 'low' : 'high', // Celular = baja res por defecto
-    shadows: !isMobileUA,                    // Celular = sin sombras por defecto
-    fps: isMobileUA ? 30 : 60,               // Celular = 30fps para ahorrar batería
-    volume: 0.5,
-    mute: false,
-    showFps: !isMobileUA
-};
-
-let gameSettings = JSON.parse(localStorage.getItem('room_settings')) || { ...defaultSettings };
-
-// Rellenar valores faltantes por si es una versión vieja guardada
-for (let key in defaultSettings) {
-    if (gameSettings[key] === undefined) gameSettings[key] = defaultSettings[key];
-}
-
-function saveSettings() {
-    localStorage.setItem('room_settings', JSON.stringify(gameSettings));
-    applySettings();
 }
 
 // --- SISTEMA DE DATOS E INVENTARIO ---
@@ -58,12 +36,12 @@ document.getElementById('coin-amount').innerText = playerCoins;
 let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
 if (inventoryData.base_foco) delete inventoryData.base_foco;
 
+// Sincronizar objetos nuevos y verificar integridad
 for (let cat in defaultInventoryConfig) {
     if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
     inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
     inventoryData[cat].label = defaultInventoryConfig[cat].label;
     inventoryData[cat].type = defaultInventoryConfig[cat].type || 'single';
-    
     if (inventoryData[cat].type === 'multiple') {
         if (!Array.isArray(inventoryData[cat].equipped)) inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
     } else {
@@ -88,6 +66,25 @@ function saveGame() {
     document.getElementById('coin-amount').innerText = playerCoins;
 }
 
+// --- NUEVO: SISTEMA DE AJUSTES DETECCIÓN DE HARDWARE ---
+const ua = navigator.userAgent;
+const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+const deviceMemory = navigator.deviceMemory || 4; // RAM en GB
+const cpuCores = navigator.hardwareConcurrency || 4; // Núcleos
+let baseTier = 'alta';
+
+// Detector automático para no quemar dispositivos
+if (isMobileUA || deviceMemory <= 4 || cpuCores <= 4) baseTier = 'media';
+if (isMobileUA && (deviceMemory <= 2 || cpuCores <= 2)) baseTier = 'baja';
+
+let gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
+    calidad: baseTier, // baja, media, alta
+    sombras: baseTier === 'baja' ? 0 : (baseTier === 'media' ? 1 : 2),
+    fps: baseTier === 'baja' ? 30 : 60,
+    volumen: 50,
+    mostrarFps: false
+};
+
 const loadedSlotMeshes = {};
 let switchMesh = null, focoMesh = null, focoDiaMesh = null, luzFocoDia = null;
 let esDeDiaLocal = true;
@@ -99,15 +96,15 @@ const clock = new THREE.Clock();
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
 let camPosY = 6, camPosZ = 14, targetY = 6;
-if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
+if (window.innerWidth < 768 || isMobileUA) { camPosY = 6; camPosZ = 12; targetY = 5; }
 camera.position.set(0, camPosY, camPosZ);
 
+// --- RENDERIZADOR ---
 const renderer = new THREE.WebGLRenderer({ 
-    antialias: !isMobileUA, // FIJO: AA apagado en móviles desde el inicio
+    antialias: gameSettings.calidad !== 'baja', // Sin AA en calidad baja
     powerPreference: "high-performance" 
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; 
 renderer.toneMappingExposure = 1.0;
@@ -120,35 +117,60 @@ controls.maxPolarAngle = Math.PI / 2 - 0.05;
 controls.minDistance = 2.5; controls.maxDistance = 16;
 controls.enablePan = false;
 
-// --- LUCES BASE ---
-const ambient = new THREE.AmbientLight(0xffffff, 0.3);
-scene.add(ambient);
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); 
-hemiLight.position.set(0, 20, 0); 
-scene.add(hemiLight);
+// --- LUCES ---
+const ambient = new THREE.AmbientLight(0xffffff, 0.3); scene.add(ambient);
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
 
 const mainLight = new THREE.SpotLight(0xffeedd, 6);
 mainLight.position.set(2, 22, 2);
 mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
-mainLight.shadow.mapSize.set(isMobileUA ? 512 : 2048, isMobileUA ? 512 : 2048);
 mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; 
 mainLight.shadow.bias = -0.002; mainLight.shadow.normalBias = 0.05; mainLight.shadow.radius = 4; 
 scene.add(mainLight); scene.add(mainLight.target);
 
 let lightOn = localStorage.getItem('lightState') !== 'off';
 
+// APLICAR AJUSTES VISUALES AL ENTORNO
+function applyCurrentSettings() {
+    // Rendimiento y Pixel Ratio
+    const pixelRatio = gameSettings.calidad === 'baja' ? 1 : (gameSettings.calidad === 'media' ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(pixelRatio);
+
+    // Sombras
+    renderer.shadowMap.enabled = gameSettings.sombras > 0;
+    renderer.shadowMap.type = gameSettings.sombras === 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+    mainLight.castShadow = gameSettings.sombras > 0;
+    
+    if (gameSettings.sombras > 0) {
+        const shadowRes = gameSettings.sombras === 1 ? 512 : (isMobileUA ? 1024 : 2048);
+        mainLight.shadow.mapSize.set(shadowRes, shadowRes);
+    }
+
+    // Actualizar todos los modelos
+    for (let cat in loadedSlotMeshes) applyMaterialLogic(loadedSlotMeshes[cat], cat);
+    if(focoDiaMesh) actualizarIluminacionFocoDia();
+
+    // UI Updates
+    document.getElementById('fps-counter').style.display = gameSettings.mostrarFps ? 'block' : 'none';
+    const tvVideo = document.getElementById('tv-video');
+    if (tvVideo) tvVideo.volume = gameSettings.volumen / 100;
+}
+
 function actualizarIluminacionFocoDia() {
     const hora = new Date().getHours();
     let colorHex, lightInt, emInt, dist;
 
-    if (hora >= 6 && hora < 9) { colorHex = 0xffe4b5; lightInt = 0.8; emInt = 0.8; dist = 35; } 
-    else if (hora >= 9 && hora < 17) { colorHex = 0xffffff; lightInt = 1.5; emInt = 1.5; dist = 50; } 
-    else if (hora >= 17 && hora < 19) { colorHex = 0xff8c00; lightInt = 0.7; emInt = 0.7; dist = 40; } 
+    if (hora >= 6 && hora < 9) { colorHex = 0xffe4b5; lightInt = 0.8; emInt = 0.8; dist = 35; }
+    else if (hora >= 9 && hora < 17) { colorHex = 0xffffff; lightInt = 1.5; emInt = 1.5; dist = 50; }
+    else if (hora >= 17 && hora < 19) { colorHex = 0xff8c00; lightInt = 0.7; emInt = 0.7; dist = 40; }
     else { colorHex = 0x5566aa; lightInt = 0.25; emInt = 0.25; dist = 25; }
 
     if (luzFocoDia) {
-        luzFocoDia.color.setHex(colorHex); luzFocoDia.intensity = lightInt; luzFocoDia.distance = dist;
+        luzFocoDia.color.setHex(colorHex);
+        luzFocoDia.intensity = lightInt; luzFocoDia.distance = dist;
+        luzFocoDia.castShadow = gameSettings.sombras > 0;
     }
+    
     if (focoDiaMesh) {
         focoDiaMesh.traverse((n) => {
             if (n.isMesh && n.material) {
@@ -161,9 +183,8 @@ setInterval(actualizarIluminacionFocoDia, 60000);
 
 function applyMaterialLogic(model, categoryKey) {
     if(!model) return;
-    const isFoco = categoryKey === 'foco';
-    const isFocoDia = categoryKey === 'foco_dia';
-    const castShadows = gameSettings.shadows;
+    const isFoco = categoryKey === 'foco', isFocoDia = categoryKey === 'foco_dia';
+    const allowShadows = gameSettings.sombras > 0;
 
     model.traverse((node) => {
         if (node.isMesh) {
@@ -171,14 +192,11 @@ function applyMaterialLogic(model, categoryKey) {
             if (isFoco || isFocoDia) {
                 node.castShadow = false; node.receiveShadow = false;
                 if (node.material) {
-                    if (isFoco) {
-                        node.material.emissive = new THREE.Color(0xffeedd);
-                        node.material.emissiveIntensity = lightOn ? 1.5 : 0;
-                    }
-                    if (isFocoDia) node.material.emissive = new THREE.Color(0xffffff); 
+                    if (isFoco) { node.material.emissive = new THREE.Color(0xffeedd); node.material.emissiveIntensity = lightOn ? 1.5 : 0; }
+                    if (isFocoDia) node.material.emissive = new THREE.Color(0xffffff);
                 }
             } else {
-                node.castShadow = castShadows; node.receiveShadow = castShadows;
+                node.castShadow = allowShadows; node.receiveShadow = allowShadows;
                 if(node.material) {
                     node.material.shadowSide = THREE.FrontSide;
                     if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo')) {
@@ -192,11 +210,10 @@ function applyMaterialLogic(model, categoryKey) {
     });
 }
 
-// --- LÓGICA DE VIDEOS EN TV ---
+// --- VIDEOS EN TV ---
 const tvVideo = document.getElementById('tv-video');
 const tvTexture = new THREE.VideoTexture(tvVideo);
-tvTexture.minFilter = THREE.LinearFilter; tvTexture.magFilter = THREE.LinearFilter;
-tvTexture.format = THREE.RGBAFormat; tvTexture.encoding = THREE.sRGBEncoding;
+tvTexture.minFilter = THREE.LinearFilter; tvTexture.magFilter = THREE.LinearFilter; tvTexture.format = THREE.RGBAFormat; tvTexture.encoding = THREE.sRGBEncoding;
 
 let tvPlaylist = []; let currentTvIndex = -1;
 function updatePlaylist() {
@@ -207,38 +224,34 @@ function updatePlaylist() {
 function playNextTv(random = false) {
     updatePlaylist();
     if(tvPlaylist.length === 0) return;
-    if(random) currentTvIndex = Math.floor(Math.random() * tvPlaylist.length);
-    else currentTvIndex = (currentTvIndex + 1) % tvPlaylist.length;
-    
+    currentTvIndex = random ? Math.floor(Math.random() * tvPlaylist.length) : (currentTvIndex + 1) % tvPlaylist.length;
     tvVideo.src = tvPlaylist[currentTvIndex];
-    tvVideo.play().catch(e => console.warn('Requiere interacción de usuario primero', e));
+    tvVideo.volume = gameSettings.volumen / 100;
+    tvVideo.play().catch(e => console.warn('User interaction needed', e));
 }
 
 tvVideo.addEventListener('ended', () => playNextTv(false));
 document.getElementById('tv-prev').onclick = () => {
     updatePlaylist(); if(tvPlaylist.length === 0) return;
-    currentTvIndex = (currentTvIndex - 1 + tvPlaylist.length) % tvPlaylist.length;
-    tvVideo.src = tvPlaylist[currentTvIndex]; tvVideo.play();
+    currentTvIndex = (currentTvIndex - 1 + tvPlaylist.length) % tvPlaylist.length; tvVideo.src = tvPlaylist[currentTvIndex]; tvVideo.play();
 };
 document.getElementById('tv-next').onclick = () => playNextTv(false);
-document.getElementById('tv-play-pause').onclick = () => {
-    if(tvVideo.paused) tvVideo.play(); else tvVideo.pause();
-};
+document.getElementById('tv-play-pause').onclick = () => { if(tvVideo.paused) tvVideo.play(); else tvVideo.pause(); };
 playNextTv(true);
 
-// --- CARGA DE MODELOS ---
+// --- CARGA ---
 let totalModelsToLoad = 0, modelsLoaded = 0;
 for (let cat in inventoryData) {
     if (inventoryData[cat].type === 'multiple') continue;
-    let equippedItemId = inventoryData[cat].equipped;
-    if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
-        let itemData = inventoryData[cat].items[equippedItemId];
-        if (itemData.file) totalModelsToLoad++;
-        if (cat === 'foco' && itemData.baseFile) totalModelsToLoad++;
-        if (cat === 'tele' && itemData.baseFile) totalModelsToLoad++;
+    let eqId = inventoryData[cat].equipped;
+    if (inventoryData[cat].items && inventoryData[cat].items[eqId]) {
+        let it = inventoryData[cat].items[eqId];
+        if (it.file) totalModelsToLoad++;
+        if (cat === 'foco' && it.baseFile) totalModelsToLoad++;
+        if (cat === 'tele' && it.baseFile) totalModelsToLoad++;
     }
 }
-totalModelsToLoad += 4; // Lunari + Animación + Cuadro + Foco de Día
+totalModelsToLoad += 4; // Lunari + Anim + Cuadro + Foco
 
 function checkLoading() {
     modelsLoaded++;
@@ -250,38 +263,33 @@ function checkLoading() {
 }
 if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
 
+// --- MODELOS Y LUNARI ---
 const loader = new GLTFLoader();
 let lunariMixer = null, baseAction = null, randomAction = null, currentAction = null;
-
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const lunariModel = gltf.scene; applyMaterialLogic(lunariModel, 'lunari'); scene.add(lunariModel);
     if (gltf.animations && gltf.animations.length > 0) {
-        lunariMixer = new THREE.AnimationMixer(lunariModel);
-        baseAction = lunariMixer.clipAction(gltf.animations[0]); baseAction.play(); currentAction = baseAction;
+        lunariMixer = new THREE.AnimationMixer(lunariModel); baseAction = lunariMixer.clipAction(gltf.animations[0]); baseAction.play(); currentAction = baseAction;
     }
     checkLoading();
-}, undefined, (e) => checkLoading());
+}, undefined, () => checkLoading());
 
 loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
-        randomAction = lunariMixer.clipAction(gltf.animations[0]);
-        randomAction.loop = THREE.LoopOnce; randomAction.clampWhenFinished = true;
+        randomAction = lunariMixer.clipAction(gltf.animations[0]); randomAction.loop = THREE.LoopOnce; randomAction.clampWhenFinished = true;
     }
     checkLoading();
-}, undefined, (e) => checkLoading());
+}, undefined, () => checkLoading());
 
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
     focoDiaMesh = gltf.scene; applyMaterialLogic(focoDiaMesh, 'foco_dia'); 
     luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
-    const box = new THREE.Box3().setFromObject(focoDiaMesh);
-    const center = new THREE.Vector3(); box.getCenter(center);
+    const box = new THREE.Box3().setFromObject(focoDiaMesh); const center = new THREE.Vector3(); box.getCenter(center);
     luzFocoDia.position.copy(center); luzFocoDia.position.y -= 0.2;
-    luzFocoDia.castShadow = true; luzFocoDia.shadow.mapSize.set(1024, 1024);
     luzFocoDia.shadow.bias = -0.005; luzFocoDia.shadow.normalBias = 0.1;
-    scene.add(luzFocoDia); scene.add(focoDiaMesh);
-    focoDiaMesh.visible = false; luzFocoDia.visible = true; 
+    scene.add(luzFocoDia); scene.add(focoDiaMesh); focoDiaMesh.visible = false; luzFocoDia.visible = true; 
     actualizarIluminacionFocoDia(); checkLoading();
-}, undefined, (e) => checkLoading());
+}, undefined, () => checkLoading());
 
 setInterval(() => {
     if (!randomAction || !baseAction || !lunariMixer) return;
@@ -290,8 +298,8 @@ setInterval(() => {
         baseAction.fadeOut(0.5); randomAction.reset().fadeIn(0.5).play(); currentAction = randomAction;
         const onFinished = (event) => {
             if (event.action === randomAction) {
-                randomAction.fadeOut(0.5); baseAction.reset().fadeIn(0.5).play();
-                currentAction = baseAction; lunariMixer.removeEventListener('finished', onFinished);
+                randomAction.fadeOut(0.5); baseAction.reset().fadeIn(0.5).play(); currentAction = baseAction;
+                lunariMixer.removeEventListener('finished', onFinished);
             }
         };
         lunariMixer.addEventListener('finished', onFinished);
@@ -308,94 +316,78 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
         if (categoryKey === 'pantalla_tv') {
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
-                    let mats = Array.isArray(node.material) ? node.material : [node.material];
-                    mats.forEach(mat => {
-                        mat.map = tvTexture; mat.emissive = new THREE.Color(0xffffff);
-                        mat.emissiveMap = tvTexture; mat.emissiveIntensity = 1.0; mat.needsUpdate = true;
-                    });
+                    if (Array.isArray(node.material)) {
+                        node.material.forEach(mat => { mat.map = tvTexture; mat.emissive = new THREE.Color(0xffffff); mat.emissiveMap = tvTexture; mat.emissiveIntensity = 1.0; mat.needsUpdate = true; });
+                    } else {
+                        node.material.map = tvTexture; node.material.emissive = new THREE.Color(0xffffff); node.material.emissiveMap = tvTexture; node.material.emissiveIntensity = 1.0; node.material.needsUpdate = true;
+                    }
                 }
             });
         }
-        if (categoryKey === 'foco') {
-            focoMesh = model; const box = new THREE.Box3().setFromObject(model);
-            const center = new THREE.Vector3(); box.getCenter(center);
-            mainLight.position.copy(center); mainLight.position.y -= 0.2;
-        }
+        if (categoryKey === 'foco') { focoMesh = model; const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); mainLight.position.copy(center); mainLight.position.y -= 0.2; }
         if (categoryKey === 'interruptor') switchMesh = model;
 
         scene.add(model); loadedSlotMeshes[categoryKey] = model;
         if(isInitialLoad) checkLoading();
-    }, undefined, (e) => { if(isInitialLoad) checkLoading(); });
+    }, undefined, () => { if(isInitialLoad) checkLoading(); });
 }
 
 for (let cat in inventoryData) {
     if (inventoryData[cat].type === 'multiple') continue;
-    let equippedItemId = inventoryData[cat].equipped;
-    if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
-        let itemData = inventoryData[cat].items[equippedItemId];
-        if (itemData.file) loadItemForSlot(cat, itemData.file, true);
-        if (cat === 'foco' && itemData.baseFile) loadItemForSlot('base_foco', itemData.baseFile, true);
-        if (cat === 'tele' && itemData.baseFile) loadItemForSlot('pantalla_tv', itemData.baseFile, true);
+    let eqId = inventoryData[cat].equipped;
+    if (inventoryData[cat].items && inventoryData[cat].items[eqId]) {
+        let it = inventoryData[cat].items[eqId];
+        if (it.file) loadItemForSlot(cat, it.file, true);
+        if (cat === 'foco' && it.baseFile) loadItemForSlot('base_foco', it.baseFile, true);
+        if (cat === 'tele' && it.baseFile) loadItemForSlot('pantalla_tv', it.baseFile, true);
     }
 }
 
-// --- CLIMA NINJA ---
+// --- CLIMA ---
 (async function setupWeatherVideo() {
-    const video = document.createElement('video');
-    video.loop = true; video.muted = true; video.playsInline = true; video.crossOrigin = 'anonymous';
-    let videoFile = 'dia_soleado.mp4'; let weatherEmoji = "☀️"; let weatherName = "Clima estándar"; let temperature = "--";
+    const video = document.createElement('video'); video.loop = true; video.muted = true; video.playsInline = true; video.crossOrigin = 'anonymous';
+    let videoFile = 'dia_soleado.mp4', weatherEmoji = "☀️", weatherName = "Clima estándar", temperature = "--";
     const statusBox = document.getElementById('weather-status');
 
     try {
-        let lat = -12.0464, lon = -77.0428;
+        let lat, lon;
         try {
-            const ipResponse = await fetch('https://ipapi.co/json/');
-            const ipData = await ipResponse.json();
-            if(ipData.latitude && ipData.longitude) { lat = ipData.latitude; lon = ipData.longitude; }
-        } catch(ipError) { }
+            const ipResponse = await fetch('https://ipapi.co/json/'); const ipData = await ipResponse.json();
+            if(ipData.latitude && ipData.longitude) { lat = ipData.latitude; lon = ipData.longitude; } else throw new Error();
+        } catch(e) { lat = -12.0464; lon = -77.0428; }
 
         const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
         const data = await response.json();
-        
-        const code = data.current_weather.weathercode; const isDay = data.current_weather.is_day;
+        const code = data.current_weather.weathercode, isDay = data.current_weather.is_day;
         esDeDiaLocal = (isDay === 1); actualizarIluminacionFocoDia(); temperature = data.current_weather.temperature;
 
         if (code === 0) { weatherName = isDay ? "Despejado" : "Noche despejada"; weatherEmoji = isDay ? "☀️" : "🌙"; videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4'; } 
-        else if (code <= 2) { weatherName = isDay ? "Parcialmente nublado" : "Noche nublada"; weatherEmoji = isDay ? "⛅" : "☁️"; videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4'; } 
-        else if (code === 3) { weatherName = "Muy nublado"; weatherEmoji = "☁️"; videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4'; } 
-        else if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) { weatherName = "Lluvia"; weatherEmoji = "🌧️"; videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4'; } 
-        else { weatherName = "Clima detectado"; videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4'; }
+        else if ([1, 2, 3].includes(code)) { weatherName = isDay ? "Nublado" : "Noche nublada"; weatherEmoji = "☁️"; videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4'; }
+        else if (code === 45 || code === 48) { weatherName = "Niebla"; weatherEmoji = "🌫️"; videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4'; }
+        else if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) { weatherName = "Lluvia"; weatherEmoji = "🌧️"; videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4'; }
+        else if ([71, 73, 75, 77, 85, 86].includes(code)) { weatherName = "Nieve"; weatherEmoji = "❄️"; videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4'; }
+        else if ([95, 96, 99].includes(code)) { weatherName = "Tormenta"; weatherEmoji = "⛈️"; videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4'; }
     } catch (error) { weatherEmoji = "❌"; weatherName = "Clima offline"; }
 
     statusBox.innerHTML = temperature !== "--" ? `${weatherEmoji} ${weatherName} | ${temperature}°C` : `${weatherEmoji} ${weatherName}`;
-    video.src = videoFile; video.play().catch(e => {});
-    
-    const videoTexture = new THREE.VideoTexture(video);
-    videoTexture.minFilter = THREE.LinearFilter; videoTexture.magFilter = THREE.LinearFilter;
-    videoTexture.format = THREE.RGBAFormat; videoTexture.encoding = THREE.sRGBEncoding;
-    
+    video.src = videoFile; video.play().catch(e => console.log('Autoplay blocked'));
+
+    const videoTexture = new THREE.VideoTexture(video); videoTexture.minFilter = THREE.LinearFilter; videoTexture.magFilter = THREE.LinearFilter; videoTexture.format = THREE.RGBAFormat; videoTexture.encoding = THREE.sRGBEncoding;
     loader.load(getFreshUrl('cuadro.glb'), (gltf) => {
         const cuadroModel = gltf.scene;
         cuadroModel.traverse((node) => {
-            if (node.isMesh) {
-                let mats = Array.isArray(node.material) ? node.material : [node.material];
-                mats.forEach(mat => {
-                    mat.map = videoTexture; mat.emissive = new THREE.Color(0xffffff);
-                    mat.emissiveMap = videoTexture; mat.emissiveIntensity = 1.0; mat.needsUpdate = true;
-                });
+            if (node.isMesh && node.material) {
+                if (Array.isArray(node.material)) { node.material.forEach(mat => { mat.map = videoTexture; mat.emissive = new THREE.Color(0xffffff); mat.emissiveMap = videoTexture; mat.emissiveIntensity = 1.0; mat.needsUpdate = true; }); } 
+                else { node.material.map = videoTexture; node.material.emissive = new THREE.Color(0xffffff); node.material.emissiveMap = videoTexture; node.material.emissiveIntensity = 1.0; node.material.needsUpdate = true; }
             }
         });
-        applyMaterialLogic(cuadroModel, 'cuadro'); scene.add(cuadroModel);
-        loadedSlotMeshes['cuadro'] = cuadroModel; checkLoading();
-    }, undefined, (e) => checkLoading());
+        applyMaterialLogic(cuadroModel, 'cuadro'); scene.add(cuadroModel); loadedSlotMeshes['cuadro'] = cuadroModel; checkLoading();
+    }, undefined, () => checkLoading());
 })();
 
-// --- SISTEMA DE ILUMINACIÓN Y AJUSTES APLICADOS ---
 function updateLighting() {
     if (lightOn) {
-        mainLight.visible = true;
-        ambient.intensity = gameSettings.shadows ? 0.3 : 0.6; // Sin sombras iluminamos más con ambiente
-        hemiLight.intensity = gameSettings.shadows ? 0.4 : 0.6;
+        mainLight.visible = true; ambient.intensity = gameSettings.calidad === 'baja' ? 0.8 : 0.3; hemiLight.intensity = gameSettings.calidad === 'baja' ? 0.8 : 0.4;
         document.getElementById('light-status').innerText = '💡 Luz encendida';
         if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 1.5; });
     } else {
@@ -405,49 +397,13 @@ function updateLighting() {
     }
 }
 
-// APLICA LA CONFIGURACIÓN DEL MODAL FREE FIRE
-function applySettings() {
-    // Resolución
-    let dpr = 1;
-    if (gameSettings.resolution === 'low') dpr = 0.75;
-    else if (gameSettings.resolution === 'normal') dpr = 1;
-    else dpr = Math.min(window.devicePixelRatio, 2);
-    renderer.setPixelRatio(dpr);
-
-    // Sombras
-    renderer.shadowMap.enabled = gameSettings.shadows;
-    mainLight.castShadow = gameSettings.shadows;
-    if(luzFocoDia) luzFocoDia.castShadow = gameSettings.shadows;
-    
-    // Recorrer modelos para sombras
-    for (let cat in loadedSlotMeshes) applyMaterialLogic(loadedSlotMeshes[cat], cat);
-    if(focoDiaMesh) applyMaterialLogic(focoDiaMesh, 'foco_dia');
-
-    // Sonido
-    tvVideo.volume = gameSettings.mute ? 0 : gameSettings.volume;
-    tvVideo.muted = gameSettings.mute;
-
-    // UI
-    document.getElementById('fps-counter').style.display = gameSettings.showFps ? 'block' : 'none';
-
-    updateLighting();
-}
-
 const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2();
-function toggleLight() {
-    lightOn = !lightOn; localStorage.setItem('lightState', lightOn ? 'on' : 'off'); updateLighting();
-}
+function toggleLight() { lightOn = !lightOn; localStorage.setItem('lightState', lightOn ? 'on' : 'off'); updateLighting(); }
 
-function openPosterPreview(categoryKey) {
-    const equippedId = inventoryData[categoryKey].equipped;
-    const itemData = inventoryData[categoryKey].items[equippedId];
-    if (itemData && itemData.preview) {
-        document.getElementById('poster-enlarged-image').src = itemData.preview;
-        document.getElementById('poster-view-modal').classList.add('visible');
-    }
-}
-
-document.getElementById('close-poster-view').onclick = () => document.getElementById('poster-view-modal').classList.remove('visible');
+const posterViewModal = document.getElementById('poster-view-modal');
+const posterEnlargedImage = document.getElementById('poster-enlarged-image');
+document.getElementById('close-poster-view').onclick = () => posterViewModal.classList.remove('visible');
+posterViewModal.onclick = (e) => { if (e.target === posterViewModal) posterViewModal.classList.remove('visible'); };
 
 function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
@@ -457,35 +413,87 @@ function handleInteraction(event) {
     raycaster.setFromCamera(mouse, camera);
 
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
-
+    
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
         const tvControls = document.getElementById('tv-controls');
-        if (tvControls.style.display === 'none' || tvControls.style.display === '') {
-            tvControls.style.display = 'flex';
-            if (tvVideo.paused) tvVideo.play().catch(e => {});
-        } else tvControls.style.display = 'none';
+        if (tvControls.style.display === 'none' || tvControls.style.display === '') { tvControls.style.display = 'flex'; if (tvVideo.paused) tvVideo.play().catch(e=>{}); } 
+        else { tvControls.style.display = 'none'; }
         return;
     }
 
     const posterCategories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
     for (let cat of posterCategories) {
-        const posterMesh = loadedSlotMeshes[cat];
-        if (posterMesh && raycaster.intersectObject(posterMesh, true).length > 0) { openPosterPreview(cat); break; }
+        const pMesh = loadedSlotMeshes[cat];
+        if (pMesh && raycaster.intersectObject(pMesh, true).length > 0) {
+            const itemData = inventoryData[cat].items[inventoryData[cat].equipped];
+            if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); }
+            break;
+        }
     }
 }
 renderer.domElement.addEventListener('click', handleInteraction);
-renderer.domElement.addEventListener('touchstart', (e) => { 
-    if(document.getElementById('inventory-modal').classList.contains('visible') || document.getElementById('ff-settings-modal').classList.contains('visible')) return;
-    handleInteraction(e); 
-}, {passive: true});
+renderer.domElement.addEventListener('touchstart', (e) => { if(!document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active')) handleInteraction(e); }, {passive: true});
 
-// --- LÓGICA DE INTERFAZ DEL INVENTARIO ---
+// --- UI CONFIGURACIÓN FREE FIRE ---
+const settingsModal = document.getElementById('ff-settings-modal');
+document.getElementById('settings-button').onclick = () => settingsModal.classList.add('active');
+document.getElementById('close-ff-settings').onclick = () => {
+    settingsModal.classList.remove('active');
+    localStorage.setItem('ff_settings', JSON.stringify(gameSettings));
+    applyCurrentSettings();
+};
+
+// Tabs lógicas
+document.querySelectorAll('.ff-tab').forEach(tab => {
+    tab.onclick = () => {
+        document.querySelectorAll('.ff-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.ff-tab-pane').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.target).classList.add('active');
+    };
+});
+
+// Sincronizar UI con gameSettings
+function syncSettingsUI() {
+    document.querySelectorAll('#setting-calidad button').forEach(b => {
+        b.classList.toggle('active', b.dataset.val === gameSettings.calidad);
+        b.onclick = () => {
+            gameSettings.calidad = b.dataset.val;
+            if(gameSettings.calidad === 'baja') { gameSettings.sombras = 0; gameSettings.fps = 30; }
+            syncSettingsUI(); applyCurrentSettings();
+        };
+    });
+    
+    const selectSombras = document.getElementById('setting-sombras');
+    selectSombras.value = gameSettings.sombras;
+    selectSombras.disabled = gameSettings.calidad === 'baja';
+    selectSombras.onchange = (e) => { gameSettings.sombras = parseInt(e.target.value); applyCurrentSettings(); };
+
+    document.querySelectorAll('#setting-fps button').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.val) === gameSettings.fps);
+        b.onclick = () => { gameSettings.fps = parseInt(b.dataset.val); syncSettingsUI(); };
+    });
+
+    const volSlider = document.getElementById('setting-volumen');
+    volSlider.value = gameSettings.volumen;
+    document.getElementById('vol-tv-val').innerText = `${gameSettings.volumen}%`;
+    volSlider.oninput = (e) => { 
+        gameSettings.volumen = e.target.value; 
+        document.getElementById('vol-tv-val').innerText = `${gameSettings.volumen}%`;
+        applyCurrentSettings();
+    };
+
+    const fpsCheck = document.getElementById('setting-showfps');
+    fpsCheck.checked = gameSettings.mostrarFps;
+    fpsCheck.onchange = (e) => { gameSettings.mostrarFps = e.target.checked; applyCurrentSettings(); };
+}
+
+// INVENTARIO LÓGICA
 let currentCategory = 'cama', openGroup = 'muebles';
 function renderInventory() {
     const sidebar = document.getElementById('inv-sidebar'), content = document.getElementById('inv-content');
     sidebar.innerHTML = ''; content.innerHTML = '';
-    
     inventoryGroups.forEach(group => {
         const groupDiv = document.createElement('div'); groupDiv.className = 'inv-group';
         const groupBtn = document.createElement('button'); groupBtn.className = 'group-btn';
@@ -507,20 +515,14 @@ function renderInventory() {
     const catData = inventoryData[currentCategory]; if (!catData) return;
     for (let itemId in catData.items) {
         const item = catData.items[itemId];
-        let isEquipped = catData.type === 'multiple' ? catData.equipped.includes(itemId) : catData.equipped === itemId;
+        let isEq = catData.type === 'multiple' ? catData.equipped.includes(itemId) : catData.equipped === itemId;
         const card = document.createElement('div'); card.className = 'item-card';
-        const previewDiv = document.createElement('div'); previewDiv.className = 'item-preview';
-        if (item.preview) {
-            const img = document.createElement('img'); img.src = item.preview; img.alt = item.name;
-            img.onerror = () => { previewDiv.innerHTML = `<span>${catData.emoji}</span>`; };
-            previewDiv.appendChild(img);
-        } else previewDiv.innerHTML = `<span>${catData.emoji}</span>`;
+        const prev = document.createElement('div'); prev.className = 'item-preview';
+        if (item.preview) { const img = document.createElement('img'); img.src = item.preview; img.alt = item.name; img.onerror = () => { prev.innerHTML = `<span>${catData.emoji}</span>`; }; prev.appendChild(img); } 
+        else { prev.innerHTML = `<span>${catData.emoji}</span>`; }
         
-        let btnHTML = item.owned 
-            ? (isEquipped ? `<button class="item-btn btn-equipped" onclick="equipItem('${currentCategory}', '${itemId}')">${catData.type === 'multiple' ? 'Quitar ✓' : 'Equipado ✓'}</button>` : `<button class="item-btn btn-equip" onclick="equipItem('${currentCategory}', '${itemId}')">Equipar</button>`)
-            : `<button class="item-btn btn-buy" onclick="buyItem('${currentCategory}', '${itemId}')">Comprar 🪙${item.price}</button>`;
-
-        card.innerHTML = `<div>${previewDiv.outerHTML}<h4>${item.name}</h4><div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div></div>${btnHTML}`;
+        let btn = item.owned ? (isEq ? `<button class="item-btn btn-equipped" onclick="equipItem('${currentCategory}', '${itemId}')">${catData.type === 'multiple' ? 'Quitar ✓' : 'Equipado ✓'}</button>` : `<button class="item-btn btn-equip" onclick="equipItem('${currentCategory}', '${itemId}')">Equipar</button>`) : `<button class="item-btn btn-buy" onclick="buyItem('${currentCategory}', '${itemId}')">Comprar 🪙${item.price}</button>`;
+        card.innerHTML = `<div>${prev.outerHTML}<h4>${item.name}</h4><div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div></div>${btn}`;
         content.appendChild(card);
     }
 }
@@ -534,85 +536,40 @@ window.equipItem = function(category, itemId) {
     } else {
         catData.equipped = itemId; const itemData = catData.items[itemId];
         loadItemForSlot(category, itemData.file, false);
-        if (itemData.baseFile) {
-            if(category === 'foco') loadItemForSlot('base_foco', itemData.baseFile, false);
-            if(category === 'tele') loadItemForSlot('pantalla_tv', itemData.baseFile, false);
-        }
+        if (category === 'foco' && itemData.baseFile) loadItemForSlot('base_foco', itemData.baseFile, false);
+        if (category === 'tele' && itemData.baseFile) loadItemForSlot('pantalla_tv', itemData.baseFile, false);
     }
     saveGame(); renderInventory(); 
 };
-
 window.buyItem = function(category, itemId) {
     let item = inventoryData[category].items[itemId];
     if (playerCoins >= item.price) { playerCoins -= item.price; item.owned = true; saveGame(); renderInventory(); } 
     else alert("No tienes suficientes monedas.");
 };
 
-// Eventos UI Generales
 document.getElementById('inventory-button').onclick = () => { document.getElementById('inventory-modal').classList.add('visible'); renderInventory(); };
-document.getElementById('close-inv').onclick = () => document.getElementById('inventory-modal').classList.remove('visible');
+document.getElementById('close-inv').onclick = () => { document.getElementById('inventory-modal').classList.remove('visible'); };
 
-// --- EVENTOS DEL NUEVO MENÚ DE AJUSTES ---
-const settingsModal = document.getElementById('ff-settings-modal');
-document.getElementById('settings-button').onclick = () => {
-    // Sincronizar UI con el estado actual
-    document.getElementById('set-resolution').value = gameSettings.resolution;
-    document.getElementById('set-shadows').checked = gameSettings.shadows;
-    document.getElementById('set-fps').value = gameSettings.fps;
-    document.getElementById('set-volume').value = gameSettings.volume;
-    document.getElementById('set-mute').checked = gameSettings.mute;
-    document.getElementById('set-showfps').checked = gameSettings.showFps;
-    settingsModal.classList.add('visible');
-};
-document.getElementById('close-ff-settings').onclick = () => settingsModal.classList.remove('visible');
-
-// Pestañas
-document.querySelectorAll('.ff-tab').forEach(tab => {
-    tab.onclick = () => {
-        document.querySelectorAll('.ff-tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.ff-tab-pane').forEach(p => p.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
-    };
-});
-
-// Guardar al cambiar opciones
-document.getElementById('set-resolution').onchange = (e) => { gameSettings.resolution = e.target.value; saveSettings(); };
-document.getElementById('set-shadows').onchange = (e) => { gameSettings.shadows = e.target.checked; saveSettings(); };
-document.getElementById('set-fps').onchange = (e) => { gameSettings.fps = parseInt(e.target.value); saveSettings(); };
-document.getElementById('set-volume').oninput = (e) => { gameSettings.volume = parseFloat(e.target.value); saveSettings(); };
-document.getElementById('set-mute').onchange = (e) => { gameSettings.mute = e.target.checked; saveSettings(); };
-document.getElementById('set-showfps').onchange = (e) => { gameSettings.showFps = e.target.checked; saveSettings(); };
-
-document.getElementById('btn-reset-settings').onclick = () => {
-    if(confirm('¿Restaurar todos los ajustes gráficos y de sonido a los valores recomendados de fábrica?')) {
-        gameSettings = { ...defaultSettings };
-        saveSettings(); settingsModal.classList.remove('visible');
-    }
-};
-
-// --- BUCLE DE ANIMACIÓN Y LÍMITE DE FPS ---
+// --- ANIMACIÓN CONTROLADA POR FPS ---
 let then = performance.now();
-let frames = 0, lastFpsTime = performance.now();
+let frames = 0, lastFpsTime = then;
 
 function animate() {
     requestAnimationFrame(animate);
-    
     const now = performance.now();
     const elapsed = now - then;
-    const fpsInterval = 1000 / gameSettings.fps;
+    const fpsInterval = gameSettings.fps > 0 ? 1000 / gameSettings.fps : 0;
 
-    // Si ha pasado el tiempo necesario según los FPS objetivo, renderizamos
-    if (elapsed > fpsInterval) {
-        then = now - (elapsed % fpsInterval); // Ajuste preciso
+    if (fpsInterval === 0 || elapsed > fpsInterval) {
+        if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
         
         const delta = clock.getDelta();
         if (lunariMixer) lunariMixer.update(delta);
         controls.update();
         renderer.render(scene, camera); 
 
-        // Cálculo de FPS UI
-        if(gameSettings.showFps) {
+        // Calculador de FPS en pantalla
+        if (gameSettings.mostrarFps) {
             frames++;
             if (now - lastFpsTime >= 1000) {
                 document.querySelector('#fps-counter span').innerText = frames;
@@ -621,10 +578,11 @@ function animate() {
         }
     }
 }
-applySettings(); // Aplicar al inicio
-animate();
 
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
+window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); applyCurrentSettings(); });
+
+// Inicializar estado
+syncSettingsUI();
+applyCurrentSettings();
+updateLighting();
+animate();
