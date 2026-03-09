@@ -34,11 +34,12 @@
                 <div class="ff-content">
                     <div id="tab-graficos" class="ff-tab-pane active">
                         <div class="ff-setting-group">
-                            <label>Calidad Gráfica</label>
+                            <label>Calidad General (Ajusta Sombras y Resolución)</label>
                             <div class="ff-radio-group" id="setting-calidad">
-                                <button data-val="baja" title="Sin sombras, texturas bajas (Para jugar sin lag)">Suave</button>
-                                <button data-val="media" title="Sombras pixeladas, calidad balanceada">Estándar</button>
-                                <button data-val="alta" title="Sombras dinámicas suaves, HD (Requiere buen celular/PC)">Ultra</button>
+                                <button data-val="baja">Suave</button>
+                                <button data-val="media">Estándar</button>
+                                <button data-val="alta">Ultra</button>
+                                <button data-val="maxima">Máxima</button>
                             </div>
                         </div>
 
@@ -47,15 +48,6 @@
                             <div class="ff-radio-group" id="setting-fps">
                                 <button data-val="30">Normal (30)</button>
                                 <button data-val="60">Alto (60)</button>
-                            </div>
-                        </div>
-
-                        <div class="ff-setting-group">
-                            <label>Filtro Visual</label>
-                            <div class="ff-radio-group" id="setting-filtro">
-                                <button data-val="clasico">Clásico</button>
-                                <button data-val="vivido">Vívido</button>
-                                <button data-val="pelicula">Película</button>
                             </div>
                         </div>
                     </div>
@@ -75,12 +67,8 @@
                                 <span class="ff-slider-round"></span>
                             </label>
                         </div>
-                        <div class="ff-setting-group">
-                            <label>Brillo del Entorno - <span id="brillo-val">100%</span></label>
-                            <input type="range" id="setting-brillo" min="50" max="150" value="100" class="ff-slider">
-                        </div>
                         <div class="ff-setting-group" style="margin-top: 20px; color: #ffeb3b; font-size: 12px;">
-                            <i>*Los ajustes de gráficos Suave, Estándar y Ultra configuran automáticamente las sombras y la resolución de la pantalla para evitar lag.</i>
+                            <i>*Los cambios en la calidad gráfica aplican restricciones automáticas según tu dispositivo.</i>
                         </div>
                     </div>
                 </div>
