@@ -1,50 +1,53 @@
 // sw.js
-const CACHE_NAME = `room-cache-${Date.now()}`; // Versión dinámica garantizada [cite: 340]
-
+const CACHE_NAME = 'room-cache-v5'; // Versión actualizada para forzar los nuevos cambios
 const urlsToCache = [
     './',
     './index.html',
     './room_style.css',
     './room_main.js',
-    './inventory-data.js'
+    './inventory-data.js',
+    'gohan_vs_cell.mp4',
+    'zoro_vs_king.mp4',
+    'rezero.mp4'
 ];
 
-// Instalación: Salta la espera inmediatamente
+// Instalación
 self.addEventListener('install', event => {
-    self.skipWaiting();
     event.waitUntil(
-        caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+        caches.open(CACHE_NAME)
+            .then(cache => cache.addAll(urlsToCache))
+            .then(() => self.skipWaiting())
     );
 });
 
-// Activación: Destruye todas las cachés anteriores obligatoriamente
+// Activación: limpia cachés antiguas
 self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys().then(cacheNames => {
             return Promise.all(
-                cacheNames.map(name => {
-                    if (name !== CACHE_NAME) {
-                        return caches.delete(name);
-                    }
-                })
+                cacheNames.filter(name => name !== CACHE_NAME)
+                    .map(name => caches.delete(name))
             );
         }).then(() => self.clients.claim())
     );
 });
 
-// Estrategia: Siempre pide al servidor. Si estás offline, rescata del caché.
+// Estrategia Network First (Red Primero) para TODO.
 self.addEventListener('fetch', event => {
     const requestUrl = event.request.url;
 
     event.respondWith(
-        fetch(event.request, { cache: 'no-store' }) // Fuerzo bypass de caché HTTP [cite: 344]
-        .then(networkResponse => {
+        fetch(event.request).then(networkResponse => {
+            // Solo guardamos en caché si NO tiene el parámetro "nocache".
             if (!requestUrl.includes('nocache=')) {
                 const clone = networkResponse.clone();
-                caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+                caches.open(CACHE_NAME).then(cache => {
+                    cache.put(event.request, clone);
+                });
             }
             return networkResponse;
         }).catch(() => {
+            // Si no hay internet, intentamos cargar lo que haya en la caché
             return caches.match(event.request);
         })
     );
