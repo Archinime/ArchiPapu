@@ -1,32 +1,84 @@
+// inventory-data.js
 export const defaultInventoryConfig = {
     // Estructura
     piso: { 
         label: "Piso", emoji: "🟫", equipped: "base", 
-        items: { "base": { name: "Piso Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/piso.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/piso_estandar.avif" } } 
+        items: { 
+            "base": { 
+                name: "Piso Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/piso.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/piso_estandar.avif"
+            } 
+        } 
     },
     paredes: { 
         label: "Paredes", emoji: "🧱", equipped: "base", 
-        items: { "base": { name: "Paredes Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/paredes.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/paredes_estandar.avif" } } 
+        items: { 
+            "base": { 
+                name: "Paredes Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/paredes.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/paredes_estandar.avif"
+            } 
+        } 
     },
     techo: { 
         label: "Techo", emoji: "🛖", equipped: "base", 
-        items: { "base": { name: "Techo Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo_estandar.avif" } } 
+        items: { 
+            "base": { 
+                name: "Techo Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/techo_estandar.avif"
+            } 
+        } 
     },
     puerta: { 
         label: "Puerta", emoji: "🚪", equipped: "base", 
-        items: { "base": { name: "Puerta Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta_estandar.avif" } } 
+        items: { 
+            "base": { 
+                name: "Puerta Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/puerta_estandar.avif"
+            } 
+        } 
     },
 
     // Iluminación
     interruptor: { 
         label: "Interruptor", emoji: "🎛️", equipped: "base", 
-        items: { "base": { name: "Interruptor Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/interruptor.glb", price: 0, owned: true } } 
+        items: { 
+            "base": { 
+                name: "Interruptor Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/interruptor.glb", 
+                price: 0, 
+                owned: true 
+            } 
+        } 
     },
     foco: { 
         label: "Foco", emoji: "💡", equipped: "base", 
         items: { 
-            "base": { name: "Foco Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco.glb", baseFile: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/base_foco.glb", price: 0, owned: true },
-            "foco_brillante": { name: "Foco Brillante", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco.glb", baseFile: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/base_foco.glb", price: 250, owned: false }
+            "base": { 
+                name: "Foco Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco.glb", 
+                baseFile: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/base_foco.glb", 
+                price: 0, 
+                owned: true 
+            },
+            "foco_brillante": { 
+                name: "Foco Brillante", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco.glb", 
+                baseFile: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/base_foco.glb", 
+                price: 250, 
+                owned: false 
+            }
         } 
     },
 
@@ -34,109 +86,299 @@ export const defaultInventoryConfig = {
     cama: { 
         label: "Cama", emoji: "🛏️", equipped: "base", 
         items: { 
-            "base": { name: "Cama Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama_estandar.avif" },
-            "cama_brillante": { name: "Cama Brillante", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama_brillante.glb", price: 500, owned: false, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama_brillante.png" }
+            "base": { 
+                name: "Cama Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama_estandar.avif"
+            },
+            "cama_brillante": { 
+                name: "Cama Brillante", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama_brillante.glb", 
+                price: 500, 
+                owned: false,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cama_brillante.png"
+            }
         } 
     },
     silla: { 
         label: "Silla", emoji: "🪑", equipped: "base", 
-        items: { "base": { name: "Silla Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/silla.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/silla_estandar.avif" } } 
+        items: { 
+            "base": { 
+                name: "Silla Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/silla.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/silla_estandar.avif"
+            } 
+        } 
     },
     pc: { 
         label: "Setup PC", emoji: "🖥️", equipped: "base", 
-        items: { "base": { name: "PC Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pc.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pc_estandar.avif" } } 
+        items: { 
+            "base": { 
+                name: "PC Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pc.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pc_estandar.avif"
+            } 
+        } 
     },
     tele: { 
-        label: "Base de TV", emoji: "📺", equipped: "base", 
-        items: { "base": { name: "Televisor Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele_estandar.avif" } } 
+        label: "Televisor", emoji: "📺", equipped: "pantalla", 
+        items: { 
+            "base": { 
+                name: "Televisor Antiguo", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele_estandar.avif"
+            },
+            "pantalla": {
+                name: "Pantalla Nueva",
+                file: "pantalla.glb",
+                price: 0,
+                owned: true
+            }
+        } 
     },
     mueble1: { 
         label: "Mueble", emoji: "🗄️", equipped: "base", 
-        items: { "base": { name: "Mueble 1 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble1.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble_estandar.avif" } } 
+        items: { 
+            "base": { 
+                name: "Mueble 1 Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble1.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble_estandar.avif"
+            } 
+        } 
     },
     mueble2: { 
         label: "Escritorio", emoji: "🗄️", equipped: "base", 
-        items: { "base": { name: "Mueble 2 Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble2.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/escritorio_estandar.avif" } } 
-    },
-
-    // Videos TV (Categoría Especial Múltiple)
-    videos: {
-        label: "Videos Pantalla", emoji: "📼", equipped: ["vid1", "vid2", "vid3"],
-        items: {
-            "vid1": { name: "Gohan vs Cell", file: "gohan_vs_cell.mp4", price: 0, owned: true },
-            "vid2": { name: "Zoro vs King", file: "zoro_vs_king.mp4", price: 0, owned: true },
-            "vid3": { name: "Re:Zero", file: "rezero.mp4", price: 0, owned: true }
-        }
+        items: { 
+            "base": { 
+                name: "Mueble 2 Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/mueble2.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/escritorio_estandar.avif"
+            } 
+        } 
     },
 
     // Textiles
     alfombra: { 
         label: "Alfombra", emoji: "🔲", equipped: "base", 
-        items: { "base": { name: "Alfombra Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/alfombra.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/alfombra_estandar.avif" } } 
+        items: { 
+            "base": { 
+                name: "Alfombra Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/alfombra.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/alfombra_estandar.avif"
+            } 
+        } 
     },
     cortinas: { 
         label: "Cortinas", emoji: "🪟", equipped: "base", 
-        items: { "base": { name: "Cortinas Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cortinas.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cortinas_estandar.avif" } } 
+        items: { 
+            "base": { 
+                name: "Cortinas Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cortinas.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cortinas_estandar.avif"
+            } 
+        } 
     },
     mousepad: { 
         label: "Mouse Pad", emoji: "🖱️", equipped: "base", 
-        items: { "base": { name: "Mouse Pad Estándar", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/maouse_pad.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/maouse_pad_estandar.avif" } } 
+        items: { 
+            "base": { 
+                name: "Mouse Pad Estándar", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/maouse_pad.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/maouse_pad_estandar.avif"
+            } 
+        } 
     },
 
     // Pósters
     poster_1: { 
         label: "Póster 1", emoji: "🖼️", equipped: "base", 
-        items: { "base": { name: "All Might", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_1.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_hero_academy1.avif" } } 
+        items: { 
+            "base": { 
+                name: "All Might", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_1.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_hero_academy1.avif"
+            } 
+        } 
     },
     poster_2: { 
         label: "Póster 2", emoji: "🖼️", equipped: "base", 
-        items: { "base": { name: "Pikachu", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_2.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pikachu.avif" } } 
+        items: { 
+            "base": { 
+                name: "Pikachu", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_2.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pikachu.avif"
+            } 
+        } 
     },
     poster_3: { 
         label: "Póster 3", emoji: "🖼️", equipped: "base", 
-        items: { "base": { name: "Fondo", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_3.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/flores_volando.avif" } } 
+        items: { 
+            "base": { 
+                name: "Fondo", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_3.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/flores_volando.avif"
+            } 
+        } 
     },
     poster_4: { 
         label: "Póster 4", emoji: "🖼️", equipped: "base", 
-        items: { "base": { name: "Boku no Hero", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_4.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/boku.avif" } } 
+        items: { 
+            "base": { 
+                name: "Boku no Hero", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/poster_4.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/boku.avif"
+            } 
+        } 
     },
 
-    // Decoración
+    // Decoración del Piso
     deco_piso: { 
         label: "Adorno Piso", emoji: "🎍", equipped: "base", 
-        items: { "base": { name: "Pepsi", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_piso.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pepsi.avif" } } 
+        items: { 
+            "base": { 
+                name: "Pepsi", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_piso.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pepsi.avif"
+            } 
+        } 
     },
+
+    // Decoración del Escritorio
     deco_escritorio: { 
         label: "Decoración 1", emoji: "🎍", equipped: "base", 
-        items: { "base": { name: "CocaCola", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_escritorio.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cocacola.avif" } } 
+        items: { 
+            "base": { 
+                name: "CocaCola", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_escritorio.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cocacola.avif"
+            } 
+        } 
     },
     deco_mueble_2: { 
         label: "Decoración 2", emoji: "🎍", equipped: "base", 
-        items: { "base": { name: "CocaCola", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_2.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cocacola.avif" } } 
+        items: { 
+            "base": { 
+                name: "CocaCola", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_2.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cocacola.avif"
+            } 
+        } 
     },
     deco_2_mueble_2: { 
         label: "Decoración 3", emoji: "🎍", equipped: "base", 
-        items: { "base": { name: "Libros", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_2.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros2.avif" } } 
+        items: { 
+            "base": { 
+                name: "Libros", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_2.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros2.avif" 
+            } 
+        } 
     },
+
+    // Decoración del Mueble 1
     deco_mueble_1: { 
         label: "Decoración 1", emoji: "🎍", equipped: "base", 
-        items: { "base": { name: "CocaCola", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_1.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cocacola.avif" } } 
+        items: { 
+            "base": { 
+                name: "CocaCola", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_mueble_1.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cocacola.avif"
+            } 
+        } 
     },
     deco_2_mueble_1: { 
         label: "Decoración 2", emoji: "🎍", equipped: "base", 
-        items: { "base": { name: "Reproductor DVD", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_1.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/dvd.avif" } } 
+        items: { 
+            "base": { 
+                name: "Reproductor DVD", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_2_mueble_1.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/dvd.avif"
+            } 
+        } 
     },
     deco_3_mueble_1: { 
         label: "Decoración 3", emoji: "🎍", equipped: "base", 
-        items: { "base": { name: "Reproductor DVD", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_3_mueble_1.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/dvd2.avif" } } 
+        items: { 
+            "base": { 
+                name: "Reproductor DVD", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_3_mueble_1.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/dvd2.avif"
+            } 
+        } 
     },
     deco_4_mueble_1: { 
         label: "Decoración 4", emoji: "🎍", equipped: "base", 
-        items: { "base": { name: "Libros", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_4_mueble_1.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.avif" } } 
+        items: { 
+            "base": { 
+                name: "Libros", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_4_mueble_1.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.avif" 
+            } 
+        } 
     },
     deco_5_mueble_1: { 
         label: "Decoración 5", emoji: "🎍", equipped: "base", 
-        items: { "base": { name: "Libros", file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_5_mueble_1.glb", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.avif" } } 
+        items: { 
+            "base": { 
+                name: "Libros", 
+                file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/decoracion_5_mueble_1.glb", 
+                price: 0, 
+                owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.avif" 
+            } 
+        } 
+    },
+
+    // --- NUEVO: SISTEMA DE VIDEOS ---
+    videos: {
+        label: "Videos TV", emoji: "📼", equipped: ["gohan_cell", "zoro_king", "rezero"], type: "multiple",
+        items: {
+            "gohan_cell": { name: "Gohan vs Cell", file: "gohan_vs_cell.mp4", price: 0, owned: true },
+            "zoro_king": { name: "Zoro vs King", file: "zoro_vs_king.mp4", price: 0, owned: true },
+            "rezero": { name: "Re:Zero", file: "rezero.mp4", price: 0, owned: true }
+        }
     }
 };
 
@@ -144,10 +386,10 @@ export const inventoryGroups = [
     { id: 'estructura', label: 'Estructura', emoji: '🏠', categories: ['piso', 'paredes', 'techo', 'puerta'] },
     { id: 'iluminacion', label: 'Iluminación', emoji: '💡', categories: ['interruptor', 'foco'] },
     { id: 'muebles', label: 'Muebles', emoji: '🛋️', categories: ['cama', 'silla', 'pc', 'tele', 'mueble1', 'mueble2'] },
-    { id: 'media', label: 'Multimedia TV', emoji: '📺', categories: ['videos'] },
     { id: 'textiles', label: 'Textiles', emoji: '🧶', categories: ['alfombra', 'cortinas', 'mousepad'] },
     { id: 'posters', label: 'Pósters', emoji: '🖼️', categories: ['poster_1', 'poster_2', 'poster_3', 'poster_4'] },
-    { id: 'deco_mueble', label: 'Decoración Muebles', emoji: '🎍', categories: ['deco_mueble_1', 'deco_2_mueble_1', 'deco_3_mueble_1', 'deco_4_mueble_1', 'deco_5_mueble_1'] },
-    { id: 'deco_escritorio', label: 'Decoración Escritorio', emoji: '🎍', categories: ['deco_escritorio', 'deco_mueble_2', 'deco_2_mueble_2'] },
-    { id: 'deco_piso', label: 'Decoración Piso', emoji: '🎍', categories: ['deco_piso'] }
+    { id: 'deco_mueble', label: 'Decoración del Mueble', emoji: '🎍', categories: ['deco_mueble_1', 'deco_2_mueble_1', 'deco_3_mueble_1', 'deco_4_mueble_1', 'deco_5_mueble_1'] },
+    { id: 'deco_escritorio', label: 'Decoración del Escritorio', emoji: '🎍', categories: ['deco_escritorio', 'deco_mueble_2', 'deco_2_mueble_2'] },
+    { id: 'deco_piso', label: 'Decoración del Piso', emoji: '🎍', categories: ['deco_piso'] },
+    { id: 'multimedia', label: 'Multimedia', emoji: '🎵', categories: ['videos'] }
 ];

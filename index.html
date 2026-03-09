@@ -7,6 +7,16 @@
     <link rel="stylesheet" href="room_style.css">
 </head>
 <body>
+    <div id="start-overlay">
+        <div class="start-box">
+            <h2>Bienvenido a tu Habitación</h2>
+            <p>Haz clic para entrar y activar el sonido de la TV</p>
+            <button id="start-btn">Entrar</button>
+        </div>
+    </div>
+
+    <video id="tv-video" style="display:none;" crossorigin="anonymous" playsinline></video>
+
     <div id="coin-display">🪙 <span id="coin-amount">0</span></div>
     
     <div id="weather-status">🌍 Detectando clima...</div>
@@ -29,10 +39,10 @@
         </div>
     </div>
 
-    <div id="video-controls">
-        <button class="vid-btn" id="prev-vid">⏮</button>
-        <button class="vid-btn" id="play-pause-vid">⏯</button>
-        <button class="vid-btn" id="next-vid">⏭</button>
+    <div id="tv-controls">
+        <button id="tv-prev" title="Canal Anterior">⏮️</button>
+        <button id="tv-play-pause" title="Pausar/Reproducir">⏯️</button>
+        <button id="tv-next" title="Canal Siguiente">⏭️</button>
     </div>
 
     <div id="inventory-modal">

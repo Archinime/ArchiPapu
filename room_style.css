@@ -8,11 +8,45 @@ body {
     background-color: #111;
 }
 
+/* --- SCROLLBAR PERSONALIZADO --- */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
 
+/* --- PANTALLA INICIAL Y CONTROLES TV --- */
+#start-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+    z-index: 9999; display: flex; justify-content: center; align-items: center;
+}
+.start-box {
+    background: rgba(30,30,40,0.95); padding: 30px; border-radius: 20px;
+    text-align: center; color: white; border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+}
+#start-btn {
+    margin-top: 15px; padding: 12px 25px; font-size: 18px; font-weight: bold;
+    background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white;
+    border: none; border-radius: 10px; cursor: pointer; transition: 0.3s;
+}
+#start-btn:hover { transform: scale(1.05); }
+
+#tv-controls {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(30,30,40,0.85); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2); border-radius: 30px;
+    padding: 10px 20px; display: flex; gap: 15px; z-index: 200;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+#tv-controls button {
+    background: none; border: none; color: white; font-size: 20px; cursor: pointer;
+    transition: 0.2s; padding: 5px; border-radius: 50%; width: 35px; height: 35px;
+    display: flex; align-items: center; justify-content: center;
+}
+#tv-controls button:hover { background: rgba(255,255,255,0.1); transform: scale(1.1); }
+
+/* --- BOTONES SUPERIORES --- */
 .top-btn {
     position: absolute;
     top: 20px;
@@ -39,6 +73,7 @@ body {
 #settings-button { right: 20px; }
 #inventory-button { right: 75px; }
 
+/* --- UI DE MONEDAS --- */
 #coin-display {
     position: absolute;
     top: 20px;
@@ -58,6 +93,7 @@ body {
 }
 #coin-display:hover { transform: scale(1.05); }
 
+/* --- UI DE CLIMA --- */
 #weather-status {
     position: absolute;
     top: 70px;
@@ -79,6 +115,7 @@ body {
     transition: opacity 0.3s;
 }
 
+/* --- PANELES --- */
 #settings-panel {
     position: absolute;
     top: 70px;
@@ -99,7 +136,8 @@ body {
 }
 #settings-panel.visible { display: block; }
 #settings-panel label {
-    display: flex; align-items: center; justify-content: space-between; gap: 15px; cursor: pointer; user-select: none; margin-bottom: 10px;
+    display: flex;
+    align-items: center; justify-content: space-between; gap: 15px; cursor: pointer; user-select: none; margin-bottom: 10px;
     transition: color 0.2s;
 }
 #settings-panel label:hover { color: #4CAF50; }
@@ -112,9 +150,10 @@ body {
     box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
 }
 
+/* --- UI DE LUNARI --- */
 #character-layer {
     position: absolute;
-    bottom: 20px;
+    bottom: 80px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 150;
@@ -136,12 +175,21 @@ body {
 }
 .char-name {
     margin: 0 0 5px 0;
-    color: #4CAF50; font-size: 16px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; text-align: left;
+    color: #4CAF50;
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: left;
 }
 #dialogue-text {
-    margin: 0; font-size: 14px; line-height: 1.4; text-align: left;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+    text-align: left;
 }
 
+/* --- MODAL INVENTARIO / TIENDA --- */
 @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 
 #inventory-modal {
@@ -162,25 +210,30 @@ body {
 
 #inv-body { display: flex; flex: 1; margin-top: 15px; gap: 20px; overflow: hidden; }
 
+/* SISTEMA DE CATEGORÍAS ACORDEÓN */
 #inv-sidebar { width: 30%; border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; padding-right: 10px; }
 
 .inv-group { margin-bottom: 10px; }
 .group-btn {
-    width: 100%; text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.5); color: white;
-    border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
+    width: 100%;
+    text-align: left; padding: 12px 15px; background: rgba(0,0,0,0.5);
+    color: white; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
     cursor: pointer; font-size: 15px; font-weight: bold;
     display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease;
 }
 .group-btn:hover { background: rgba(255,255,255,0.15); transform: translateX(2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
 .group-content {
-    display: none; flex-direction: column; padding-left: 10px; margin-top: 5px;
-    border-left: 2px solid rgba(255,255,255,0.1); margin-left: 8px; animation: slideDown 0.3s ease;
+    display: none;
+    flex-direction: column; padding-left: 10px; margin-top: 5px;
+    border-left: 2px solid rgba(255,255,255,0.1); margin-left: 8px;
+    animation: slideDown 0.3s ease;
 }
 @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 .group-content.open { display: flex; }
 
 .cat-btn { 
-    width: 100%; text-align: left; padding: 10px 15px; background: transparent;
+    width: 100%;
+    text-align: left; padding: 10px 15px; background: transparent;
     color: #bbb; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 4px; 
     font-size: 14px; transition: 0.2s; display: flex; align-items: center; gap: 10px;
 }
@@ -188,13 +241,17 @@ body {
 .cat-btn.active { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; font-weight: bold; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); }
 .cat-icon-emoji { font-size: 18px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
 
+/* CONTENIDO DE ÍTEMS */
 #inv-content {
-    width: 70%; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; align-content: start; padding-right: 5px;
+    width: 70%; overflow-y: auto; display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; align-content: start; padding-right: 5px;
 }
 .item-card {
-    background: linear-gradient(145deg, rgba(40,40,50,0.9), rgba(25,25,30,0.9)); padding: 15px; border-radius: 18px;
-    border: 1px solid rgba(255,255,255,0.05); text-align: center; display: flex; flex-direction: column;
-    justify-content: space-between; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    background: linear-gradient(145deg, rgba(40,40,50,0.9), rgba(25,25,30,0.9));
+    padding: 15px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.05);
+    text-align: center; display: flex; flex-direction: column;
+    justify-content: space-between; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 .item-card:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 10px 25px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.2); }
 .item-preview {
@@ -205,7 +262,9 @@ body {
 .item-preview span { font-size: 48px; line-height: 120px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
 .item-card h4 { margin: 0 0 8px 0; font-size: 16px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
 .item-price { color: #FFD700; font-weight: bold; margin-bottom: 15px; font-size: 14px; text-shadow: 0 0 5px rgba(255, 215, 0, 0.3); }
-.item-btn { padding: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+.item-btn {
+    padding: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; transition: all 0.2s; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;
+}
 
 .btn-buy { background: linear-gradient(135deg, #FF9800, #F57C00); color: white; box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3); }
 .btn-buy:hover { background: linear-gradient(135deg, #FFB74D, #FF9800); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(255, 152, 0, 0.4); }
@@ -215,6 +274,7 @@ body {
 
 .btn-equipped { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; cursor: default; box-shadow: inset 0 2px 5px rgba(0,0,0,0.2), 0 0 10px rgba(76, 175, 80, 0.4); border: 1px solid rgba(129, 199, 132, 0.5); }
 
+/* --- MODAL PARA VER POSTERS --- */
 #poster-view-modal {
     display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 2000;
@@ -222,40 +282,13 @@ body {
 }
 #poster-view-modal.visible { display: flex; opacity: 1; }
 #poster-view-modal img {
-    max-width: 90%; max-height: 85%; border-radius: 15px; box-shadow: 0 15px 40px rgba(0,0,0,0.8); object-fit: contain;
-    transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    max-width: 90%; max-height: 85%; border-radius: 15px; box-shadow: 0 15px 40px rgba(0,0,0,0.8); object-fit: contain; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 #poster-view-modal.visible img { transform: scale(1); }
 #close-poster-view {
-    position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1); border: none;
-    color: white; font-size: 30px; cursor: pointer; width: 50px; height: 50px; border-radius: 50%; transition: 0.2s; display: flex; align-items: center; justify-content: center;
+    position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 30px; cursor: pointer; width: 50px; height: 50px; border-radius: 50%; transition: 0.2s; display: flex; align-items: center; justify-content: center;
 }
 #close-poster-view:hover { background: rgba(255,50,50,0.8); transform: rotate(90deg); }
-
-/* --- CONTROLES DE LA PANTALLA --- */
-#video-controls {
-    position: absolute;
-    bottom: 120px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(20,20,30,0.85);
-    backdrop-filter: blur(10px);
-    padding: 10px 20px;
-    border-radius: 25px;
-    border: 1px solid rgba(255,255,255,0.2);
-    display: none;
-    gap: 15px;
-    z-index: 400;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    align-items: center;
-    justify-content: center;
-}
-#video-controls.visible { display: flex; animation: slideDown 0.3s ease; }
-.vid-btn {
-    background: rgba(255,255,255,0.1); border: none; color: white; font-size: 20px; cursor: pointer; border-radius: 50%;
-    width: 45px; height: 45px; transition: 0.2s; display: flex; align-items: center; justify-content: center;
-}
-.vid-btn:hover { background: rgba(76, 175, 80, 0.8); transform: scale(1.1); }
 
 @media (max-width: 600px) {
     .top-btn { top: 10px; width: 40px; height: 40px; font-size: 20px; }
@@ -271,12 +304,12 @@ body {
     .item-card { padding: 12px; }
     .item-preview { height: 100px; }
     .item-preview span { font-size: 40px; line-height: 100px; }
-    #character-layer { bottom: 60px; width: 95%; }
-    #video-controls { bottom: 160px; }
+    #character-layer { bottom: 80px; width: 95%; }
 }
 
+/* --- ESTADOS --- */
 #loading, #light-status {
-    position: absolute; bottom: 20px; color: white; background: rgba(0,0,0,0.6);
+    position: absolute; bottom: 80px; color: white; background: rgba(0,0,0,0.6);
     padding: 8px 15px; border-radius: 12px; font-size: 13px; z-index: 100; pointer-events: none; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); font-weight: bold;
 }
 #loading { right: 20px; animation: pulse 1.5s infinite; }
