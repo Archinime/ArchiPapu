@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'room-cache-v4'; // Versión actualizada
+const CACHE_NAME = 'room-cache-v5'; // Versión actualizada para forzar los nuevos cambios
 const urlsToCache = [
     './',
     './index.html',
@@ -9,7 +9,6 @@ const urlsToCache = [
     'gohan_vs_cell.mp4',
     'zoro_vs_king.mp4',
     'rezero.mp4'
-    // Se quitaron los .glb de la precarga para evitar que se queden atascados en caché
 ];
 
 // Instalación
@@ -34,14 +33,12 @@ self.addEventListener('activate', event => {
 });
 
 // Estrategia Network First (Red Primero) para TODO.
-// Queremos los datos más recientes siempre al instante.
 self.addEventListener('fetch', event => {
     const requestUrl = event.request.url;
 
     event.respondWith(
         fetch(event.request).then(networkResponse => {
             // Solo guardamos en caché si NO tiene el parámetro "nocache".
-            // Esto evita que la memoria del teléfono se llene de copias del mismo modelo 3D.
             if (!requestUrl.includes('nocache=')) {
                 const clone = networkResponse.clone();
                 caches.open(CACHE_NAME).then(cache => {

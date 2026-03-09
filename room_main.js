@@ -4,17 +4,35 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
 // --- NUEVO: SISTEMA ANTI-CACHÉ ---
-// Esta función obliga a descargar el archivo más reciente siempre.
 function getFreshUrl(url) {
     if (!url) return url;
     const separator = url.includes('?') ? '&' : '?';
     return `${url}${separator}nocache=${Date.now()}`;
 }
 
+// --- UTILIDAD DE LIMPIEZA DE MEMORIA (EVITA LAG) ---
+function disposeThreeJSObject(node) {
+    if (!node) return;
+    if (node.geometry) node.geometry.dispose();
+    if (node.material) {
+        if (Array.isArray(node.material)) {
+            node.material.forEach(mat => {
+                if(mat.map) mat.map.dispose();
+                mat.dispose();
+            });
+        } else {
+            if(node.material.map) node.material.map.dispose();
+            node.material.dispose();
+        }
+    }
+    if (node.children) {
+        node.children.forEach(child => disposeThreeJSObject(child));
+    }
+}
+
 // --- SISTEMA DE DATOS E INVENTARIO ---
 let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
 document.getElementById('coin-amount').innerText = playerCoins;
-
 let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
 if (inventoryData.base_foco) delete inventoryData.base_foco;
 
@@ -24,7 +42,6 @@ for (let cat in defaultInventoryConfig) {
     inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
     inventoryData[cat].label = defaultInventoryConfig[cat].label;
     inventoryData[cat].type = defaultInventoryConfig[cat].type || 'single';
-    
     if (inventoryData[cat].type === 'multiple') {
         if (!Array.isArray(inventoryData[cat].equipped)) {
             inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
@@ -41,7 +58,6 @@ for (let cat in defaultInventoryConfig) {
         } else {
             inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file;
             inventoryData[cat].items[item].name = defaultInventoryConfig[cat].items[item].name;
-            
             if(defaultInventoryConfig[cat].items[item].baseFile) {
                 inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile;
             }
@@ -83,15 +99,19 @@ let camPosY = 6, camPosZ = 14, targetY = 6;
 if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
 camera.position.set(0, camPosY, camPosZ);
 
-// --- RENDERIZADOR ---
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+// --- RENDERIZADOR (Optimizado) ---
+const renderer = new THREE.WebGLRenderer({ 
+    antialias: !isMobileUA, // Se apaga el antialias en móviles para dar un boost extremo de FPS
+    powerPreference: "high-performance" 
+});
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; 
 renderer.toneMappingExposure = 1.0;
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+// Limitamos la densidad de píxeles a 1 en móviles y hasta 2 en PC para evitar lag en pantallas 4k/Retina
+renderer.setPixelRatio(isMobileUA ? 1 : Math.min(window.devicePixelRatio, 2));
 document.body.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -104,7 +124,6 @@ controls.enablePan = false;
 // --- LUCES BASE ---
 const ambient = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(ambient);
-
 const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); 
 hemiLight.position.set(0, 20, 0); 
 scene.add(hemiLight);
@@ -113,7 +132,7 @@ const mainLight = new THREE.SpotLight(0xffeedd, 6);
 mainLight.position.set(2, 22, 2);
 mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
 mainLight.castShadow = true;
-mainLight.shadow.mapSize.set(2048, 2048);
+mainLight.shadow.mapSize.set(isMobileUA ? 1024 : 2048, isMobileUA ? 1024 : 2048); // Sombras más ligeras en móvil
 mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; 
 mainLight.shadow.bias = -0.002;
 mainLight.shadow.normalBias = 0.05; 
@@ -130,17 +149,13 @@ function actualizarIluminacionFocoDia() {
     let colorHex, lightInt, emInt, dist;
 
     if (hora >= 6 && hora < 9) {
-        colorHex = 0xffe4b5;
-        lightInt = 0.8; emInt = 0.8; dist = 35;
+        colorHex = 0xffe4b5; lightInt = 0.8; emInt = 0.8; dist = 35;
     } else if (hora >= 9 && hora < 17) {
-        colorHex = 0xffffff;
-        lightInt = 1.5; emInt = 1.5; dist = 50;
+        colorHex = 0xffffff; lightInt = 1.5; emInt = 1.5; dist = 50;
     } else if (hora >= 17 && hora < 19) {
-        colorHex = 0xff8c00;
-        lightInt = 0.7; emInt = 0.7; dist = 40;
+        colorHex = 0xff8c00; lightInt = 0.7; emInt = 0.7; dist = 40;
     } else {
-        colorHex = 0x5566aa;
-        lightInt = 0.25; emInt = 0.25; dist = 25; 
+        colorHex = 0x5566aa; lightInt = 0.25; emInt = 0.25; dist = 25; 
     }
 
     if (luzFocoDia) {
@@ -215,7 +230,6 @@ function updatePlaylist() {
 function playNextTv(random = false) {
     updatePlaylist();
     if(tvPlaylist.length === 0) return;
-    
     if(random) {
         currentTvIndex = Math.floor(Math.random() * tvPlaylist.length);
     } else {
@@ -225,7 +239,6 @@ function playNextTv(random = false) {
     tvVideo.play().catch(e => console.warn('Requiere interacción de usuario primero', e));
 }
 
-// Eventos de TV
 tvVideo.addEventListener('ended', () => playNextTv(false));
 
 document.getElementById('tv-prev').onclick = () => {
@@ -239,8 +252,6 @@ document.getElementById('tv-next').onclick = () => playNextTv(false);
 document.getElementById('tv-play-pause').onclick = () => {
     if(tvVideo.paused) tvVideo.play(); else tvVideo.pause();
 };
-
-// Intento inicial para cargar la textura (puede estar pausado por navegador)
 playNextTv(true);
 
 // --- CÁLCULO DINÁMICO DE CARGA ---
@@ -248,9 +259,8 @@ let totalModelsToLoad = 0;
 let modelsLoaded = 0;
 
 for (let cat in inventoryData) {
-    if (inventoryData[cat].type === 'multiple') continue; // Los videos no son modelos
+    if (inventoryData[cat].type === 'multiple') continue;
     let equippedItemId = inventoryData[cat].equipped;
-    
     if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
         let itemData = inventoryData[cat].items[equippedItemId];
         if (itemData.file) totalModelsToLoad++;
@@ -258,9 +268,7 @@ for (let cat in inventoryData) {
         if (cat === 'tele' && itemData.baseFile) totalModelsToLoad++;
     }
 }
-totalModelsToLoad += 2; // Lunari
-totalModelsToLoad += 1; // Cuadro
-totalModelsToLoad += 1; // Foco de Día
+totalModelsToLoad += 4; // Lunari + Animación + Cuadro + Foco de Día
 
 function checkLoading() {
     modelsLoaded++;
@@ -283,7 +291,6 @@ let baseAction = null;
 let randomAction = null;
 let currentAction = null;
 
-// AQUI ESTA LA MAGIA ANTI-CACHÉ (getFreshUrl)
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const lunariModel = gltf.scene;
     applyMaterialLogic(lunariModel, 'lunari');
@@ -367,16 +374,16 @@ setInterval(() => {
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
     
+    // RECOLECTOR DE BASURA: Destruye el modelo viejo antes de cargar el nuevo
     if (loadedSlotMeshes[categoryKey]) {
         scene.remove(loadedSlotMeshes[categoryKey]);
+        disposeThreeJSObject(loadedSlotMeshes[categoryKey]);
     }
 
-    // MAGIA ANTI-CACHÉ EN CADA CARGA DE INVENTARIO
     loader.load(getFreshUrl(itemFile), (gltf) => {
         const model = gltf.scene;
         applyMaterialLogic(model, categoryKey);
         
-        // --- INTEGRACIÓN TEXTURA DE TELEVISIÓN SOLO EN PANTALLA ---
         if (categoryKey === 'pantalla_tv') {
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
@@ -410,7 +417,6 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
 
         scene.add(model);
         loadedSlotMeshes[categoryKey] = model;
-        
         if(isInitialLoad) checkLoading();
     }, undefined, (e) => { 
         console.error(`Error cargando modelo [${categoryKey}]:`, itemFile);
@@ -424,7 +430,6 @@ for (let cat in inventoryData) {
     
     if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
         let itemData = inventoryData[cat].items[equippedItemId];
-        
         if (itemData.file) {
             loadItemForSlot(cat, itemData.file, true);
         }
@@ -437,7 +442,7 @@ for (let cat in inventoryData) {
     }
 }
 
-// --- CARGA DEL CUADRO CON VIDEO Y CLIMA API ---
+// --- CLIMA NINJA (API POR IP SIN PEDIR PERMISO) ---
 (async function setupWeatherVideo() {
     const video = document.createElement('video');
     video.loop = true; video.muted = true; video.playsInline = true; video.crossOrigin = 'anonymous';
@@ -447,10 +452,21 @@ for (let cat in inventoryData) {
     const statusBox = document.getElementById('weather-status');
 
     try {
-        const pos = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
-        });
-        const lat = pos.coords.latitude; const lon = pos.coords.longitude;
+        // Obtenemos coordenadas aproximadas usando la IP del usuario. No saltará ninguna alerta.
+        let lat, lon;
+        try {
+            const ipResponse = await fetch('https://ipapi.co/json/');
+            const ipData = await ipResponse.json();
+            if(ipData.latitude && ipData.longitude) {
+                lat = ipData.latitude;
+                lon = ipData.longitude;
+            } else throw new Error("Fallback a Lima");
+        } catch(ipError) {
+            // Si tiene adblocker o falla la API, lo mandamos a Lima por defecto para que no se rompa nada
+            lat = -12.0464; 
+            lon = -77.0428;
+        }
+
         const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
         const data = await response.json();
         
@@ -523,8 +539,7 @@ for (let cat in inventoryData) {
     videoTexture.magFilter = THREE.LinearFilter;
     videoTexture.format = THREE.RGBAFormat;
     videoTexture.encoding = THREE.sRGBEncoding;
-    
-    // MAGIA ANTI-CACHÉ AL CUADRO
+
     loader.load(getFreshUrl('cuadro.glb'), (gltf) => {
         const cuadroModel = gltf.scene;
         cuadroModel.traverse((node) => {
@@ -560,7 +575,6 @@ for (let cat in inventoryData) {
 // --- SISTEMA DE ILUMINACIÓN ---
 function updateLighting() {
     const isLow = perfCheck.checked;
-    
     if (lightOn) {
         mainLight.visible = true;
         ambient.intensity = isLow ? 0.8 : 0.3;
@@ -609,11 +623,10 @@ function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     const x = event.touches ? event.touches[0].clientX : event.clientX;
     const y = event.touches ? event.touches[0].clientY : event.clientY;
-    
     mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
-    
+
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
         toggleLight();
         return;
@@ -659,7 +672,6 @@ function updateQuality() {
     renderer.shadowMap.enabled = !isLow;
     renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
     document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-    
     for (let cat in loadedSlotMeshes) {
         applyMaterialLogic(loadedSlotMeshes[cat], cat);
     }
@@ -678,7 +690,7 @@ function renderInventory() {
     const sidebar = document.getElementById('inv-sidebar');
     const content = document.getElementById('inv-content');
     sidebar.innerHTML = ''; content.innerHTML = '';
-    
+
     inventoryGroups.forEach(group => {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'inv-group';
@@ -698,21 +710,19 @@ function renderInventory() {
         group.categories.forEach(catKey => {
             const catData = inventoryData[catKey];
             if(!catData) return;
-    
             const btn = document.createElement('button');
             btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
             btn.innerHTML = `<span class="cat-icon-emoji">${catData.emoji}</span> <span>${catData.label}</span>`;
             btn.onclick = () => { currentCategory = catKey; renderInventory(); };
             groupContent.appendChild(btn);
         });
-        
         groupDiv.appendChild(groupContent);
         sidebar.appendChild(groupDiv);
     });
 
     const catData = inventoryData[currentCategory];
     if (!catData) return;
-    
+
     for (let itemId in catData.items) {
         const item = catData.items[itemId];
         let isEquipped = false;
@@ -727,7 +737,7 @@ function renderInventory() {
 
         const previewDiv = document.createElement('div');
         previewDiv.className = 'item-preview';
-        
+
         if (item.preview) {
             const img = document.createElement('img');
             img.src = item.preview;
@@ -761,10 +771,8 @@ function renderInventory() {
     }
 }
 
-// Para usar functions inline en el innerHTML superior:
 window.equipItem = function(category, itemId) {
     const catData = inventoryData[category];
-    
     if (catData.type === 'multiple') {
         const idx = catData.equipped.indexOf(itemId);
         if (idx > -1) {
@@ -791,7 +799,6 @@ window.equipItem = function(category, itemId) {
 
 window.buyItem = function(category, itemId) {
     let item = inventoryData[category].items[itemId];
-    
     if (playerCoins >= item.price) {
         playerCoins -= item.price;
         item.owned = true;
