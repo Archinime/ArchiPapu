@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <title>Habitación 3D - Inventario y Lunari</title>
     <link rel="stylesheet" href="room_style.css">
 </head>
@@ -65,6 +70,19 @@
         }
     </script>
 
-    <script type="module" src="room_main.js"></script>
+    <script type="module" src="room_main.js?v=always_fresh"></script>
+    
+    <script>
+        // Registrar Service Worker para manejar el caché de forma inteligente
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(reg => {
+                    console.log('SW registrado', reg);
+                }).catch(err => {
+                    console.log('Fallo SW', err);
+                });
+            });
+        }
+    </script>
 </body>
 </html>
