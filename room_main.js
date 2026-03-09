@@ -46,59 +46,10 @@ const loadedSlotMeshes = {};
 let switchMesh = null;
 let focoMesh = null;
 
-// --- VARIABLES DEL FOCO DE DÍA (ACTUALIZADO PARA DÍA, NOCHE, AMANECER, ATARDECER) ---
+// --- VARIABLES DEL FOCO DE DÍA ---
 let focoDiaMesh = null;
 let luzFocoDia = null;
 let esDeDiaLocal = true;
-
-// Variables dinámicas para el color e intensidad del foco_dia
-let currentLightColor = new THREE.Color(0xffeedd);
-let currentLightIntensity = 1.5;
-let currentEmissiveIntensity = 1.5;
-
-function updateFocoDiaLighting() {
-    const hour = new Date().getHours();
-    
-    if (hour >= 6 && hour < 9) { 
-        // 🌅 Amanecer
-        currentLightColor.setHex(0xffdfb0); 
-        currentLightIntensity = 0.8;
-        currentEmissiveIntensity = 0.8;
-    } else if (hour >= 9 && hour < 18) { 
-        // ☀️ Día
-        currentLightColor.setHex(0xffeedd); 
-        currentLightIntensity = 1.5;
-        currentEmissiveIntensity = 1.5;
-    } else if (hour >= 18 && hour < 20) { 
-        // 🌇 Atardecer
-        currentLightColor.setHex(0xff8c00); 
-        currentLightIntensity = 1.0;
-        currentEmissiveIntensity = 1.0;
-    } else { 
-        // 🌙 Noche
-        currentLightColor.setHex(0x5577aa); // Luz tenue azulada/fría
-        currentLightIntensity = 0.3;
-        currentEmissiveIntensity = 0.3;
-    }
-
-    if (luzFocoDia) {
-        luzFocoDia.color.copy(currentLightColor);
-        luzFocoDia.intensity = currentLightIntensity;
-        luzFocoDia.visible = true; // Siempre activo ahora
-    }
-
-    if (focoDiaMesh) {
-        focoDiaMesh.visible = true; // Siempre visible
-        focoDiaMesh.traverse((n) => {
-            if (n.isMesh && n.material) {
-                n.material.emissive.copy(currentLightColor);
-                n.material.emissiveIntensity = currentEmissiveIntensity;
-            }
-        });
-    }
-}
-setInterval(updateFocoDiaLighting, 60000); // Revisa la hora cada minuto
-updateFocoDiaLighting(); // Establecer estado inicial
 
 // --- Detección de dispositivo ---
 const ua = navigator.userAgent;
@@ -136,9 +87,10 @@ controls.maxPolarAngle = Math.PI / 2 - 0.05;
 controls.minDistance = 2.5; controls.maxDistance = 16;
 controls.enablePan = false;
 
-// --- LUCES ---
+// --- LUCES BASE ---
 const ambient = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(ambient);
+
 const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); 
 hemiLight.position.set(0, 20, 0); 
 scene.add(hemiLight);
@@ -155,6 +107,45 @@ let lightOn = localStorage.getItem('lightState') !== 'off';
 const perfCheck = document.getElementById('performance-mode');
 perfCheck.checked = localStorage.getItem('performanceMode') === 'true';
 
+// --- NUEVA LÓGICA DE ILUMINACIÓN DE FOCO_DIA ---
+function actualizarIluminacionFocoDia() {
+    const hora = new Date().getHours();
+    let colorHex, lightInt, emInt, dist;
+
+    if (hora >= 6 && hora < 9) {
+        // 🌅 Amanecer
+        colorHex = 0xffe4b5; lightInt = 0.8; emInt = 0.8; dist = 35;
+    } else if (hora >= 9 && hora < 17) {
+        // ☀️ Día
+        colorHex = 0xffffff; lightInt = 1.5; emInt = 1.5; dist = 50;
+    } else if (hora >= 17 && hora < 19) {
+        // 🌇 Atardecer
+        colorHex = 0xff8c00; lightInt = 0.7; emInt = 0.7; dist = 40;
+    } else {
+        // 🌙 Noche
+        colorHex = 0x5566aa; lightInt = 0.25; emInt = 0.25; dist = 25; 
+    }
+
+    if (luzFocoDia) {
+        luzFocoDia.color.setHex(colorHex);
+        luzFocoDia.intensity = lightInt;
+        luzFocoDia.distance = dist;
+    }
+    
+    if (focoDiaMesh) {
+        focoDiaMesh.traverse((n) => {
+            if (n.isMesh && n.material) {
+                // Actualizamos el color emisivo y la intensidad según la hora
+                n.material.emissive.setHex(colorHex);
+                n.material.emissiveIntensity = emInt;
+                n.material.needsUpdate = true;
+            }
+        });
+    }
+}
+// Actualizar dinámicamente cada minuto
+setInterval(actualizarIluminacionFocoDia, 60000);
+
 function applyMaterialLogic(model, categoryKey) {
     if(!model) return;
     const isLow = perfCheck.checked;
@@ -167,12 +158,13 @@ function applyMaterialLogic(model, categoryKey) {
             if (isFoco || isFocoDia) {
                 node.castShadow = false; node.receiveShadow = false;
                 if (node.material) {
-                    if (isFocoDia) {
-                        node.material.emissive = currentLightColor.clone();
-                        node.material.emissiveIntensity = currentEmissiveIntensity;
-                    } else {
+                    if (isFoco) {
                         node.material.emissive = new THREE.Color(0xffeedd);
-                        if (isFoco) node.material.emissiveIntensity = lightOn ? 1.5 : 0;
+                        node.material.emissiveIntensity = lightOn ? 1.5 : 0;
+                    }
+                    if (isFocoDia) {
+                        // El foco_dia lo maneja la función de tiempo ahora
+                        node.material.emissive = new THREE.Color(0xffffff); 
                     }
                 }
             } else {
@@ -193,6 +185,7 @@ function applyMaterialLogic(model, categoryKey) {
 // --- CÁLCULO DINÁMICO DE CARGA ---
 let totalModelsToLoad = 0;
 let modelsLoaded = 0;
+
 for (let cat in inventoryData) {
     let equippedItemId = inventoryData[cat].equipped;
     if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
@@ -258,13 +251,13 @@ loader.load('Lunari_Duerme_2.glb', (gltf) => {
     checkLoading();
 });
 
-// Carga del Foco de Día Condicional
+// --- CARGA DEL FOCO DE DÍA DINÁMICO ---
 loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb', (gltf) => {
     focoDiaMesh = gltf.scene;
     applyMaterialLogic(focoDiaMesh, 'foco_dia'); 
     
-    // Luz clonada para el foco de día dinámico, distancia reducida a 25
-    luzFocoDia = new THREE.PointLight(currentLightColor, currentLightIntensity, 25);
+    // Luz clonada para el foco de día, ahora arranca siempre, los valores se actualizan luego
+    luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
     const box = new THREE.Box3().setFromObject(focoDiaMesh);
     const center = new THREE.Vector3(); box.getCenter(center);
     luzFocoDia.position.copy(center);
@@ -278,9 +271,11 @@ loader.load('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
     scene.add(luzFocoDia);
     scene.add(focoDiaMesh);
     
-    // Aplicar estado de luz dinámico inicial
-    updateFocoDiaLighting();
+    // Siempre visibles, el estilo lo define la hora
+    focoDiaMesh.visible = true;
+    luzFocoDia.visible = true;
     
+    actualizarIluminacionFocoDia();
     checkLoading();
 }, undefined, (e) => {
     console.error('Error cargando foco de dia:', e);
@@ -349,7 +344,7 @@ for (let cat in inventoryData) {
     }
 }
 
-// --- CARGA DEL CUADRO CON VIDEO Y CLIMA API (MAPEADO COMPLETO Y DÍA/NOCHE) ---
+// --- CARGA DEL CUADRO CON VIDEO Y CLIMA API ---
 (async function setupWeatherVideo() {
     const video = document.createElement('video');
     video.loop = true;
@@ -379,12 +374,13 @@ for (let cat in inventoryData) {
         const code = data.current_weather.weathercode;
         const isDay = data.current_weather.is_day; // 1 = día, 0 = noche
         
-        // --- ACTUALIZACIÓN DE FOCO DE DÍA BASADO EN CLIMA Y HORA ---
+        // --- ACTUALIZACIÓN BASADO EN CLIMA ---
         esDeDiaLocal = (isDay === 1);
-        updateFocoDiaLighting(); // Fuerza la actualización de luz dinámica
-        // ----------------------------------------------------
+        // Actualizamos foco_dia por si hubo un cambio (aunque el intervalo ya se encarga)
+        actualizarIluminacionFocoDia();
 
         temperature = data.current_weather.temperature;
+
         // MAPEADO COMPLETO WMO CON VERIFICACIÓN DÍA Y NOCHE
         if (code === 0) {
             weatherName = isDay ? "Despejado" : "Noche despejada";
@@ -437,7 +433,6 @@ for (let cat in inventoryData) {
         weatherName = "Clima offline";
     }
 
-    // Actualizar la interfaz con el clima y la TEMPERATURA
     if (temperature !== "--") {
         statusBox.innerHTML = `${weatherEmoji} ${weatherName} | ${temperature}°C`;
     } else {
@@ -445,16 +440,14 @@ for (let cat in inventoryData) {
     }
     video.src = videoFile;
 
-    // Iniciar video
     video.play().catch(e => console.log('Autoplay bloqueado:', e));
-    // Configurar textura 3D
+
     const videoTexture = new THREE.VideoTexture(video);
     videoTexture.minFilter = THREE.LinearFilter;
     videoTexture.magFilter = THREE.LinearFilter;
     videoTexture.format = THREE.RGBAFormat;
     videoTexture.encoding = THREE.sRGBEncoding;
     
-    // Cargar el cuadro
     loader.load('cuadro.glb', (gltf) => {
         const cuadroModel = gltf.scene;
         
@@ -536,13 +529,11 @@ function handleInteraction(event) {
     mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
 
-    // Chequeo de Luz
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
         toggleLight();
         return; 
     }
 
-    // Chequeo de Pósters Dinámicos
     const posterCategories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
     for (let cat of posterCategories) {
         const posterMesh = loadedSlotMeshes[cat];
@@ -573,9 +564,9 @@ function updateQuality() {
         applyMaterialLogic(loadedSlotMeshes[cat], cat);
     }
     
-    // Si focoDiaMesh ya se cargó, asegurar que tenga su material adecuado
+    // Volver a aplicar configuración de luz si focoDiaMesh ya se cargó
     if (focoDiaMesh) {
-        applyMaterialLogic(focoDiaMesh, 'foco_dia');
+        actualizarIluminacionFocoDia();
     }
     
     localStorage.setItem('performanceMode', isLow);
@@ -625,7 +616,7 @@ function renderInventory() {
 
     const catData = inventoryData[currentCategory];
     if (!catData) return;
-    
+
     for (let itemId in catData.items) {
         const item = catData.items[itemId];
         const isEquipped = catData.equipped === itemId;
@@ -635,7 +626,7 @@ function renderInventory() {
 
         const previewDiv = document.createElement('div');
         previewDiv.className = 'item-preview';
-        
+
         if (item.preview) {
             const img = document.createElement('img');
             img.src = item.preview;
@@ -680,7 +671,6 @@ function renderInventory() {
     document.querySelectorAll('.btn-equip').forEach(b => {
         b.onclick = (e) => equipItem(currentCategory, e.target.getAttribute('data-id'));
     });
-    
     document.querySelectorAll('.btn-buy').forEach(b => {
         b.onclick = (e) => buyItem(currentCategory, e.target.getAttribute('data-id'));
     });
@@ -715,6 +705,7 @@ document.getElementById('inventory-button').onclick = () => {
     document.getElementById('inventory-modal').classList.add('visible');
     renderInventory();
 };
+
 document.getElementById('close-inv').onclick = () => {
     document.getElementById('inventory-modal').classList.remove('visible');
 };
