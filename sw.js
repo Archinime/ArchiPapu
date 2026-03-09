@@ -1,14 +1,15 @@
 // sw.js
-const CACHE_NAME = 'room-cache-v2';
+const CACHE_NAME = 'room-cache-v3'; // Versión actualizada para forzar limpieza
 const urlsToCache = [
     './',
+    './index.html',
+    './room_style.css',
+    './room_main.js',
     './inventory-data.js',
     'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/lunari_durmiendo1.glb',
     'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/Lunari_Duerme_2.glb',
     'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cuadro.glb',
     'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
-    
-    // Tus nuevos recursos para la TV
     'pantalla.glb',
     'gohan_vs_cell.mp4',
     'zoro_vs_king.mp4',
@@ -36,10 +37,36 @@ self.addEventListener('activate', event => {
     );
 });
 
-// Estrategia: Cache first, luego red
+// Estrategia Inteligente: 
+// - Modelos 3D y Videos: Cache first (para que cargue rápido)
+// - HTML, CSS, JS, JSON: Network first (para que siempre veas tus actualizaciones)
 self.addEventListener('fetch', event => {
-    event.respondWith(
-        caches.match(event.request)
-            .then(response => response || fetch(event.request))
-    );
+    const requestUrl = event.request.url;
+    const isHeavyAsset = requestUrl.endsWith('.glb') || requestUrl.endsWith('.mp4') || requestUrl.includes('cdn.jsdelivr.net');
+
+    if (isHeavyAsset) {
+        // Estrategia: Cache First para archivos pesados
+        event.respondWith(
+            caches.match(event.request).then(cachedResponse => {
+                return cachedResponse || fetch(event.request).then(networkResponse => {
+                    return caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, networkResponse.clone());
+                        return networkResponse;
+                    });
+                });
+            })
+        );
+    } else {
+        // Estrategia: Network First para código (HTML, CSS, JS)
+        event.respondWith(
+            fetch(event.request).then(networkResponse => {
+                return caches.open(CACHE_NAME).then(cache => {
+                    cache.put(event.request, networkResponse.clone());
+                    return networkResponse;
+                });
+            }).catch(() => {
+                return caches.match(event.request);
+            })
+        );
+    }
 });
