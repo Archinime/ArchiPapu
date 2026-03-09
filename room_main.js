@@ -99,6 +99,7 @@ mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; ma
 mainLight.castShadow = true;
 mainLight.shadow.mapSize.set(2048, 2048);
 mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; 
+// CORRECCIÓN DE ACNÉ DE SOMBRAS PARA LA LUZ PRINCIPAL
 mainLight.shadow.bias = -0.002;
 mainLight.shadow.normalBias = 0.05; 
 mainLight.shadow.radius = 4; 
@@ -140,6 +141,7 @@ function actualizarIluminacionFocoDia() {
     if (focoDiaMesh) {
         focoDiaMesh.traverse((n) => {
             if (n.isMesh && n.material) {
+                // Actualizamos el color emisivo y la intensidad según la hora
                 n.material.emissive.setHex(colorHex);
                 n.material.emissiveIntensity = emInt;
                 n.material.needsUpdate = true;
@@ -167,6 +169,7 @@ function applyMaterialLogic(model, categoryKey) {
                         node.material.emissiveIntensity = lightOn ? 1.5 : 0;
                     }
                     if (isFocoDia) {
+                        // El foco_dia lo maneja la función de tiempo ahora
                         node.material.emissive = new THREE.Color(0xffffff); 
                     }
                 }
@@ -174,6 +177,7 @@ function applyMaterialLogic(model, categoryKey) {
                 node.castShadow = !isLow; node.receiveShadow = !isLow;
                 if(node.material) {
                     node.material.shadowSide = THREE.FrontSide;
+                    // CORRECCIÓN ADICIONAL PARA TECHOS Y PAREDES
                     if(node.name.toLowerCase().includes('pared') ||
                        node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo')) {
                         node.material.shadowSide = THREE.BackSide;
@@ -256,29 +260,30 @@ loader.load('Lunari_Duerme_2.glb', (gltf) => {
 });
 
 // --- CARGA DEL FOCO DE DÍA DINÁMICO ---
-// Cambio a Raw GitHub para esquivar el caché molesto de jsDelivr y se añade un timestamp
-loader.load(`https://raw.githubusercontent.com/Archinime/ArchiPapu/main/foco_dia.glb?v=${Date.now()}`, (gltf) => {
+// Agregamos un timestamp dinámico para eludir la caché en el frontend.
+const cacheBuster = Date.now(); 
+loader.load(`https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb?v=${cacheBuster}`, (gltf) => {
     focoDiaMesh = gltf.scene;
     applyMaterialLogic(focoDiaMesh, 'foco_dia'); 
     
-    // Luz clonada para el foco de día
+    // Luz clonada para el foco de día, ahora arranca siempre, los valores se actualizan luego
     luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
     const box = new THREE.Box3().setFromObject(focoDiaMesh);
     const center = new THREE.Vector3(); box.getCenter(center);
     luzFocoDia.position.copy(center);
     luzFocoDia.position.y -= 0.2;
     
+    // CORRECCIÓN DE ACNÉ DE SOMBRAS PARA FOCO DE DÍA
     luzFocoDia.castShadow = true;
-    luzFocoDia.shadow.mapSize.set(1024, 1024);
-    luzFocoDia.shadow.bias = -0.005;
-    luzFocoDia.shadow.normalBias = 0.1;
+    luzFocoDia.shadow.mapSize.set(1024, 1024); // Mayor resolución para la sombra
+    luzFocoDia.shadow.bias = -0.005; // Ajuste fuerte para eliminar rayas
+    luzFocoDia.shadow.normalBias = 0.1; // Suaviza las sombras en esquinas
     
     scene.add(luzFocoDia);
+    scene.add(focoDiaMesh);
     
-    // IMPORTANTE: Ya NO añadimos focoDiaMesh a la escena (scene.add). 
-    // De esta forma es absolutamente imposible que el modelo viejo o nuevo se vea visualmente.
-    // Mantenemos la variable viva para la luz y la lógica interna de materiales sin que dé error.
-    
+    // El objeto físico ahora se mantiene oculto, pero su lógica y luz seguirán activas.
+    focoDiaMesh.visible = false; // <-- AQUÍ SE OCULTA EL OBJETO
     luzFocoDia.visible = true; 
     
     actualizarIluminacionFocoDia();
@@ -359,6 +364,7 @@ for (let cat in inventoryData) {
     video.playsInline = true;
     video.crossOrigin = 'anonymous';
     
+    // Valores por defecto
     let videoFile = 'dia_soleado.mp4'; 
     let weatherEmoji = "☀️";
     let weatherName = "Clima estándar";
@@ -378,12 +384,14 @@ for (let cat in inventoryData) {
         const data = await response.json();
         
         const code = data.current_weather.weathercode;
-        const isDay = data.current_weather.is_day; 
+        const isDay = data.current_weather.is_day; // 1 = día, 0 = noche
         
+        // --- ACTUALIZACIÓN BASADO EN CLIMA ---
         esDeDiaLocal = (isDay === 1);
         actualizarIluminacionFocoDia();
         temperature = data.current_weather.temperature;
 
+        // MAPEADO COMPLETO WMO CON VERIFICACIÓN DÍA Y NOCHE
         if (code === 0) {
             weatherName = isDay ? "Despejado" : "Noche despejada";
             weatherEmoji = isDay ? "☀️" : "🌙";
@@ -458,6 +466,7 @@ for (let cat in inventoryData) {
                 if (Array.isArray(node.material)) {
                     node.material.forEach(mat => {
                         mat.map = videoTexture;
+                        // CORRECCIÓN DE PANTALLA: Esto hace que el video emita su propia luz
                         mat.emissive = new THREE.Color(0xffffff);
                         mat.emissiveMap = videoTexture;
                         mat.emissiveIntensity = 1.0;
@@ -465,6 +474,7 @@ for (let cat in inventoryData) {
                     });
                 } else if (node.material) {
                     node.material.map = videoTexture;
+                    // CORRECCIÓN DE PANTALLA: Esto hace que el video emita su propia luz
                     node.material.emissive = new THREE.Color(0xffffff);
                     node.material.emissiveMap = videoTexture;
                     node.material.emissiveIntensity = 1.0;
@@ -528,13 +538,11 @@ posterViewModal.onclick = (e) => {
     if (e.target === posterViewModal) posterViewModal.classList.remove('visible');
 };
 
-// --- SISTEMA DE INTERACCIÓN GENERAL (RENOVADO PARA EVITAR ACTIVAR AL ARRASTRAR) ---
-let pointerDownX = 0;
-let pointerDownY = 0;
-let isDraggingInteraction = false;
-
-function handleInteraction(x, y) {
+// --- SISTEMA DE INTERACCIÓN GENERAL ---
+function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
+    const x = event.touches ? event.touches[0].clientX : event.clientX;
+    const y = event.touches ? event.touches[0].clientY : event.clientY;
     mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
@@ -557,30 +565,11 @@ function handleInteraction(x, y) {
     }
 }
 
-// Remplazamos eventos click y touchstart por Pointer Events para unificar táctil y ratón
-renderer.domElement.addEventListener('pointerdown', (e) => {
-    pointerDownX = e.clientX;
-    pointerDownY = e.clientY;
-    isDraggingInteraction = false;
-});
-
-renderer.domElement.addEventListener('pointermove', (e) => {
-    // Si se mueve más de 4 pixeles desde que presionó, se considera arrastre de cámara
-    if (Math.abs(e.clientX - pointerDownX) > 4 || Math.abs(e.clientY - pointerDownY) > 4) {
-        isDraggingInteraction = true;
-    }
-});
-
-renderer.domElement.addEventListener('pointerup', (e) => {
+renderer.domElement.addEventListener('click', handleInteraction);
+renderer.domElement.addEventListener('touchstart', (e) => { 
     if(document.getElementById('inventory-modal').classList.contains('visible')) return;
-    
-    // Solo dispara la interacción si NO se estaba arrastrando la cámara
-    if (!isDraggingInteraction) {
-        handleInteraction(e.clientX, e.clientY);
-    }
-    
-    isDraggingInteraction = false; // Resetear para la próxima interacción
-});
+    handleInteraction(e); 
+}, {passive: true});
 
 // --- Calidad / Modo Humilde ---
 function updateQuality() {
@@ -593,6 +582,7 @@ function updateQuality() {
         applyMaterialLogic(loadedSlotMeshes[cat], cat);
     }
     
+    // Volver a aplicar configuración de luz si focoDiaMesh ya se cargó
     if (focoDiaMesh) {
         actualizarIluminacionFocoDia();
     }
