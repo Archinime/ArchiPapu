@@ -1,21 +1,18 @@
 // sw.js
-const CACHE_NAME = 'room-cache-v2';
+const CACHE_NAME = 'room-cache-v4'; // Versión actualizada
 const urlsToCache = [
     './',
+    './index.html',
+    './room_style.css',
+    './room_main.js',
     './inventory-data.js',
-    'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/lunari_durmiendo1.glb',
-    'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/Lunari_Duerme_2.glb',
-    'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cuadro.glb',
-    'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
-    
-    // Tus nuevos recursos para la TV
-    'pantalla.glb',
     'gohan_vs_cell.mp4',
     'zoro_vs_king.mp4',
     'rezero.mp4'
+    // Se quitaron los .glb de la precarga para evitar que se queden atascados en caché
 ];
 
-// Instalación: cachea los archivos esenciales
+// Instalación
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -36,10 +33,25 @@ self.addEventListener('activate', event => {
     );
 });
 
-// Estrategia: Cache first, luego red
+// Estrategia Network First (Red Primero) para TODO.
+// Queremos los datos más recientes siempre al instante.
 self.addEventListener('fetch', event => {
+    const requestUrl = event.request.url;
+
     event.respondWith(
-        caches.match(event.request)
-            .then(response => response || fetch(event.request))
+        fetch(event.request).then(networkResponse => {
+            // Solo guardamos en caché si NO tiene el parámetro "nocache".
+            // Esto evita que la memoria del teléfono se llene de copias del mismo modelo 3D.
+            if (!requestUrl.includes('nocache=')) {
+                const clone = networkResponse.clone();
+                caches.open(CACHE_NAME).then(cache => {
+                    cache.put(event.request, clone);
+                });
+            }
+            return networkResponse;
+        }).catch(() => {
+            // Si no hay internet, intentamos cargar lo que haya en la caché
+            return caches.match(event.request);
+        })
     );
 });

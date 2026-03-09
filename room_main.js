@@ -3,6 +3,14 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
 
+// --- NUEVO: SISTEMA ANTI-CACHÉ ---
+// Esta función obliga a descargar el archivo más reciente siempre.
+function getFreshUrl(url) {
+    if (!url) return url;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}nocache=${Date.now()}`;
+}
+
 // --- SISTEMA DE DATOS E INVENTARIO ---
 let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
 document.getElementById('coin-amount').innerText = playerCoins;
@@ -33,6 +41,7 @@ for (let cat in defaultInventoryConfig) {
         } else {
             inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file;
             inventoryData[cat].items[item].name = defaultInventoryConfig[cat].items[item].name;
+            
             if(defaultInventoryConfig[cat].items[item].baseFile) {
                 inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile;
             }
@@ -121,13 +130,17 @@ function actualizarIluminacionFocoDia() {
     let colorHex, lightInt, emInt, dist;
 
     if (hora >= 6 && hora < 9) {
-        colorHex = 0xffe4b5; lightInt = 0.8; emInt = 0.8; dist = 35;
+        colorHex = 0xffe4b5;
+        lightInt = 0.8; emInt = 0.8; dist = 35;
     } else if (hora >= 9 && hora < 17) {
-        colorHex = 0xffffff; lightInt = 1.5; emInt = 1.5; dist = 50;
+        colorHex = 0xffffff;
+        lightInt = 1.5; emInt = 1.5; dist = 50;
     } else if (hora >= 17 && hora < 19) {
-        colorHex = 0xff8c00; lightInt = 0.7; emInt = 0.7; dist = 40;
+        colorHex = 0xff8c00;
+        lightInt = 0.7; emInt = 0.7; dist = 40;
     } else {
-        colorHex = 0x5566aa; lightInt = 0.25; emInt = 0.25; dist = 25; 
+        colorHex = 0x5566aa;
+        lightInt = 0.25; emInt = 0.25; dist = 25; 
     }
 
     if (luzFocoDia) {
@@ -202,6 +215,7 @@ function updatePlaylist() {
 function playNextTv(random = false) {
     updatePlaylist();
     if(tvPlaylist.length === 0) return;
+    
     if(random) {
         currentTvIndex = Math.floor(Math.random() * tvPlaylist.length);
     } else {
@@ -222,7 +236,6 @@ document.getElementById('tv-prev').onclick = () => {
     tvVideo.play();
 };
 document.getElementById('tv-next').onclick = () => playNextTv(false);
-
 document.getElementById('tv-play-pause').onclick = () => {
     if(tvVideo.paused) tvVideo.play(); else tvVideo.pause();
 };
@@ -270,7 +283,8 @@ let baseAction = null;
 let randomAction = null;
 let currentAction = null;
 
-loader.load('lunari_durmiendo1.glb', (gltf) => {
+// AQUI ESTA LA MAGIA ANTI-CACHÉ (getFreshUrl)
+loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const lunariModel = gltf.scene;
     applyMaterialLogic(lunariModel, 'lunari');
     scene.add(lunariModel);
@@ -287,7 +301,7 @@ loader.load('lunari_durmiendo1.glb', (gltf) => {
     checkLoading();
 });
 
-loader.load('Lunari_Duerme_2.glb', (gltf) => {
+loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
         const clip = gltf.animations[0];
         randomAction = lunariMixer.clipAction(clip);
@@ -301,8 +315,7 @@ loader.load('Lunari_Duerme_2.glb', (gltf) => {
 });
 
 // --- CARGA DEL FOCO DE DÍA DINÁMICO ---
-const cacheBuster = Date.now();
-loader.load(`https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb?v=${cacheBuster}`, (gltf) => {
+loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
     focoDiaMesh = gltf.scene;
     applyMaterialLogic(focoDiaMesh, 'foco_dia'); 
     
@@ -353,11 +366,13 @@ setInterval(() => {
 
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
+    
     if (loadedSlotMeshes[categoryKey]) {
         scene.remove(loadedSlotMeshes[categoryKey]);
     }
 
-    loader.load(itemFile, (gltf) => {
+    // MAGIA ANTI-CACHÉ EN CADA CARGA DE INVENTARIO
+    loader.load(getFreshUrl(itemFile), (gltf) => {
         const model = gltf.scene;
         applyMaterialLogic(model, categoryKey);
         
@@ -395,6 +410,7 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
 
         scene.add(model);
         loadedSlotMeshes[categoryKey] = model;
+        
         if(isInitialLoad) checkLoading();
     }, undefined, (e) => { 
         console.error(`Error cargando modelo [${categoryKey}]:`, itemFile);
@@ -405,8 +421,10 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
 for (let cat in inventoryData) {
     if (inventoryData[cat].type === 'multiple') continue;
     let equippedItemId = inventoryData[cat].equipped;
+    
     if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
         let itemData = inventoryData[cat].items[equippedItemId];
+        
         if (itemData.file) {
             loadItemForSlot(cat, itemData.file, true);
         }
@@ -496,6 +514,7 @@ for (let cat in inventoryData) {
     } else {
         statusBox.innerHTML = `${weatherEmoji} ${weatherName}`;
     }
+    
     video.src = videoFile;
     video.play().catch(e => console.log('Autoplay bloqueado:', e));
 
@@ -505,7 +524,8 @@ for (let cat in inventoryData) {
     videoTexture.format = THREE.RGBAFormat;
     videoTexture.encoding = THREE.sRGBEncoding;
     
-    loader.load('cuadro.glb', (gltf) => {
+    // MAGIA ANTI-CACHÉ AL CUADRO
+    loader.load(getFreshUrl('cuadro.glb'), (gltf) => {
         const cuadroModel = gltf.scene;
         cuadroModel.traverse((node) => {
             if (node.isMesh) {
@@ -526,6 +546,7 @@ for (let cat in inventoryData) {
                 }
             }
         });
+        
         applyMaterialLogic(cuadroModel, 'cuadro');
         scene.add(cuadroModel);
         loadedSlotMeshes['cuadro'] = cuadroModel;
@@ -539,6 +560,7 @@ for (let cat in inventoryData) {
 // --- SISTEMA DE ILUMINACIÓN ---
 function updateLighting() {
     const isLow = perfCheck.checked;
+    
     if (lightOn) {
         mainLight.visible = true;
         ambient.intensity = isLow ? 0.8 : 0.3;
@@ -570,6 +592,7 @@ const closePosterBtn = document.getElementById('close-poster-view');
 function openPosterPreview(categoryKey) {
     const equippedId = inventoryData[categoryKey].equipped;
     const itemData = inventoryData[categoryKey].items[equippedId];
+    
     if (itemData && itemData.preview) {
         posterEnlargedImage.src = itemData.preview;
         posterViewModal.classList.add('visible');
@@ -586,10 +609,11 @@ function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     const x = event.touches ? event.touches[0].clientX : event.clientX;
     const y = event.touches ? event.touches[0].clientY : event.clientY;
+    
     mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
-
+    
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
         toggleLight();
         return;
@@ -601,7 +625,6 @@ function handleInteraction(event) {
         const tvControls = document.getElementById('tv-controls');
         if (tvControls.style.display === 'none' || tvControls.style.display === '') {
             tvControls.style.display = 'flex';
-            // Si estaba bloqueado el sonido/video, iniciar
             if (tvVideo.paused) {
                 tvVideo.play().catch(e => console.warn('Requiere interacción de usuario primero', e));
             }
@@ -636,6 +659,7 @@ function updateQuality() {
     renderer.shadowMap.enabled = !isLow;
     renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
     document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
+    
     for (let cat in loadedSlotMeshes) {
         applyMaterialLogic(loadedSlotMeshes[cat], cat);
     }
@@ -654,7 +678,7 @@ function renderInventory() {
     const sidebar = document.getElementById('inv-sidebar');
     const content = document.getElementById('inv-content');
     sidebar.innerHTML = ''; content.innerHTML = '';
-
+    
     inventoryGroups.forEach(group => {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'inv-group';
@@ -681,16 +705,16 @@ function renderInventory() {
             btn.onclick = () => { currentCategory = catKey; renderInventory(); };
             groupContent.appendChild(btn);
         });
+        
         groupDiv.appendChild(groupContent);
         sidebar.appendChild(groupDiv);
     });
 
     const catData = inventoryData[currentCategory];
     if (!catData) return;
-
+    
     for (let itemId in catData.items) {
         const item = catData.items[itemId];
-
         let isEquipped = false;
         if (catData.type === 'multiple') {
             isEquipped = catData.equipped.includes(itemId);
@@ -703,6 +727,7 @@ function renderInventory() {
 
         const previewDiv = document.createElement('div');
         previewDiv.className = 'item-preview';
+        
         if (item.preview) {
             const img = document.createElement('img');
             img.src = item.preview;
@@ -739,6 +764,7 @@ function renderInventory() {
 // Para usar functions inline en el innerHTML superior:
 window.equipItem = function(category, itemId) {
     const catData = inventoryData[category];
+    
     if (catData.type === 'multiple') {
         const idx = catData.equipped.indexOf(itemId);
         if (idx > -1) {
@@ -765,6 +791,7 @@ window.equipItem = function(category, itemId) {
 
 window.buyItem = function(category, itemId) {
     let item = inventoryData[category].items[itemId];
+    
     if (playerCoins >= item.price) {
         playerCoins -= item.price;
         item.owned = true;
