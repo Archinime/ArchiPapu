@@ -9,7 +9,6 @@ document.getElementById('coin-amount').innerText = playerCoins;
 
 let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
 if (inventoryData.base_foco) delete inventoryData.base_foco;
-
 // Sincronizar objetos nuevos y verificar integridad
 for (let cat in defaultInventoryConfig) {
     if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
@@ -45,18 +44,16 @@ function saveGame() {
 const loadedSlotMeshes = {};
 let switchMesh = null;
 let focoMesh = null;
-
 // --- VARIABLES DEL FOCO DE DÍA ---
 let focoDiaMesh = null;
 let luzFocoDia = null;
 let esDeDiaLocal = true;
-
 // --- Detección de dispositivo ---
 const ua = navigator.userAgent;
 const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 const width = window.innerWidth;
-let deviceType = (width < 768 || (isMobileUA && width < 1024)) ? 'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
-
+let deviceType = (width < 768 || (isMobileUA && width < 1024)) ?
+'mobile' : (width >= 768 && width <= 1024) ? 'tablet' : 'desktop';
 // --- Escena, Cámara y Reloj (Para Animaciones) ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x050508);
@@ -64,7 +61,8 @@ const clock = new THREE.Clock();
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
 let camPosY = 6, camPosZ = 14, targetY = 6;
-if (deviceType === 'mobile') { camPosY = 6; camPosZ = 12; targetY = 5; }
+if (deviceType === 'mobile') { camPosY = 6;
+camPosZ = 12; targetY = 5; }
 camera.position.set(0, camPosY, camPosZ);
 
 // --- RENDERIZADOR ---
@@ -77,7 +75,6 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 document.body.appendChild(renderer.domElement);
-
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.target.set(0, targetY, 0);
@@ -88,7 +85,6 @@ controls.enablePan = false;
 // --- LUCES BASE ---
 const ambient = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(ambient);
-
 const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); 
 hemiLight.position.set(0, 20, 0); 
 scene.add(hemiLight);
@@ -143,6 +139,7 @@ function actualizarIluminacionFocoDia() {
             if (n.isMesh && n.material) {
                 // Actualizamos el color emisivo y la intensidad según la hora
                 n.material.emissive.setHex(colorHex);
+                
                 n.material.emissiveIntensity = emInt;
                 n.material.needsUpdate = true;
             }
@@ -157,29 +154,32 @@ function applyMaterialLogic(model, categoryKey) {
     const isLow = perfCheck.checked;
     const isFoco = categoryKey === 'foco';
     const isFocoDia = categoryKey === 'foco_dia';
-
     model.traverse((node) => {
         if (node.isMesh) {
             node.frustumCulled = false;
             if (isFoco || isFocoDia) {
                 node.castShadow = false; node.receiveShadow = false;
                 if (node.material) {
+                   
                     if (isFoco) {
                         node.material.emissive = new THREE.Color(0xffeedd);
                         node.material.emissiveIntensity = lightOn ? 1.5 : 0;
                     }
+                    
                     if (isFocoDia) {
                         // El foco_dia lo maneja la función de tiempo ahora
                         node.material.emissive = new THREE.Color(0xffffff); 
                     }
                 }
+ 
             } else {
                 node.castShadow = !isLow; node.receiveShadow = !isLow;
                 if(node.material) {
                     node.material.shadowSide = THREE.FrontSide;
                     // CORRECCIÓN ADICIONAL PARA TECHOS Y PAREDES
+ 
                     if(node.name.toLowerCase().includes('pared') ||
-                       node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo')) {
+                    node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo')) {
                         node.material.shadowSide = THREE.BackSide;
                     }
                     node.material.side = THREE.DoubleSide;
@@ -193,7 +193,6 @@ function applyMaterialLogic(model, categoryKey) {
 // --- CÁLCULO DINÁMICO DE CARGA ---
 let totalModelsToLoad = 0;
 let modelsLoaded = 0;
-
 for (let cat in inventoryData) {
     let equippedItemId = inventoryData[cat].equipped;
     if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
@@ -205,7 +204,8 @@ for (let cat in inventoryData) {
 
 totalModelsToLoad += 2; // Lunari
 totalModelsToLoad += 1; // Cuadro
-totalModelsToLoad += 1; // Foco de Día
+totalModelsToLoad += 1;
+// Foco de Día
 
 function checkLoading() {
     modelsLoaded++;
@@ -228,7 +228,6 @@ let lunariMixer = null;
 let baseAction = null;
 let randomAction = null;
 let currentAction = null;
-
 loader.load('lunari_durmiendo1.glb', (gltf) => {
     const lunariModel = gltf.scene;
     applyMaterialLogic(lunariModel, 'lunari');
@@ -245,7 +244,6 @@ loader.load('lunari_durmiendo1.glb', (gltf) => {
     console.error('Error cargando a Lunari:', e);
     checkLoading();
 });
-
 loader.load('Lunari_Duerme_2.glb', (gltf) => {
     if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
         const clip = gltf.animations[0];
@@ -258,7 +256,6 @@ loader.load('Lunari_Duerme_2.glb', (gltf) => {
     console.error('Error cargando animación aleatoria:', e);
     checkLoading();
 });
-
 // --- CARGA DEL FOCO DE DÍA DINÁMICO ---
 // Agregamos un timestamp dinámico para eludir la caché en el frontend.
 const cacheBuster = Date.now(); 
@@ -292,7 +289,6 @@ loader.load(`https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb?v
     console.error('Error cargando foco de dia:', e);
     checkLoading();
 });
-
 setInterval(() => {
     if (!randomAction || !baseAction || !lunariMixer) return;
     if (currentAction === randomAction) return;
@@ -305,6 +301,7 @@ setInterval(() => {
         const onFinished = (event) => {
             if (event.action === randomAction) {
                 randomAction.fadeOut(0.5);
+ 
                 baseAction.reset().fadeIn(0.5).play();
                 currentAction = baseAction;
                 lunariMixer.removeEventListener('finished', onFinished);
@@ -313,10 +310,8 @@ setInterval(() => {
         lunariMixer.addEventListener('finished', onFinished);
     }
 }, 60000);
-
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
-
     if (loadedSlotMeshes[categoryKey]) {
         scene.remove(loadedSlotMeshes[categoryKey]);
     }
@@ -329,6 +324,7 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             focoMesh = model;
             const box = new THREE.Box3().setFromObject(model);
             const center = new THREE.Vector3(); box.getCenter(center);
+      
             mainLight.position.copy(center); mainLight.position.y -= 0.2; 
         }
 
@@ -372,6 +368,7 @@ for (let cat in inventoryData) {
 
     const statusBox = document.getElementById('weather-status');
 
+    
     try {
         const pos = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
@@ -381,6 +378,7 @@ for (let cat in inventoryData) {
         const lon = pos.coords.longitude;
         
         const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+        
         const data = await response.json();
         
         const code = data.current_weather.weathercode;
@@ -393,11 +391,13 @@ for (let cat in inventoryData) {
 
         // MAPEADO COMPLETO WMO CON VERIFICACIÓN DÍA Y NOCHE
         if (code === 0) {
-            weatherName = isDay ? "Despejado" : "Noche despejada";
+            weatherName = isDay ?
+            "Despejado" : "Noche despejada";
             weatherEmoji = isDay ? "☀️" : "🌙";
             videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4';
         } else if (code === 1 || code === 2) {
-            weatherName = isDay ? "Parcialmente nublado" : "Noche algo nublada";
+            weatherName = isDay ?
+            "Parcialmente nublado" : "Noche algo nublada";
             weatherEmoji = isDay ? "⛅" : "☁️";
             videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4';
         } else if (code === 3) {
@@ -444,7 +444,8 @@ for (let cat in inventoryData) {
     }
 
     if (temperature !== "--") {
-        statusBox.innerHTML = `${weatherEmoji} ${weatherName} | ${temperature}°C`;
+        statusBox.innerHTML = `${weatherEmoji} ${weatherName} |
+        ${temperature}°C`;
     } else {
         statusBox.innerHTML = `${weatherEmoji} ${weatherName}`;
     }
@@ -465,14 +466,17 @@ for (let cat in inventoryData) {
             if (node.isMesh) {
                 if (Array.isArray(node.material)) {
                     node.material.forEach(mat => {
+     
                         mat.map = videoTexture;
                         // CORRECCIÓN DE PANTALLA: Esto hace que el video emita su propia luz
                         mat.emissive = new THREE.Color(0xffffff);
+                
                         mat.emissiveMap = videoTexture;
                         mat.emissiveIntensity = 1.0;
                         mat.needsUpdate = true;
                     });
-                } else if (node.material) {
+                } else 
+                if (node.material) {
                     node.material.map = videoTexture;
                     // CORRECCIÓN DE PANTALLA: Esto hace que el video emita su propia luz
                     node.material.emissive = new THREE.Color(0xffffff);
@@ -538,13 +542,11 @@ posterViewModal.onclick = (e) => {
     if (e.target === posterViewModal) posterViewModal.classList.remove('visible');
 };
 
-// --- SISTEMA DE INTERACCIÓN GENERAL ---
-function handleInteraction(event) {
+// --- SISTEMA DE INTERACCIÓN GENERAL (RENOVADO) ---
+function handleInteraction(clientX, clientY) {
     const rect = renderer.domElement.getBoundingClientRect();
-    const x = event.touches ? event.touches[0].clientX : event.clientX;
-    const y = event.touches ? event.touches[0].clientY : event.clientY;
-    mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
+    mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
 
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
@@ -565,11 +567,52 @@ function handleInteraction(event) {
     }
 }
 
-renderer.domElement.addEventListener('click', handleInteraction);
-renderer.domElement.addEventListener('touchstart', (e) => { 
-    if(document.getElementById('inventory-modal').classList.contains('visible')) return;
-    handleInteraction(e); 
+// --- EVITAR CLICS FANTASMAS AL ARRASTRAR LA CÁMARA ---
+let isDragging = false;
+let startX = 0, startY = 0;
+const dragThreshold = 5; // Píxeles de tolerancia antes de considerarlo un arrastre
+
+// Para Mouse
+renderer.domElement.addEventListener('mousedown', (e) => {
+    isDragging = false;
+    startX = e.clientX;
+    startY = e.clientY;
+});
+
+renderer.domElement.addEventListener('mousemove', (e) => {
+    if (Math.abs(e.clientX - startX) > dragThreshold || Math.abs(e.clientY - startY) > dragThreshold) {
+        isDragging = true;
+    }
+});
+
+renderer.domElement.addEventListener('mouseup', (e) => {
+    if (document.getElementById('inventory-modal').classList.contains('visible')) return;
+    if (!isDragging) {
+        handleInteraction(e.clientX, e.clientY);
+    }
+    isDragging = false;
+});
+
+// Para Táctil (Móviles)
+renderer.domElement.addEventListener('touchstart', (e) => {
+    isDragging = false;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
 }, {passive: true});
+
+renderer.domElement.addEventListener('touchmove', (e) => {
+    if (Math.abs(e.touches[0].clientX - startX) > dragThreshold || Math.abs(e.touches[0].clientY - startY) > dragThreshold) {
+        isDragging = true;
+    }
+}, {passive: true});
+
+renderer.domElement.addEventListener('touchend', (e) => {
+    if (document.getElementById('inventory-modal').classList.contains('visible')) return;
+    if (!isDragging) {
+        handleInteraction(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    }
+    isDragging = false;
+});
 
 // --- Calidad / Modo Humilde ---
 function updateQuality() {
@@ -577,7 +620,6 @@ function updateQuality() {
     renderer.shadowMap.enabled = !isLow;
     renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
     document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-
     for (let cat in loadedSlotMeshes) {
         applyMaterialLogic(loadedSlotMeshes[cat], cat);
     }
@@ -595,12 +637,10 @@ perfCheck.addEventListener('change', updateQuality);
 // --- LÓGICA DE INTERFAZ DEL INVENTARIO ---
 let currentCategory = 'cama';
 let openGroup = 'muebles';
-
 function renderInventory() {
     const sidebar = document.getElementById('inv-sidebar');
     const content = document.getElementById('inv-content');
     sidebar.innerHTML = ''; content.innerHTML = '';
-
     inventoryGroups.forEach(group => {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'inv-group';
@@ -610,6 +650,7 @@ function renderInventory() {
         groupBtn.innerHTML = `<span>${group.emoji} ${group.label}</span> <span style="transition:0.3s; transform: ${openGroup === group.id ? 'rotate(90deg)' : 'rotate(0deg)'}">▶</span>`;
         groupBtn.onclick = () => {
             openGroup = openGroup === group.id ? null : group.id;
+   
             renderInventory();
         };
    
@@ -622,20 +663,20 @@ function renderInventory() {
             const catData = inventoryData[catKey];
             if(!catData) return;
     
+  
             const btn = document.createElement('button');
-            btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
+            btn.className = `cat-btn ${catKey === currentCategory ?
+            'active' : ''}`;
             btn.innerHTML = `<span class="cat-icon-emoji">${catData.emoji}</span> <span>${catData.label}</span>`;
             btn.onclick = () => { currentCategory = catKey; renderInventory(); };
             groupContent.appendChild(btn);
         });
-
         groupDiv.appendChild(groupContent);
         sidebar.appendChild(groupDiv);
     });
 
     const catData = inventoryData[currentCategory];
     if (!catData) return;
-
     for (let itemId in catData.items) {
         const item = catData.items[itemId];
         const isEquipped = catData.equipped === itemId;
@@ -668,11 +709,11 @@ function renderInventory() {
             <div>
                 ${previewDiv.outerHTML}
                 <h4>${item.name}</h4>
-                <div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div>
+                <div class="item-price">${item.owned ?
+                'Adquirido' : `🪙 ${item.price}`}</div>
             </div>
             ${btnHTML}
         `;
-
         const previewContainer = card.querySelector('.item-preview');
         if (previewContainer && item.preview) {
             previewContainer.innerHTML = '';
@@ -723,7 +764,6 @@ document.getElementById('inventory-button').onclick = () => {
     document.getElementById('inventory-modal').classList.add('visible');
     renderInventory();
 };
-
 document.getElementById('close-inv').onclick = () => {
     document.getElementById('inventory-modal').classList.remove('visible');
 };
@@ -731,7 +771,6 @@ document.getElementById('close-inv').onclick = () => {
 document.getElementById('settings-button').onclick = () => {
     document.getElementById('settings-panel').classList.toggle('visible');
 };
-
 // --- Animación y Resize ---
 function animate() {
     requestAnimationFrame(animate);
@@ -748,5 +787,4 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
-
 updateQuality();
