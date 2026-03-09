@@ -127,20 +127,15 @@ export const defaultInventoryConfig = {
         } 
     },
     tele: { 
-        label: "Televisor", emoji: "📺", equipped: "pantalla", 
+        label: "Televisor", emoji: "📺", equipped: "base", 
         items: { 
             "base": { 
-                name: "Televisor Antiguo", 
+                name: "Televisor Estándar", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele.glb", 
+                baseFile: "pantalla.glb", 
                 price: 0, 
                 owned: true,
                 preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele_estandar.avif"
-            },
-            "pantalla": {
-                name: "Pantalla Nueva",
-                file: "pantalla.glb",
-                price: 0,
-                owned: true
             }
         } 
     },
