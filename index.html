@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Habitación 3D - Inventario y Lunari</title>
-    <link rel="stylesheet" href="room_style.css?v=3">
+    <link rel="stylesheet" href="room_style.css">
 </head>
 <body>
-    <video id="tv-video" style="display:none;" crossorigin="anonymous" playsinline></video>
-
     <div id="coin-display">🪙 <span id="coin-amount">0</span></div>
     
     <div id="weather-status">🌍 Detectando clima...</div>
@@ -31,10 +29,10 @@
         </div>
     </div>
 
-    <div id="tv-controls" style="display:none;">
-        <button id="tv-prev" title="Canal Anterior">⏮️</button>
-        <button id="tv-play-pause" title="Pausar/Reproducir">⏯️</button>
-        <button id="tv-next" title="Canal Siguiente">⏭️</button>
+    <div id="video-controls">
+        <button class="vid-btn" id="prev-vid">⏮</button>
+        <button class="vid-btn" id="play-pause-vid">⏯</button>
+        <button class="vid-btn" id="next-vid">⏭</button>
     </div>
 
     <div id="inventory-modal">
@@ -65,18 +63,6 @@
         }
     </script>
 
-    <script type="module" src="room_main.js?v=3"></script>
-    
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').then(registration => {
-                    console.log('ServiceWorker registrado con éxito: ', registration.scope);
-                }).catch(err => {
-                    console.log('Fallo en registro de ServiceWorker: ', err);
-                });
-            });
-        }
-    </script>
+    <script type="module" src="room_main.js"></script>
 </body>
 </html>
