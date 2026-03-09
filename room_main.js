@@ -16,7 +16,7 @@ for (let cat in defaultInventoryConfig) {
     inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
     inventoryData[cat].label = defaultInventoryConfig[cat].label;
     inventoryData[cat].type = defaultInventoryConfig[cat].type || 'single';
-
+    
     if (inventoryData[cat].type === 'multiple') {
         if (!Array.isArray(inventoryData[cat].equipped)) {
             inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
@@ -95,6 +95,7 @@ controls.enablePan = false;
 // --- LUCES BASE ---
 const ambient = new THREE.AmbientLight(0xffffff, 0.3);
 scene.add(ambient);
+
 const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); 
 hemiLight.position.set(0, 20, 0); 
 scene.add(hemiLight);
@@ -182,7 +183,6 @@ function applyMaterialLogic(model, categoryKey) {
     });
 }
 
-
 // --- LÓGICA DE VIDEOS EN TV ---
 const tvVideo = document.getElementById('tv-video');
 const tvTexture = new THREE.VideoTexture(tvVideo);
@@ -222,27 +222,27 @@ document.getElementById('tv-prev').onclick = () => {
     tvVideo.play();
 };
 document.getElementById('tv-next').onclick = () => playNextTv(false);
+
 document.getElementById('tv-play-pause').onclick = () => {
     if(tvVideo.paused) tvVideo.play(); else tvVideo.pause();
 };
 
-// Pantalla inicial para audio
-document.getElementById('start-btn').onclick = () => {
-    document.getElementById('start-overlay').style.display = 'none';
-    playNextTv(true); // El primero es aleatorio
-};
-
+// Intento inicial para cargar la textura (puede estar pausado por navegador)
+playNextTv(true);
 
 // --- CÁLCULO DINÁMICO DE CARGA ---
 let totalModelsToLoad = 0;
 let modelsLoaded = 0;
+
 for (let cat in inventoryData) {
     if (inventoryData[cat].type === 'multiple') continue; // Los videos no son modelos
     let equippedItemId = inventoryData[cat].equipped;
+    
     if (inventoryData[cat].items && inventoryData[cat].items[equippedItemId]) {
         let itemData = inventoryData[cat].items[equippedItemId];
         if (itemData.file) totalModelsToLoad++;
         if (cat === 'foco' && itemData.baseFile) totalModelsToLoad++;
+        if (cat === 'tele' && itemData.baseFile) totalModelsToLoad++;
     }
 }
 totalModelsToLoad += 2; // Lunari
@@ -301,7 +301,7 @@ loader.load('Lunari_Duerme_2.glb', (gltf) => {
 });
 
 // --- CARGA DEL FOCO DE DÍA DINÁMICO ---
-const cacheBuster = Date.now(); 
+const cacheBuster = Date.now();
 loader.load(`https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb?v=${cacheBuster}`, (gltf) => {
     focoDiaMesh = gltf.scene;
     applyMaterialLogic(focoDiaMesh, 'foco_dia'); 
@@ -361,8 +361,8 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
         const model = gltf.scene;
         applyMaterialLogic(model, categoryKey);
         
-        // --- INTEGRACIÓN TEXTURA DE TELEVISIÓN ---
-        if (categoryKey === 'tele') {
+        // --- INTEGRACIÓN TEXTURA DE TELEVISIÓN SOLO EN PANTALLA ---
+        if (categoryKey === 'pantalla_tv') {
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
                     if (Array.isArray(node.material)) {
@@ -388,16 +388,16 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             focoMesh = model;
             const box = new THREE.Box3().setFromObject(model);
             const center = new THREE.Vector3(); box.getCenter(center);
-            mainLight.position.copy(center); mainLight.position.y -= 0.2; 
+            mainLight.position.copy(center); mainLight.position.y -= 0.2;
         }
 
         if (categoryKey === 'interruptor') switchMesh = model;
 
         scene.add(model);
-        loadedSlotMeshes[categoryKey] = model; 
+        loadedSlotMeshes[categoryKey] = model;
         if(isInitialLoad) checkLoading();
     }, undefined, (e) => { 
-        console.error(`Error cargando modelo [${categoryKey}]:`, itemFile); 
+        console.error(`Error cargando modelo [${categoryKey}]:`, itemFile);
         if(isInitialLoad) checkLoading();
     });
 }
@@ -412,6 +412,9 @@ for (let cat in inventoryData) {
         }
         if (cat === 'foco' && itemData.baseFile) {
             loadItemForSlot('base_foco', itemData.baseFile, true);
+        }
+        if (cat === 'tele' && itemData.baseFile) {
+            loadItemForSlot('pantalla_tv', itemData.baseFile, true);
         }
     }
 }
@@ -435,7 +438,6 @@ for (let cat in inventoryData) {
         
         const code = data.current_weather.weathercode;
         const isDay = data.current_weather.is_day;
-        
         esDeDiaLocal = (isDay === 1);
         actualizarIluminacionFocoDia();
         temperature = data.current_weather.temperature;
@@ -449,28 +451,36 @@ for (let cat in inventoryData) {
             weatherEmoji = isDay ? "⛅" : "☁️";
             videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4';
         } else if (code === 3) {
-            weatherName = "Muy nublado"; weatherEmoji = "☁️";
+            weatherName = "Muy nublado";
+            weatherEmoji = "☁️";
             videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4';
         } else if (code === 45 || code === 48) {
-            weatherName = "Niebla"; weatherEmoji = "🌫️";
+            weatherName = "Niebla";
+            weatherEmoji = "🌫️";
             videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4';
         } else if ([51, 53, 55, 56, 57].includes(code)) {
-            weatherName = "Llovizna"; weatherEmoji = isDay ? "🌦️" : "🌧️";
+            weatherName = "Llovizna";
+            weatherEmoji = isDay ? "🌦️" : "🌧️";
             videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
         } else if ([61, 63, 65, 66, 67].includes(code)) {
-            weatherName = "Lluvia"; weatherEmoji = "🌧️";
+            weatherName = "Lluvia";
+            weatherEmoji = "🌧️";
             videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
         } else if ([71, 73, 75, 77].includes(code)) {
-            weatherName = "Nieve"; weatherEmoji = "❄️";
+            weatherName = "Nieve";
+            weatherEmoji = "❄️";
             videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4';
         } else if ([80, 81, 82].includes(code)) {
-            weatherName = "Aguaceros"; weatherEmoji = "🌧️";
+            weatherName = "Aguaceros";
+            weatherEmoji = "🌧️";
             videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
         } else if ([85, 86].includes(code)) {
-            weatherName = "Chubascos de nieve"; weatherEmoji = "🌨️";
+            weatherName = "Chubascos de nieve";
+            weatherEmoji = "🌨️";
             videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4';
         } else if ([95, 96, 99].includes(code)) {
-            weatherName = "Tormenta"; weatherEmoji = "⛈️";
+            weatherName = "Tormenta";
+            weatherEmoji = "⛈️";
             videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4';
         } else {
             weatherName = "Desconocido";
@@ -585,6 +595,22 @@ function handleInteraction(event) {
         return;
     }
 
+    // INTERACCIÓN TV
+    const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
+    if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
+        const tvControls = document.getElementById('tv-controls');
+        if (tvControls.style.display === 'none' || tvControls.style.display === '') {
+            tvControls.style.display = 'flex';
+            // Si estaba bloqueado el sonido/video, iniciar
+            if (tvVideo.paused) {
+                tvVideo.play().catch(e => console.warn('Requiere interacción de usuario primero', e));
+            }
+        } else {
+            tvControls.style.display = 'none';
+        }
+        return;
+    }
+
     const posterCategories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
     for (let cat of posterCategories) {
         const posterMesh = loadedSlotMeshes[cat];
@@ -610,14 +636,13 @@ function updateQuality() {
     renderer.shadowMap.enabled = !isLow;
     renderer.setPixelRatio(isLow ? 1 : Math.min(window.devicePixelRatio, 2));
     document.getElementById('quality-indicator').textContent = isLow ? 'Modo Humilde' : 'Calidad Alta';
-
     for (let cat in loadedSlotMeshes) {
         applyMaterialLogic(loadedSlotMeshes[cat], cat);
     }
     if (focoDiaMesh) { actualizarIluminacionFocoDia(); }
     
     localStorage.setItem('performanceMode', isLow);
-    updateLighting(); 
+    updateLighting();
 }
 perfCheck.addEventListener('change', updateQuality);
 
@@ -665,8 +690,7 @@ function renderInventory() {
 
     for (let itemId in catData.items) {
         const item = catData.items[itemId];
-        
-        // MODIFICACIÓN PARA SOPORTE MÚLTIPLE
+
         let isEquipped = false;
         if (catData.type === 'multiple') {
             isEquipped = catData.equipped.includes(itemId);
@@ -679,7 +703,6 @@ function renderInventory() {
 
         const previewDiv = document.createElement('div');
         previewDiv.className = 'item-preview';
-
         if (item.preview) {
             const img = document.createElement('img');
             img.src = item.preview;
@@ -716,8 +739,6 @@ function renderInventory() {
 // Para usar functions inline en el innerHTML superior:
 window.equipItem = function(category, itemId) {
     const catData = inventoryData[category];
-    
-    // LÓGICA PARA MÚLTIPLES OBJETOS (VIDEOS)
     if (catData.type === 'multiple') {
         const idx = catData.equipped.indexOf(itemId);
         if (idx > -1) {
@@ -732,6 +753,9 @@ window.equipItem = function(category, itemId) {
         loadItemForSlot(category, itemData.file, false);
         if (category === 'foco' && itemData.baseFile) {
             loadItemForSlot('base_foco', itemData.baseFile, false);
+        }
+        if (category === 'tele' && itemData.baseFile) {
+            loadItemForSlot('pantalla_tv', itemData.baseFile, false);
         }
     }
     
@@ -756,6 +780,7 @@ document.getElementById('inventory-button').onclick = () => {
     document.getElementById('inventory-modal').classList.add('visible');
     renderInventory();
 };
+
 document.getElementById('close-inv').onclick = () => {
     document.getElementById('inventory-modal').classList.remove('visible');
 };
@@ -780,4 +805,5 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
 updateQuality();
