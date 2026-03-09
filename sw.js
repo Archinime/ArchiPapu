@@ -1,39 +1,23 @@
-const CACHE_NAME = 'room-cache-v1';
-const urlsToCache = [
-    './',
-    './inventory-data.js',
-    'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/lunari_durmiendo1.glb',
-    'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/Lunari_Duerme_2.glb',
-    'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/cuadro.glb',
-    'https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb',
-    'pantalla.glb',
-    'gohan_vs_cell.mp4',
-    'zoro_vs_king.mp4',
-    'rezero.mp4'
-];
-
-self.addEventListener('install', event => {
-    event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then(cache => cache.addAll(urlsToCache))
-            .then(() => self.skipWaiting())
-    );
+self.addEventListener('install', (event) => {
+    // Obliga al nuevo service worker a tomar el control al instante
+    self.skipWaiting(); 
 });
 
-self.addEventListener('activate', event => {
+self.addEventListener('activate', (event) => {
+    // Borra todas las memorias caché existentes
     event.waitUntil(
-        caches.keys().then(cacheNames => {
+        caches.keys().then((cacheNames) => {
             return Promise.all(
-                cacheNames.filter(name => name !== CACHE_NAME)
-                    .map(name => caches.delete(name))
+                cacheNames.map((cacheName) => {
+                    return caches.delete(cacheName);
+                })
             );
-        }).then(() => self.clients.claim())
+        })
     );
+    return self.clients.claim();
 });
 
-self.addEventListener('fetch', event => {
-    event.respondWith(
-        caches.match(event.request)
-            .then(response => response || fetch(event.request))
-    );
+// Al interceptar peticiones, SIEMPRE las pide a internet, nunca al caché
+self.addEventListener('fetch', (event) => {
+    event.respondWith(fetch(event.request));
 });
