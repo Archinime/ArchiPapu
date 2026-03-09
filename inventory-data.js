@@ -13,7 +13,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     paredes: { 
         label: "Paredes", emoji: "🧱", equipped: "base", 
         items: { 
@@ -26,7 +25,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     techo: { 
         label: "Techo", emoji: "🛖", equipped: "base", 
         items: { 
@@ -39,7 +37,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     puerta: { 
         label: "Puerta", emoji: "🚪", equipped: "base", 
         items: { 
@@ -65,7 +62,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     foco: { 
         label: "Foco", emoji: "💡", equipped: "base", 
         items: { 
@@ -106,7 +102,6 @@ export const defaultInventoryConfig = {
             }
         } 
     },
-
     silla: { 
         label: "Silla", emoji: "🪑", equipped: "base", 
         items: { 
@@ -119,7 +114,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     pc: { 
         label: "Setup PC", emoji: "🖥️", equipped: "base", 
         items: { 
@@ -132,20 +126,24 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     tele: { 
-        label: "Televisor", emoji: "📺", equipped: "base", 
+        label: "Televisor", emoji: "📺", equipped: "pantalla", 
         items: { 
             "base": { 
-                name: "Televisor Estándar", 
+                name: "Televisor Antiguo", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele.glb", 
                 price: 0, 
                 owned: true,
                 preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele_estandar.avif"
-            } 
+            },
+            "pantalla": {
+                name: "Pantalla Nueva",
+                file: "pantalla.glb",
+                price: 0,
+                owned: true
+            }
         } 
     },
-
     mueble1: { 
         label: "Mueble", emoji: "🗄️", equipped: "base", 
         items: { 
@@ -158,7 +156,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     mueble2: { 
         label: "Escritorio", emoji: "🗄️", equipped: "base", 
         items: { 
@@ -185,7 +182,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     cortinas: { 
         label: "Cortinas", emoji: "🪟", equipped: "base", 
         items: { 
@@ -198,7 +194,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     mousepad: { 
         label: "Mouse Pad", emoji: "🖱️", equipped: "base", 
         items: { 
@@ -225,7 +220,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     poster_2: { 
         label: "Póster 2", emoji: "🖼️", equipped: "base", 
         items: { 
@@ -238,7 +232,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     poster_3: { 
         label: "Póster 3", emoji: "🖼️", equipped: "base", 
         items: { 
@@ -251,7 +244,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     poster_4: { 
         label: "Póster 4", emoji: "🖼️", equipped: "base", 
         items: { 
@@ -292,7 +284,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     deco_mueble_2: { 
         label: "Decoración 2", emoji: "🎍", equipped: "base", 
         items: { 
@@ -305,7 +296,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     deco_2_mueble_2: { 
         label: "Decoración 3", emoji: "🎍", equipped: "base", 
         items: { 
@@ -332,7 +322,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     deco_2_mueble_1: { 
         label: "Decoración 2", emoji: "🎍", equipped: "base", 
         items: { 
@@ -345,7 +334,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     deco_3_mueble_1: { 
         label: "Decoración 3", emoji: "🎍", equipped: "base", 
         items: { 
@@ -358,7 +346,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     deco_4_mueble_1: { 
         label: "Decoración 4", emoji: "🎍", equipped: "base", 
         items: { 
@@ -371,7 +358,6 @@ export const defaultInventoryConfig = {
             } 
         } 
     },
-
     deco_5_mueble_1: { 
         label: "Decoración 5", emoji: "🎍", equipped: "base", 
         items: { 
@@ -383,6 +369,16 @@ export const defaultInventoryConfig = {
                 preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.avif" 
             } 
         } 
+    },
+
+    // --- NUEVO: SISTEMA DE VIDEOS ---
+    videos: {
+        label: "Videos TV", emoji: "📼", equipped: ["gohan_cell", "zoro_king", "rezero"], type: "multiple",
+        items: {
+            "gohan_cell": { name: "Gohan vs Cell", file: "gohan_vs_cell.mp4", price: 0, owned: true },
+            "zoro_king": { name: "Zoro vs King", file: "zoro_vs_king.mp4", price: 0, owned: true },
+            "rezero": { name: "Re:Zero", file: "rezero.mp4", price: 0, owned: true }
+        }
     }
 };
 
@@ -394,5 +390,6 @@ export const inventoryGroups = [
     { id: 'posters', label: 'Pósters', emoji: '🖼️', categories: ['poster_1', 'poster_2', 'poster_3', 'poster_4'] },
     { id: 'deco_mueble', label: 'Decoración del Mueble', emoji: '🎍', categories: ['deco_mueble_1', 'deco_2_mueble_1', 'deco_3_mueble_1', 'deco_4_mueble_1', 'deco_5_mueble_1'] },
     { id: 'deco_escritorio', label: 'Decoración del Escritorio', emoji: '🎍', categories: ['deco_escritorio', 'deco_mueble_2', 'deco_2_mueble_2'] },
-    { id: 'deco_piso', label: 'Decoración del Piso', emoji: '🎍', categories: ['deco_piso'] }
+    { id: 'deco_piso', label: 'Decoración del Piso', emoji: '🎍', categories: ['deco_piso'] },
+    { id: 'multimedia', label: 'Multimedia', emoji: '🎵', categories: ['videos'] }
 ];
