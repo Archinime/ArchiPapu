@@ -78,11 +78,12 @@ if (isMobileUA || deviceMemory <= 4 || cpuCores <= 4) baseTier = 'media';
 if (isMobileUA && (deviceMemory <= 2 || cpuCores <= 2)) baseTier = 'baja';
 
 let gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
-    calidad: baseTier, // baja, media, alta
-    sombras: baseTier === 'baja' ? 0 : (baseTier === 'media' ? 1 : 2),
+    calidad: baseTier, // baja (Suave), media (Estándar), alta (Ultra)
     fps: baseTier === 'baja' ? 30 : 60,
     volumen: 50,
-    mostrarFps: false
+    mostrarFps: false,
+    filtro: 'clasico',
+    brillo: 100
 };
 
 const loadedSlotMeshes = {};
@@ -101,13 +102,11 @@ camera.position.set(0, camPosY, camPosZ);
 
 // --- RENDERIZADOR ---
 const renderer = new THREE.WebGLRenderer({ 
-    antialias: gameSettings.calidad !== 'baja', // Sin AA en calidad baja
+    antialias: gameSettings.calidad !== 'baja', // Sin AA en calidad suave para máximo rendimiento
     powerPreference: "high-performance" 
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.ACESFilmicToneMapping; 
-renderer.toneMappingExposure = 1.0;
 document.body.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -125,30 +124,53 @@ const mainLight = new THREE.SpotLight(0xffeedd, 6);
 mainLight.position.set(2, 22, 2);
 mainLight.angle = Math.PI / 3; mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
 mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; 
-mainLight.shadow.bias = -0.002; mainLight.shadow.normalBias = 0.05; mainLight.shadow.radius = 4; 
+mainLight.shadow.bias = -0.002; mainLight.shadow.normalBias = 0.05; 
 scene.add(mainLight); scene.add(mainLight.target);
 
 let lightOn = localStorage.getItem('lightState') !== 'off';
 
-// APLICAR AJUSTES VISUALES AL ENTORNO
+// LÓGICA MAESTRA: APLICA LA CALIDAD GENERAL (Suave, Estándar, Ultra)
 function applyCurrentSettings() {
-    // Rendimiento y Pixel Ratio
-    const pixelRatio = gameSettings.calidad === 'baja' ? 1 : (gameSettings.calidad === 'media' ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2));
-    renderer.setPixelRatio(pixelRatio);
-
-    // Sombras
-    renderer.shadowMap.enabled = gameSettings.sombras > 0;
-    renderer.shadowMap.type = gameSettings.sombras === 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
-    mainLight.castShadow = gameSettings.sombras > 0;
-    
-    if (gameSettings.sombras > 0) {
-        const shadowRes = gameSettings.sombras === 1 ? 512 : (isMobileUA ? 1024 : 2048);
-        mainLight.shadow.mapSize.set(shadowRes, shadowRes);
+    // 1. RESOLUCIÓN Y SOMBRAS SEGÚN CALIDAD
+    let allowShadows = false;
+    if (gameSettings.calidad === 'baja') {
+        renderer.setPixelRatio(isMobileUA ? 0.8 : 1); // Suave: Resolución baja, cero sombras
+        renderer.shadowMap.enabled = false;
+        mainLight.castShadow = false;
+    } else if (gameSettings.calidad === 'media') {
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.2)); // Estándar: Resolución media, sombras pixeladas (duras)
+        allowShadows = true;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFShadowMap; 
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.set(512, 512);
+        mainLight.shadow.radius = 1; // Borde duro
+    } else {
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Ultra: HD, sombras dinámicas y suaves
+        allowShadows = true;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.set(2048, 2048);
+        mainLight.shadow.radius = 4; // Borde suave/difuminado
     }
 
-    // Actualizar todos los modelos
-    for (let cat in loadedSlotMeshes) applyMaterialLogic(loadedSlotMeshes[cat], cat);
+    // 2. FILTROS VISUALES (Clásico, Vívido, Película)
+    if (gameSettings.filtro === 'vivido') {
+        renderer.toneMapping = THREE.LinearToneMapping;
+        renderer.toneMappingExposure = 1.2;
+    } else if (gameSettings.filtro === 'pelicula') {
+        renderer.toneMapping = THREE.CineonToneMapping;
+        renderer.toneMappingExposure = 0.85;
+    } else {
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
+    }
+
+    // 3. ACTUALIZAR MATERIALES Y LUCES
+    for (let cat in loadedSlotMeshes) applyMaterialLogic(loadedSlotMeshes[cat], cat, allowShadows);
     if(focoDiaMesh) actualizarIluminacionFocoDia();
+    updateLighting(); // Aplica el multiplicador de brillo
 
     // UI Updates
     document.getElementById('fps-counter').style.display = gameSettings.mostrarFps ? 'block' : 'none';
@@ -168,7 +190,9 @@ function actualizarIluminacionFocoDia() {
     if (luzFocoDia) {
         luzFocoDia.color.setHex(colorHex);
         luzFocoDia.intensity = lightInt; luzFocoDia.distance = dist;
-        luzFocoDia.castShadow = gameSettings.sombras > 0;
+        luzFocoDia.castShadow = gameSettings.calidad !== 'baja';
+        if(gameSettings.calidad === 'media') luzFocoDia.shadow.mapSize.set(512, 512);
+        if(gameSettings.calidad === 'alta') luzFocoDia.shadow.mapSize.set(1024, 1024);
     }
     
     if (focoDiaMesh) {
@@ -181,10 +205,9 @@ function actualizarIluminacionFocoDia() {
 }
 setInterval(actualizarIluminacionFocoDia, 60000);
 
-function applyMaterialLogic(model, categoryKey) {
+function applyMaterialLogic(model, categoryKey, allowShadows = (gameSettings.calidad !== 'baja')) {
     if(!model) return;
     const isFoco = categoryKey === 'foco', isFocoDia = categoryKey === 'foco_dia';
-    const allowShadows = gameSettings.sombras > 0;
 
     model.traverse((node) => {
         if (node.isMesh) {
@@ -203,7 +226,7 @@ function applyMaterialLogic(model, categoryKey) {
                         node.material.shadowSide = THREE.BackSide;
                     }
                     node.material.side = THREE.DoubleSide;
-                    node.material.needsUpdate = true;
+                    node.material.needsUpdate = true; // Forza a recompilar shader para activar/desactivar sombras visualmente
                 }
             }
         }
@@ -386,12 +409,17 @@ for (let cat in inventoryData) {
 })();
 
 function updateLighting() {
+    const brMultiplier = gameSettings.brillo / 100; // Toma el porcentaje de brillo
     if (lightOn) {
-        mainLight.visible = true; ambient.intensity = gameSettings.calidad === 'baja' ? 0.8 : 0.3; hemiLight.intensity = gameSettings.calidad === 'baja' ? 0.8 : 0.4;
+        mainLight.visible = true; 
+        ambient.intensity = (gameSettings.calidad === 'baja' ? 0.8 : 0.3) * brMultiplier; 
+        hemiLight.intensity = (gameSettings.calidad === 'baja' ? 0.8 : 0.4) * brMultiplier;
         document.getElementById('light-status').innerText = '💡 Luz encendida';
         if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 1.5; });
     } else {
-        mainLight.visible = false; ambient.intensity = 0.02; hemiLight.intensity = 0.05;
+        mainLight.visible = false; 
+        ambient.intensity = 0.02 * brMultiplier; 
+        hemiLight.intensity = 0.05 * brMultiplier;
         document.getElementById('light-status').innerText = '💡 Luz apagada';
         if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; });
     }
@@ -456,25 +484,28 @@ document.querySelectorAll('.ff-tab').forEach(tab => {
 
 // Sincronizar UI con gameSettings
 function syncSettingsUI() {
+    // Calidad Gráfica
     document.querySelectorAll('#setting-calidad button').forEach(b => {
         b.classList.toggle('active', b.dataset.val === gameSettings.calidad);
         b.onclick = () => {
             gameSettings.calidad = b.dataset.val;
-            if(gameSettings.calidad === 'baja') { gameSettings.sombras = 0; gameSettings.fps = 30; }
             syncSettingsUI(); applyCurrentSettings();
         };
     });
-    
-    const selectSombras = document.getElementById('setting-sombras');
-    selectSombras.value = gameSettings.sombras;
-    selectSombras.disabled = gameSettings.calidad === 'baja';
-    selectSombras.onchange = (e) => { gameSettings.sombras = parseInt(e.target.value); applyCurrentSettings(); };
 
+    // Filtro Visual
+    document.querySelectorAll('#setting-filtro button').forEach(b => {
+        b.classList.toggle('active', b.dataset.val === gameSettings.filtro);
+        b.onclick = () => { gameSettings.filtro = b.dataset.val; syncSettingsUI(); applyCurrentSettings(); };
+    });
+    
+    // FPS
     document.querySelectorAll('#setting-fps button').forEach(b => {
         b.classList.toggle('active', parseInt(b.dataset.val) === gameSettings.fps);
         b.onclick = () => { gameSettings.fps = parseInt(b.dataset.val); syncSettingsUI(); };
     });
 
+    // Volumen
     const volSlider = document.getElementById('setting-volumen');
     volSlider.value = gameSettings.volumen;
     document.getElementById('vol-tv-val').innerText = `${gameSettings.volumen}%`;
@@ -484,9 +515,20 @@ function syncSettingsUI() {
         applyCurrentSettings();
     };
 
+    // Mostrar FPS
     const fpsCheck = document.getElementById('setting-showfps');
     fpsCheck.checked = gameSettings.mostrarFps;
     fpsCheck.onchange = (e) => { gameSettings.mostrarFps = e.target.checked; applyCurrentSettings(); };
+
+    // Brillo
+    const brilloSlider = document.getElementById('setting-brillo');
+    brilloSlider.value = gameSettings.brillo;
+    document.getElementById('brillo-val').innerText = `${gameSettings.brillo}%`;
+    brilloSlider.oninput = (e) => { 
+        gameSettings.brillo = e.target.value; 
+        document.getElementById('brillo-val').innerText = `${gameSettings.brillo}%`;
+        applyCurrentSettings();
+    };
 }
 
 // INVENTARIO LÓGICA
@@ -584,5 +626,4 @@ window.addEventListener('resize', () => { camera.aspect = window.innerWidth / wi
 // Inicializar estado
 syncSettingsUI();
 applyCurrentSettings();
-updateLighting();
 animate();
