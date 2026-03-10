@@ -42,7 +42,7 @@ for (let cat in defaultInventoryConfig) {
     inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
     inventoryData[cat].label = defaultInventoryConfig[cat].label;
     inventoryData[cat].type = defaultInventoryConfig[cat].type || 'single';
-    
+
     if (inventoryData[cat].type === 'multiple') {
         if (!Array.isArray(inventoryData[cat].equipped)) inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
     } else {
@@ -92,7 +92,7 @@ let esDeDiaLocal = true;
 // === ESTADOS GLOBALES DE LA TV ===
 let isTvOn = false; 
 let tvTransitioning = false; 
-let lastTvClickTime = 0; 
+let lastTvClickTime = 0;
 let tvScreenMesh = null;
 
 // --- Escena, Cámara y Reloj ---
@@ -150,7 +150,7 @@ function applyCurrentSettings() {
     renderer.shadowMap.enabled = gameSettings.sombras > 0;
     renderer.shadowMap.type = gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     mainLight.castShadow = gameSettings.sombras > 0;
-    
+
     if (gameSettings.sombras > 0) {
         let shadowRes = 512;
         if (gameSettings.sombras === 2) shadowRes = isMobileUA ? 1024 : 2048;
@@ -168,7 +168,6 @@ function applyCurrentSettings() {
 function actualizarIluminacionFocoDia() {
     const hora = new Date().getHours();
     let colorHex, lightInt, emInt, dist;
-
     if (hora >= 6 && hora < 9) { colorHex = 0xffe4b5; lightInt = 0.8; emInt = 0.8; dist = 35; }
     else if (hora >= 9 && hora < 17) { colorHex = 0xffffff; lightInt = 1.5; emInt = 1.5; dist = 50; }
     else if (hora >= 17 && hora < 19) { colorHex = 0xff8c00; lightInt = 0.7; emInt = 0.7; dist = 40; }
@@ -194,7 +193,6 @@ function applyMaterialLogic(model, categoryKey) {
     if(!model) return;
     const isFoco = categoryKey === 'foco', isFocoDia = categoryKey === 'foco_dia';
     const allowShadows = gameSettings.sombras > 0;
-    
     model.traverse((node) => {
         if (node.isMesh) {
             node.frustumCulled = false;
@@ -237,14 +235,22 @@ function playNextTv(random = false) {
     currentTvIndex = random ? Math.floor(Math.random() * tvPlaylist.length) : (currentTvIndex + 1) % tvPlaylist.length;
     tvVideo.src = tvPlaylist[currentTvIndex];
     tvVideo.volume = gameSettings.volumen / 100;
-    // Solo iniciar auto-reproducción si la TV está encendida
     if (isTvOn && !tvTransitioning) {
         tvVideo.play().catch(e => console.warn('User interaction needed', e));
     }
 }
 
-// Eventos de botones de la TV
-tvVideo.addEventListener('ended', () => playNextTv(false));
+// NUEVA LÓGICA DE TRANSICIONES: El encendido y el fin de los videos
+tvVideo.addEventListener('ended', () => {
+    if (tvTransitioning && isTvOn) {
+        // Terminó el efecto de encendido -> Arrancar playlist normal
+        tvTransitioning = false;
+        playNextTv(false);
+    } else if (!tvTransitioning && isTvOn) {
+        // Terminó un video de la lista
+        playNextTv(false);
+    }
+});
 
 document.getElementById('tv-prev').onclick = () => {
     if (!isTvOn || tvTransitioning) return;
@@ -252,9 +258,11 @@ document.getElementById('tv-prev').onclick = () => {
     if(tvPlaylist.length === 0) return;
     currentTvIndex = (currentTvIndex - 1 + tvPlaylist.length) % tvPlaylist.length; tvVideo.src = tvPlaylist[currentTvIndex]; tvVideo.play();
 };
+
 document.getElementById('tv-next').onclick = () => {
     if (isTvOn && !tvTransitioning) playNextTv(false);
 };
+
 document.getElementById('tv-play-pause').onclick = () => { 
     if (!isTvOn || tvTransitioning) return;
     if(tvVideo.paused) tvVideo.play(); else tvVideo.pause(); 
@@ -263,59 +271,84 @@ document.getElementById('tv-play-pause').onclick = () => {
 // Lógica del botón de Power de la TV
 const tvPowerBtn = document.getElementById('tv-power');
 if (tvPowerBtn) {
+    // Inicia en modo apagado, con el ícono listo para prender.
+    tvPowerBtn.innerHTML = '🔴';
+    
     tvPowerBtn.addEventListener('click', () => {
         if (tvTransitioning || !tvScreenMesh) return;
 
         if (isTvOn) {
-            // Apagar TV
+            // APAGAR TV
             isTvOn = false;
+            tvTransitioning = true;
             tvVideo.pause();
-            tvPowerBtn.style.color = 'red';
-            tvPowerBtn.style.textShadow = '0 0 5px red';
+            tvPowerBtn.innerHTML = '🔴'; 
             
             let mats = Array.isArray(tvScreenMesh.material) ? tvScreenMesh.material : [tvScreenMesh.material];
-            mats.forEach(mat => {
-                mat.color.setHex(0x000000);
-                mat.emissive.setHex(0x000000);
-                mat.emissiveIntensity = 0;
-                mat.needsUpdate = true;
-            });
+            
+            // Efecto Inverso
+            tvVideo.src = 'efecto_tele.mp4';
+            tvVideo.muted = true; // mutear reversa para evitar problemas
+            
+            const startReverse = () => {
+                if (!tvVideo.duration) return;
+                tvVideo.currentTime = tvVideo.duration - 0.1;
+                
+                let revInterval = setInterval(() => {
+                    if (!tvTransitioning) {
+                        clearInterval(revInterval);
+                        return;
+                    }
+                    if (tvVideo.currentTime <= 0.1) {
+                        // Terminó la reversa
+                        clearInterval(revInterval);
+                        tvVideo.pause();
+                        tvTransitioning = false;
+                        tvVideo.muted = false; // Restaurar audio
+                        
+                        mats.forEach(mat => {
+                            mat.color.setHex(0x000000);
+                            mat.emissive.setHex(0x000000);
+                            mat.emissiveIntensity = 0;
+                            mat.needsUpdate = true;
+                        });
+                    } else {
+                        // Retrocede en pasos más grandes para ir más rápido
+                        tvVideo.currentTime = Math.max(0, tvVideo.currentTime - 0.05);
+                    }
+                }, 30);
+            };
+
+            if (tvVideo.readyState >= 2) {
+                startReverse();
+            } else {
+                tvVideo.addEventListener('loadeddata', startReverse, { once: true });
+                tvVideo.load();
+            }
+
         } else {
-            // Prender TV
+            // PRENDER TV
             isTvOn = true;
             tvTransitioning = true;
-            tvPowerBtn.style.color = '#00ff00';
-            tvPowerBtn.style.textShadow = '0 0 5px #00ff00';
+            tvPowerBtn.innerHTML = '🟢'; 
 
             let mats = Array.isArray(tvScreenMesh.material) ? tvScreenMesh.material : [tvScreenMesh.material];
             
-            // Flash blanco de encendido
             mats.forEach(mat => {
                 mat.color.setHex(0xffffff);
                 mat.emissive.setHex(0xffffff);
-                mat.emissiveIntensity = 2.0;
+                mat.emissiveIntensity = 1.0;
                 mat.needsUpdate = true;
             });
-
-            // Animación para disminuir el brillo a la normalidad
-            let intensity = 2.0;
-            const turnOnAnim = setInterval(() => {
-                intensity -= 0.15;
-                mats.forEach(mat => {
-                    mat.emissiveIntensity = intensity;
-                    mat.needsUpdate = true;
-                });
-
-                if (intensity <= 0) {
-                    clearInterval(turnOnAnim);
-                    mats.forEach(mat => {
-                        mat.emissiveIntensity = 1.0; 
-                        mat.needsUpdate = true;
-                    });
-                    tvVideo.play().catch(e => console.warn(e));
-                    tvTransitioning = false;
-                }
-            }, 50);
+            
+            tvVideo.src = 'efecto_tele.mp4';
+            tvVideo.muted = false;
+            tvVideo.volume = gameSettings.volumen / 100;
+            tvVideo.play().catch(e => {
+                console.warn('Interacción auto-play bloqueada', e);
+                tvTransitioning = false;
+                playNextTv(false);
+            });
         }
     });
 }
@@ -335,7 +368,6 @@ for (let cat in inventoryData) {
     }
 }
 totalModelsToLoad += 4;
-
 function checkLoading() {
     modelsLoaded++;
     const loadingEl = document.getElementById('loading');
@@ -349,7 +381,6 @@ if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getEl
 // --- MODELOS Y LUNARI ---
 const loader = new GLTFLoader();
 let lunariMixer = null, baseAction = null, randomAction = null, currentAction = null;
-
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const lunariModel = gltf.scene; applyMaterialLogic(lunariModel, 'lunari'); scene.add(lunariModel);
     if (gltf.animations && gltf.animations.length > 0) {
@@ -357,7 +388,6 @@ loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     }
     checkLoading();
 }, undefined, () => checkLoading());
-
 loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
         randomAction = lunariMixer.clipAction(gltf.animations[0]); randomAction.loop = THREE.LoopOnce; randomAction.clampWhenFinished = true;
@@ -417,7 +447,7 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                             mat.emissive = new THREE.Color(0xffffff);
                             mat.emissiveIntensity = 1.0;
                         }
-                        mat.needsUpdate = true; 
+                        mat.needsUpdate = true;
                     });
                 }
             });
@@ -425,7 +455,9 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             if (!isTvOn) tvVideo.pause();
         }
 
-        if (categoryKey === 'foco') { focoMesh = model; const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); mainLight.position.copy(center); mainLight.position.y -= 0.2; }
+        if (categoryKey === 'foco') { focoMesh = model;
+            const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); mainLight.position.copy(center); mainLight.position.y -= 0.2;
+        }
         if (categoryKey === 'interruptor') switchMesh = model;
 
         scene.add(model); loadedSlotMeshes[categoryKey] = model;
@@ -508,7 +540,7 @@ const posterEnlargedImage = document.getElementById('poster-enlarged-image');
 document.getElementById('close-poster-view').onclick = () => posterViewModal.classList.remove('visible');
 posterViewModal.onclick = (e) => { if (e.target === posterViewModal) posterViewModal.classList.remove('visible'); };
 
-// --- NUEVA LÓGICA DE INTERACCIÓN (Evita el "Drag Click" y procesa Doble Clic) ---
+// --- NUEVA LÓGICA DE INTERACCIÓN ---
 function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -524,7 +556,6 @@ function handleInteraction(event) {
 
         // Detectar si fue Doble Clic (Margen de 300ms)
         if (currentTime - lastTvClickTime < 300) {
-            // Solo si está prendida dejamos pausar/reproducir
             if (isTvOn && !tvTransitioning) {
                 if (tvVideo.paused) {
                     tvVideo.play().catch(e=>{});
@@ -533,11 +564,11 @@ function handleInteraction(event) {
                 }
             }
         } else {
-            // Primer Clic - Mostrar u Ocultar los controles en pantalla
+            // Mostrar u Ocultar los controles
             if (tvControls.style.display === 'none' || tvControls.style.display === '') { 
-                tvControls.style.display = 'flex'; 
+                tvControls.style.display = 'flex';
             } else { 
-                tvControls.style.display = 'none'; 
+                tvControls.style.display = 'none';
             }
         }
         
@@ -578,7 +609,6 @@ renderer.domElement.addEventListener('pointerup', (e) => {
     }
     isDragging = false;
 });
-// -------------------------------------------------------------
 
 // --- UI CONFIGURACIÓN FREE FIRE ---
 const settingsModal = document.getElementById('ff-settings-modal');
@@ -588,7 +618,6 @@ document.getElementById('close-ff-settings').onclick = () => {
     localStorage.setItem('ff_settings', JSON.stringify(gameSettings));
     applyCurrentSettings();
 };
-
 document.querySelectorAll('.ff-tab').forEach(tab => {
     tab.onclick = () => {
         document.querySelectorAll('.ff-tab').forEach(t => t.classList.remove('active'));
@@ -597,7 +626,6 @@ document.querySelectorAll('.ff-tab').forEach(tab => {
         document.getElementById(tab.dataset.target).classList.add('active');
     };
 });
-
 function syncSettingsUI() {
     document.querySelectorAll('#setting-calidad button').forEach(b => {
         b.classList.toggle('active', b.dataset.val === gameSettings.calidad);
@@ -661,12 +689,11 @@ function renderInventory() {
         const card = document.createElement('div'); card.className = 'item-card';
         const prev = document.createElement('div'); prev.className = 'item-preview';
         if (item.preview) { const img = document.createElement('img'); img.src = item.preview; img.alt = item.name;
-        img.onerror = () => { prev.innerHTML = `<span>${catData.emoji}</span>`; }; prev.appendChild(img);
-        } else { prev.innerHTML = `<span>${catData.emoji}</span>`;
-        }
+            img.onerror = () => { prev.innerHTML = `<span>${catData.emoji}</span>`; }; prev.appendChild(img);
+        } else { prev.innerHTML = `<span>${catData.emoji}</span>`; }
         
         let btn = item.owned ?
-        (isEq ? `<button class="item-btn btn-equipped" onclick="equipItem('${currentCategory}', '${itemId}')">${catData.type === 'multiple' ? 'Quitar ✓' : 'Equipado ✓'}</button>` : `<button class="item-btn btn-equip" onclick="equipItem('${currentCategory}', '${itemId}')">Equipar</button>`) : `<button class="item-btn btn-buy" onclick="buyItem('${currentCategory}', '${itemId}')">Comprar 🪙${item.price}</button>`;
+            (isEq ? `<button class="item-btn btn-equipped" onclick="equipItem('${currentCategory}', '${itemId}')">${catData.type === 'multiple' ? 'Quitar ✓' : 'Equipado ✓'}</button>` : `<button class="item-btn btn-equip" onclick="equipItem('${currentCategory}', '${itemId}')">Equipar</button>`) : `<button class="item-btn btn-buy" onclick="buyItem('${currentCategory}', '${itemId}')">Comprar 🪙${item.price}</button>`;
         card.innerHTML = `<div>${prev.outerHTML}<h4>${item.name}</h4><div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div></div>${btn}`;
         content.appendChild(card);
     }
@@ -690,7 +717,7 @@ window.equipItem = function(category, itemId) {
 window.buyItem = function(category, itemId) {
     let item = inventoryData[category].items[itemId];
     if (playerCoins >= item.price) { playerCoins -= item.price;
-    item.owned = true; saveGame(); renderInventory(); } 
+        item.owned = true; saveGame(); renderInventory(); } 
     else alert("No tienes suficientes monedas.");
 };
 document.getElementById('inventory-button').onclick = () => { document.getElementById('inventory-modal').classList.add('visible'); renderInventory(); };
@@ -712,7 +739,6 @@ function animate() {
         controls.update();
         renderer.render(scene, camera);
         
-        // Calculador de FPS en pantalla
         if (gameSettings.mostrarFps) {
             frames++;
             if (now - lastFpsTime >= 1000) {
