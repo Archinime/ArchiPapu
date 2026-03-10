@@ -80,17 +80,27 @@ let gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
     calidad: baseTier, 
     sombras: baseTier === 'baja' ? 0 : (baseTier === 'media' ? 1 : 2),
     fps: baseTier === 'baja' ? 30 : 60,
-    volumenTV: 50,      // Separado
-    volumenEfectos: 50, // Separado
+    volumenTV: 50,
+    volumenEfectos: 50,
     mostrarFps: false
 };
-// Compatibilidad con versión anterior
 if(gameSettings.volumen) { gameSettings.volumenTV = gameSettings.volumen; gameSettings.volumenEfectos = gameSettings.volumen; delete gameSettings.volumen; }
+
+// Estados persistentes
+let lightOn = localStorage.getItem('lightState') !== 'off';
+let tvState = localStorage.getItem('tvState') === 'on';
+let isTvOn = tvState;
+
+// Flag para Lunari (se actualizará al encender/apagar luz o TV)
+function updateLunariAwakeFlag() {
+    const awake = lightOn || isTvOn;
+    localStorage.setItem('lunari_awake', awake ? 'true' : 'false');
+}
 
 const loadedSlotMeshes = {};
 let switchMesh = null, focoMesh = null, focoDiaMesh = null, luzFocoDia = null;
 let esDeDiaLocal = true;
-let isTvOn = false; let tvTransitioning = false; let lastTvClickTime = 0; let tvScreenMesh = null;
+let tvTransitioning = false; let lastTvClickTime = 0; let tvScreenMesh = null;
 
 const audioPrenderLuz = new Audio('prender_luz.mp3');
 const audioApagarLuz = new Audio('apagar_luz.mp3');
@@ -133,8 +143,6 @@ mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
 mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.002;
 mainLight.shadow.normalBias = 0.05; mainLight.shadow.radius = 4; scene.add(mainLight); scene.add(mainLight.target);
 
-let lightOn = localStorage.getItem('lightState') !== 'off';
-
 function applyCurrentSettings() {
     let pixelRatio = 1;
     if (gameSettings.calidad === 'media') pixelRatio = Math.min(window.devicePixelRatio, 1.2);
@@ -154,7 +162,6 @@ function applyCurrentSettings() {
 
     document.getElementById('fps-counter').style.display = gameSettings.mostrarFps ? 'block' : 'none';
     
-    // Aplicar volumen separado
     const tvVideo = document.getElementById('tv-video');
     if (tvVideo) tvVideo.volume = gameSettings.volumenTV / 100;
     tvEffectVideoOff.volume = gameSettings.volumenEfectos / 100;
@@ -268,21 +275,18 @@ if (tvPowerBtn) {
                 if (tvPlaylist.length > 0) { tvVideo.currentTime = 0; tvVideo.play().catch(e=>{}); }
             }
             tvTransitioning = false;
+            // Guardar estado de TV y actualizar flag de Lunari
+            localStorage.setItem('tvState', isTvOn ? 'on' : 'off');
+            updateLunariAwakeFlag();
         };
         effectVideo.addEventListener('ended', onEffectEnded, { once: true });
     });
 }
 playNextTv(true);
 
-let totalModelsToLoad = 0, modelsLoaded = 0;
-for (let cat in inventoryData) {
-    if (inventoryData[cat].type === 'multiple') continue; let eqId = inventoryData[cat].equipped;
-    if (inventoryData[cat].items && inventoryData[cat].items[eqId]) {
-        let it = inventoryData[cat].items[eqId];
-        if (it.file) totalModelsToLoad++; if (cat === 'foco' && it.baseFile) totalModelsToLoad++; if (cat === 'tele' && it.baseFile) totalModelsToLoad++;
-    }
-}
-totalModelsToLoad += 4; // Lunari x2, FocoDia, Cuadro Clima
+// Sistema de carga dinámica
+let totalModelsToLoad = 0;
+let modelsLoaded = 0;
 
 function checkLoading() {
     modelsLoaded++;
@@ -302,17 +306,10 @@ if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getEl
 
 const loader = new GLTFLoader();
 let lunariMixer = null, baseAction = null, randomAction = null, currentAction = null;
-loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
-    const lunariModel = gltf.scene; applyMaterialLogic(lunariModel, 'lunari'); scene.add(lunariModel);
-    if (gltf.animations && gltf.animations.length > 0) { lunariMixer = new THREE.AnimationMixer(lunariModel); baseAction = lunariMixer.clipAction(gltf.animations[0]); baseAction.play(); currentAction = baseAction; }
-    checkLoading();
-}, undefined, () => checkLoading());
+let lunariAwake = false; // Se determinará después del clima
 
-loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
-    if (gltf.animations && gltf.animations.length > 0 && lunariMixer) { randomAction = lunariMixer.clipAction(gltf.animations[0]); randomAction.loop = THREE.LoopOnce; randomAction.clampWhenFinished = true; }
-    checkLoading();
-}, undefined, () => checkLoading());
-
+// Carga de foco_dia (siempre)
+totalModelsToLoad++;
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
     focoDiaMesh = gltf.scene; applyMaterialLogic(focoDiaMesh, 'foco_dia'); 
     luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
@@ -322,53 +319,7 @@ loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/fo
     actualizarIluminacionFocoDia(); checkLoading();
 }, undefined, () => checkLoading());
 
-setInterval(() => {
-    if (!randomAction || !baseAction || !lunariMixer || currentAction === randomAction) return;
-    if (baseAction && randomAction) {
-        baseAction.fadeOut(0.5); randomAction.reset().fadeIn(0.5).play(); currentAction = randomAction;
-        const onFinished = (event) => {
-            if (event.action === randomAction) { randomAction.fadeOut(0.5); baseAction.reset().fadeIn(0.5).play(); currentAction = baseAction; lunariMixer.removeEventListener('finished', onFinished); }
-        };
-        lunariMixer.addEventListener('finished', onFinished);
-    }
-}, 60000);
-
-function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
-    if (!itemFile) return;
-    if (loadedSlotMeshes[categoryKey]) { scene.remove(loadedSlotMeshes[categoryKey]); disposeThreeJSObject(loadedSlotMeshes[categoryKey]); }
-    loader.load(getFreshUrl(itemFile), (gltf) => {
-        const model = gltf.scene; applyMaterialLogic(model, categoryKey);
-        if (categoryKey === 'pantalla_tv') {
-            model.traverse((node) => {
-                if (node.isMesh && node.material) {
-                    tvScreenMesh = node; 
-                    let mats = Array.isArray(node.material) ? node.material : [node.material];
-                    mats.forEach(mat => { 
-                        if (!isTvOn) { mat.map = null; mat.emissiveMap = null; mat.color = new THREE.Color(0x000000); mat.emissive = new THREE.Color(0x000000); mat.emissiveIntensity = 0; } 
-                        else { mat.map = tvTexture; mat.emissiveMap = tvTexture; mat.color = new THREE.Color(0xffffff); mat.emissive = new THREE.Color(0xffffff); mat.emissiveIntensity = 1.0; }
-                        mat.needsUpdate = true;
-                    });
-                }
-            });
-            if (!isTvOn) tvVideo.pause();
-        }
-        if (categoryKey === 'foco') { focoMesh = model; const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); mainLight.position.copy(center); mainLight.position.y -= 0.2; }
-        if (categoryKey === 'interruptor') switchMesh = model;
-        scene.add(model); loadedSlotMeshes[categoryKey] = model;
-        if(isInitialLoad) checkLoading();
-    }, undefined, () => { if(isInitialLoad) checkLoading(); });
-}
-
-for (let cat in inventoryData) {
-    if (inventoryData[cat].type === 'multiple') continue; let eqId = inventoryData[cat].equipped;
-    if (inventoryData[cat].items && inventoryData[cat].items[eqId]) {
-        let it = inventoryData[cat].items[eqId];
-        if (it.file) loadItemForSlot(cat, it.file, true);
-        if (cat === 'foco' && it.baseFile) loadItemForSlot('base_foco', it.baseFile, true);
-        if (cat === 'tele' && it.baseFile) loadItemForSlot('pantalla_tv', it.baseFile, true);
-    }
-}
-
+// Carga de Lunari y cuadro dependiente del clima
 (async function setupWeatherVideo() {
     const video = document.createElement('video'); video.loop = true; video.muted = true; video.playsInline = true; video.crossOrigin = 'anonymous';
     let videoFile = 'dia_soleado.mp4', weatherEmoji = "☀️", weatherName = "Clima estándar", temperature = "--";
@@ -395,6 +346,7 @@ for (let cat in inventoryData) {
     video.src = videoFile; video.play().catch(e => console.log('Autoplay blocked'));
 
     const videoTexture = new THREE.VideoTexture(video); videoTexture.minFilter = THREE.LinearFilter; videoTexture.magFilter = THREE.LinearFilter; videoTexture.format = THREE.RGBAFormat; videoTexture.encoding = THREE.sRGBEncoding;
+    totalModelsToLoad++;
     loader.load(getFreshUrl('cuadro.glb'), (gltf) => {
         const cuadroModel = gltf.scene;
         cuadroModel.traverse((node) => {
@@ -405,7 +357,112 @@ for (let cat in inventoryData) {
         });
         applyMaterialLogic(cuadroModel, 'cuadro'); scene.add(cuadroModel); loadedSlotMeshes['cuadro'] = cuadroModel; checkLoading();
     }, undefined, () => checkLoading());
+
+    // Determinar estado de Lunari después de tener esDeDiaLocal
+    const storedAwake = localStorage.getItem('lunari_awake') === 'true';
+    lunariAwake = esDeDiaLocal ? true : storedAwake; // Si es de día, siempre despierto
+
+    // Cargar modelos de Lunari según el estado
+    if (lunariAwake) {
+        // Cargar solo la animación despierta
+        totalModelsToLoad++;
+        loader.load(getFreshUrl('lunari_despierta.glb'), (gltf) => {
+            const lunariModel = gltf.scene;
+            applyMaterialLogic(lunariModel, 'lunari');
+            scene.add(lunariModel);
+            if (gltf.animations && gltf.animations.length > 0) {
+                lunariMixer = new THREE.AnimationMixer(lunariModel);
+                baseAction = lunariMixer.clipAction(gltf.animations[0]);
+                baseAction.play();
+                // No hay randomAction, solo una animación en loop
+            }
+            checkLoading();
+        }, undefined, () => checkLoading());
+    } else {
+        // Cargar las dos animaciones de dormir
+        totalModelsToLoad++;
+        loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
+            const lunariModel = gltf.scene;
+            applyMaterialLogic(lunariModel, 'lunari');
+            scene.add(lunariModel);
+            if (gltf.animations && gltf.animations.length > 0) {
+                lunariMixer = new THREE.AnimationMixer(lunariModel);
+                baseAction = lunariMixer.clipAction(gltf.animations[0]);
+                baseAction.play();
+                currentAction = baseAction;
+            }
+            checkLoading();
+        }, undefined, () => checkLoading());
+
+        totalModelsToLoad++;
+        loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
+            if (gltf.animations && gltf.animations.length > 0 && lunariMixer) {
+                randomAction = lunariMixer.clipAction(gltf.animations[0]);
+                randomAction.loop = THREE.LoopOnce;
+                randomAction.clampWhenFinished = true;
+            }
+            checkLoading();
+        }, undefined, () => checkLoading());
+
+        // Iniciar el intervalo de cambio de animación solo si está dormido
+        setInterval(() => {
+            if (!randomAction || !baseAction || !lunariMixer || currentAction === randomAction) return;
+            if (baseAction && randomAction) {
+                baseAction.fadeOut(0.5);
+                randomAction.reset().fadeIn(0.5).play();
+                currentAction = randomAction;
+                const onFinished = (event) => {
+                    if (event.action === randomAction) {
+                        randomAction.fadeOut(0.5);
+                        baseAction.reset().fadeIn(0.5).play();
+                        currentAction = baseAction;
+                        lunariMixer.removeEventListener('finished', onFinished);
+                    }
+                };
+                lunariMixer.addEventListener('finished', onFinished);
+            }
+        }, 60000);
+    }
 })();
+
+function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false, countForLoading = false) {
+    if (!itemFile) return;
+    if (loadedSlotMeshes[categoryKey]) { scene.remove(loadedSlotMeshes[categoryKey]); disposeThreeJSObject(loadedSlotMeshes[categoryKey]); }
+    if (countForLoading) totalModelsToLoad++;
+    loader.load(getFreshUrl(itemFile), (gltf) => {
+        const model = gltf.scene; applyMaterialLogic(model, categoryKey);
+        if (categoryKey === 'pantalla_tv') {
+            model.traverse((node) => {
+                if (node.isMesh && node.material) {
+                    tvScreenMesh = node; 
+                    let mats = Array.isArray(node.material) ? node.material : [node.material];
+                    mats.forEach(mat => { 
+                        if (!isTvOn) { mat.map = null; mat.emissiveMap = null; mat.color = new THREE.Color(0x000000); mat.emissive = new THREE.Color(0x000000); mat.emissiveIntensity = 0; } 
+                        else { mat.map = tvTexture; mat.emissiveMap = tvTexture; mat.color = new THREE.Color(0xffffff); mat.emissive = new THREE.Color(0xffffff); mat.emissiveIntensity = 1.0; }
+                        mat.needsUpdate = true;
+                    });
+                }
+            });
+            if (!isTvOn) tvVideo.pause();
+        }
+        if (categoryKey === 'foco') { focoMesh = model; const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); mainLight.position.copy(center); mainLight.position.y -= 0.2; }
+        if (categoryKey === 'interruptor') switchMesh = model;
+        scene.add(model); loadedSlotMeshes[categoryKey] = model;
+        if(countForLoading) checkLoading();
+    }, undefined, () => { if(countForLoading) checkLoading(); });
+}
+
+// Carga inicial de items (estructura, muebles, etc.)
+for (let cat in inventoryData) {
+    if (inventoryData[cat].type === 'multiple') continue;
+    let eqId = inventoryData[cat].equipped;
+    if (inventoryData[cat].items && inventoryData[cat].items[eqId]) {
+        let it = inventoryData[cat].items[eqId];
+        if (it.file) loadItemForSlot(cat, it.file, true, true);
+        if (cat === 'foco' && it.baseFile) loadItemForSlot('base_foco', it.baseFile, true, true);
+        if (cat === 'tele' && it.baseFile) loadItemForSlot('pantalla_tv', it.baseFile, true, true);
+    }
+}
 
 function updateLighting() {
     if (lightOn) {
@@ -424,6 +481,7 @@ function toggleLight() {
     lightOn = !lightOn; localStorage.setItem('lightState', lightOn ? 'on' : 'off'); updateLighting();
     if (lightOn) { audioPrenderLuz.currentTime = 0; audioPrenderLuz.play().catch(e=>{}); } 
     else { audioApagarLuz.currentTime = 0; audioApagarLuz.play().catch(e=>{}); }
+    updateLunariAwakeFlag();
 }
 
 const posterViewModal = document.getElementById('poster-view-modal'); const posterEnlargedImage = document.getElementById('poster-enlarged-image');
@@ -475,7 +533,6 @@ function syncSettingsUI() {
         b.onclick = () => { gameSettings.fps = parseInt(b.dataset.val); syncSettingsUI(); };
     });
     
-    // Controles separados
     const volTV = document.getElementById('setting-volumen-tv'); volTV.value = gameSettings.volumenTV; document.getElementById('vol-tv-val').innerText = `${gameSettings.volumenTV}%`;
     volTV.oninput = (e) => { gameSettings.volumenTV = e.target.value; document.getElementById('vol-tv-val').innerText = `${gameSettings.volumenTV}%`; applyCurrentSettings(); };
     
