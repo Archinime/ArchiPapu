@@ -42,6 +42,7 @@ for (let cat in defaultInventoryConfig) {
     inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
     inventoryData[cat].label = defaultInventoryConfig[cat].label;
     inventoryData[cat].type = defaultInventoryConfig[cat].type || 'single';
+    
     if (inventoryData[cat].type === 'multiple') {
         if (!Array.isArray(inventoryData[cat].equipped)) inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
     } else {
@@ -71,14 +72,14 @@ const ua = navigator.userAgent;
 const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 const deviceMemory = navigator.deviceMemory || 4; 
 const cpuCores = navigator.hardwareConcurrency || 4;
-
 let baseTier = 'alta';
 if (isMobileUA || deviceMemory <= 4 || cpuCores <= 4) baseTier = 'media';
 if (isMobileUA && (deviceMemory <= 2 || cpuCores <= 2)) baseTier = 'baja';
 
-let gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
+let gameSettings = JSON.parse(localStorage.getItem('ff_settings')) ||
+{
     calidad: baseTier, 
-    sombras: baseTier === 'baja' ? 0 : (baseTier === 'media' ? 1 : 2), // Usado internamente
+    sombras: baseTier === 'baja' ? 0 : (baseTier === 'media' ? 1 : 2),
     fps: baseTier === 'baja' ? 30 : 60,
     volumen: 50,
     mostrarFps: false
@@ -87,6 +88,12 @@ let gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
 const loadedSlotMeshes = {};
 let switchMesh = null, focoMesh = null, focoDiaMesh = null, luzFocoDia = null;
 let esDeDiaLocal = true;
+
+// === ESTADOS GLOBALES DE LA TV ===
+let isTvOn = false; 
+let tvTransitioning = false; 
+let lastTvClickTime = 0; 
+let tvScreenMesh = null;
 
 // --- Escena, Cámara y Reloj ---
 const scene = new THREE.Scene();
@@ -134,30 +141,25 @@ let lightOn = localStorage.getItem('lightState') !== 'off';
 
 // APLICAR AJUSTES VISUALES AL ENTORNO
 function applyCurrentSettings() {
-    // Definir multiplicador de resolución según la calidad
     let pixelRatio = 1;
     if (gameSettings.calidad === 'baja') pixelRatio = 1;
     else if (gameSettings.calidad === 'media') pixelRatio = Math.min(window.devicePixelRatio, 1.2);
-    else if (gameSettings.calidad === 'alta') pixelRatio = Math.min(window.devicePixelRatio, 2); // Ultra
+    else if (gameSettings.calidad === 'alta') pixelRatio = Math.min(window.devicePixelRatio, 2); 
 
     renderer.setPixelRatio(pixelRatio);
-
-    // Aplicar sombras en cascada según calidad
     renderer.shadowMap.enabled = gameSettings.sombras > 0;
     renderer.shadowMap.type = gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     mainLight.castShadow = gameSettings.sombras > 0;
     
     if (gameSettings.sombras > 0) {
-        let shadowRes = 512; // Media
-        if (gameSettings.sombras === 2) shadowRes = isMobileUA ? 1024 : 2048; // Ultra
+        let shadowRes = 512;
+        if (gameSettings.sombras === 2) shadowRes = isMobileUA ? 1024 : 2048;
         mainLight.shadow.mapSize.set(shadowRes, shadowRes);
     }
 
-    // Actualizar todos los modelos para que emitan/reciban sombras
     for (let cat in loadedSlotMeshes) applyMaterialLogic(loadedSlotMeshes[cat], cat);
     if(focoDiaMesh) actualizarIluminacionFocoDia();
 
-    // UI Updates
     document.getElementById('fps-counter').style.display = gameSettings.mostrarFps ? 'block' : 'none';
     const tvVideo = document.getElementById('tv-video');
     if (tvVideo) tvVideo.volume = gameSettings.volumen / 100;
@@ -192,7 +194,7 @@ function applyMaterialLogic(model, categoryKey) {
     if(!model) return;
     const isFoco = categoryKey === 'foco', isFocoDia = categoryKey === 'foco_dia';
     const allowShadows = gameSettings.sombras > 0;
-
+    
     model.traverse((node) => {
         if (node.isMesh) {
             node.frustumCulled = false;
@@ -235,17 +237,89 @@ function playNextTv(random = false) {
     currentTvIndex = random ? Math.floor(Math.random() * tvPlaylist.length) : (currentTvIndex + 1) % tvPlaylist.length;
     tvVideo.src = tvPlaylist[currentTvIndex];
     tvVideo.volume = gameSettings.volumen / 100;
-    tvVideo.play().catch(e => console.warn('User interaction needed', e));
+    // Solo iniciar auto-reproducción si la TV está encendida
+    if (isTvOn && !tvTransitioning) {
+        tvVideo.play().catch(e => console.warn('User interaction needed', e));
+    }
 }
 
+// Eventos de botones de la TV
 tvVideo.addEventListener('ended', () => playNextTv(false));
+
 document.getElementById('tv-prev').onclick = () => {
+    if (!isTvOn || tvTransitioning) return;
     updatePlaylist();
     if(tvPlaylist.length === 0) return;
     currentTvIndex = (currentTvIndex - 1 + tvPlaylist.length) % tvPlaylist.length; tvVideo.src = tvPlaylist[currentTvIndex]; tvVideo.play();
 };
-document.getElementById('tv-next').onclick = () => playNextTv(false);
-document.getElementById('tv-play-pause').onclick = () => { if(tvVideo.paused) tvVideo.play(); else tvVideo.pause(); };
+document.getElementById('tv-next').onclick = () => {
+    if (isTvOn && !tvTransitioning) playNextTv(false);
+};
+document.getElementById('tv-play-pause').onclick = () => { 
+    if (!isTvOn || tvTransitioning) return;
+    if(tvVideo.paused) tvVideo.play(); else tvVideo.pause(); 
+};
+
+// Lógica del botón de Power de la TV
+const tvPowerBtn = document.getElementById('tv-power');
+if (tvPowerBtn) {
+    tvPowerBtn.addEventListener('click', () => {
+        if (tvTransitioning || !tvScreenMesh) return;
+
+        if (isTvOn) {
+            // Apagar TV
+            isTvOn = false;
+            tvVideo.pause();
+            tvPowerBtn.style.color = 'red';
+            tvPowerBtn.style.textShadow = '0 0 5px red';
+            
+            let mats = Array.isArray(tvScreenMesh.material) ? tvScreenMesh.material : [tvScreenMesh.material];
+            mats.forEach(mat => {
+                mat.color.setHex(0x000000);
+                mat.emissive.setHex(0x000000);
+                mat.emissiveIntensity = 0;
+                mat.needsUpdate = true;
+            });
+        } else {
+            // Prender TV
+            isTvOn = true;
+            tvTransitioning = true;
+            tvPowerBtn.style.color = '#00ff00';
+            tvPowerBtn.style.textShadow = '0 0 5px #00ff00';
+
+            let mats = Array.isArray(tvScreenMesh.material) ? tvScreenMesh.material : [tvScreenMesh.material];
+            
+            // Flash blanco de encendido
+            mats.forEach(mat => {
+                mat.color.setHex(0xffffff);
+                mat.emissive.setHex(0xffffff);
+                mat.emissiveIntensity = 2.0;
+                mat.needsUpdate = true;
+            });
+
+            // Animación para disminuir el brillo a la normalidad
+            let intensity = 2.0;
+            const turnOnAnim = setInterval(() => {
+                intensity -= 0.15;
+                mats.forEach(mat => {
+                    mat.emissiveIntensity = intensity;
+                    mat.needsUpdate = true;
+                });
+
+                if (intensity <= 0) {
+                    clearInterval(turnOnAnim);
+                    mats.forEach(mat => {
+                        mat.emissiveIntensity = 1.0; 
+                        mat.needsUpdate = true;
+                    });
+                    tvVideo.play().catch(e => console.warn(e));
+                    tvTransitioning = false;
+                }
+            }, 50);
+        }
+    });
+}
+
 playNextTv(true);
 
 // --- CARGA ---
@@ -260,7 +334,7 @@ for (let cat in inventoryData) {
         if (cat === 'tele' && it.baseFile) totalModelsToLoad++;
     }
 }
-totalModelsToLoad += 4; // Lunari + Anim + Cuadro + Foco
+totalModelsToLoad += 4;
 
 function checkLoading() {
     modelsLoaded++;
@@ -275,6 +349,7 @@ if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getEl
 // --- MODELOS Y LUNARI ---
 const loader = new GLTFLoader();
 let lunariMixer = null, baseAction = null, randomAction = null, currentAction = null;
+
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const lunariModel = gltf.scene; applyMaterialLogic(lunariModel, 'lunari'); scene.add(lunariModel);
     if (gltf.animations && gltf.animations.length > 0) {
@@ -325,16 +400,34 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
         if (categoryKey === 'pantalla_tv') {
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
-                    if (Array.isArray(node.material)) {
-                        node.material.forEach(mat => { mat.map = tvTexture; mat.emissive = new THREE.Color(0xffffff); mat.emissiveMap = tvTexture; mat.emissiveIntensity = 1.0; mat.needsUpdate = true; });
-                    } else {
-                        node.material.map = tvTexture; node.material.emissive = new THREE.Color(0xffffff); node.material.emissiveMap = tvTexture; node.material.emissiveIntensity = 1.0; node.material.needsUpdate = true;
-                    }
+                    tvScreenMesh = node; // Guardar referencia global de la malla
+
+                    let mats = Array.isArray(node.material) ? node.material : [node.material];
+                    mats.forEach(mat => { 
+                        mat.map = tvTexture; 
+                        mat.emissiveMap = tvTexture; 
+                        
+                        // Si está apagada, la iniciamos en negro absoluto
+                        if (!isTvOn) {
+                            mat.color = new THREE.Color(0x000000);
+                            mat.emissive = new THREE.Color(0x000000);
+                            mat.emissiveIntensity = 0;
+                        } else {
+                            mat.color = new THREE.Color(0xffffff);
+                            mat.emissive = new THREE.Color(0xffffff);
+                            mat.emissiveIntensity = 1.0;
+                        }
+                        mat.needsUpdate = true; 
+                    });
                 }
             });
+            // Pausar video de inmediato si está apagada
+            if (!isTvOn) tvVideo.pause();
         }
+
         if (categoryKey === 'foco') { focoMesh = model; const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); mainLight.position.copy(center); mainLight.position.y -= 0.2; }
         if (categoryKey === 'interruptor') switchMesh = model;
+
         scene.add(model); loadedSlotMeshes[categoryKey] = model;
         if(isInitialLoad) checkLoading();
     }, undefined, () => { if(isInitialLoad) checkLoading(); });
@@ -415,10 +508,9 @@ const posterEnlargedImage = document.getElementById('poster-enlarged-image');
 document.getElementById('close-poster-view').onclick = () => posterViewModal.classList.remove('visible');
 posterViewModal.onclick = (e) => { if (e.target === posterViewModal) posterViewModal.classList.remove('visible'); };
 
-// --- NUEVA LÓGICA DE INTERACCIÓN (Evita el "Drag Click") ---
+// --- NUEVA LÓGICA DE INTERACCIÓN (Evita el "Drag Click" y procesa Doble Clic) ---
 function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
-    // pointer events soportan tanto táctil como ratón en clientX/Y
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
@@ -428,8 +520,28 @@ function handleInteraction(event) {
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
         const tvControls = document.getElementById('tv-controls');
-        if (tvControls.style.display === 'none' || tvControls.style.display === '') { tvControls.style.display = 'flex'; if (tvVideo.paused) tvVideo.play().catch(e=>{}); } 
-        else { tvControls.style.display = 'none'; }
+        const currentTime = Date.now();
+
+        // Detectar si fue Doble Clic (Margen de 300ms)
+        if (currentTime - lastTvClickTime < 300) {
+            // Solo si está prendida dejamos pausar/reproducir
+            if (isTvOn && !tvTransitioning) {
+                if (tvVideo.paused) {
+                    tvVideo.play().catch(e=>{});
+                } else {
+                    tvVideo.pause();
+                }
+            }
+        } else {
+            // Primer Clic - Mostrar u Ocultar los controles en pantalla
+            if (tvControls.style.display === 'none' || tvControls.style.display === '') { 
+                tvControls.style.display = 'flex'; 
+            } else { 
+                tvControls.style.display = 'none'; 
+            }
+        }
+        
+        lastTvClickTime = currentTime;
         return;
     }
 
@@ -446,24 +558,19 @@ function handleInteraction(event) {
 
 let pointerDownPos = { x: 0, y: 0 };
 let isDragging = false;
-
 renderer.domElement.addEventListener('pointerdown', (e) => {
     pointerDownPos.x = e.clientX;
     pointerDownPos.y = e.clientY;
     isDragging = false;
 });
-
 renderer.domElement.addEventListener('pointermove', (e) => {
-    // Si el usuario mueve el ratón o el dedo más de 5 píxeles, lo marcamos como arrastre (drag)
     const dx = e.clientX - pointerDownPos.x;
     const dy = e.clientY - pointerDownPos.y;
     if (Math.sqrt(dx * dx + dy * dy) > 5) {
         isDragging = true;
     }
 });
-
 renderer.domElement.addEventListener('pointerup', (e) => {
-    // Solo activamos la interacción si NO hubo arrastre y si los menús están cerrados
     if (!isDragging) {
         if (!document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active')) {
             handleInteraction(e);
@@ -482,7 +589,6 @@ document.getElementById('close-ff-settings').onclick = () => {
     applyCurrentSettings();
 };
 
-// Tabs lógicas
 document.querySelectorAll('.ff-tab').forEach(tab => {
     tab.onclick = () => {
         document.querySelectorAll('.ff-tab').forEach(t => t.classList.remove('active'));
@@ -492,14 +598,12 @@ document.querySelectorAll('.ff-tab').forEach(tab => {
     };
 });
 
-// Sincronizar UI con gameSettings
 function syncSettingsUI() {
     document.querySelectorAll('#setting-calidad button').forEach(b => {
         b.classList.toggle('active', b.dataset.val === gameSettings.calidad);
         b.onclick = () => {
             gameSettings.calidad = b.dataset.val;
             
-            // Auto-configuración de sombras y FPS según la calidad elegida
             if(gameSettings.calidad === 'baja') { gameSettings.sombras = 0; gameSettings.fps = 30; }
             else if(gameSettings.calidad === 'media') { gameSettings.sombras = 1; gameSettings.fps = 60; }
             else if(gameSettings.calidad === 'alta') { gameSettings.sombras = 2; gameSettings.fps = 60; }
@@ -507,12 +611,10 @@ function syncSettingsUI() {
             syncSettingsUI(); applyCurrentSettings();
         };
     });
-
     document.querySelectorAll('#setting-fps button').forEach(b => {
         b.classList.toggle('active', parseInt(b.dataset.val) === gameSettings.fps);
         b.onclick = () => { gameSettings.fps = parseInt(b.dataset.val); syncSettingsUI(); };
     });
-
     const volSlider = document.getElementById('setting-volumen');
     volSlider.value = gameSettings.volumen;
     document.getElementById('vol-tv-val').innerText = `${gameSettings.volumen}%`;
@@ -560,7 +662,8 @@ function renderInventory() {
         const prev = document.createElement('div'); prev.className = 'item-preview';
         if (item.preview) { const img = document.createElement('img'); img.src = item.preview; img.alt = item.name;
         img.onerror = () => { prev.innerHTML = `<span>${catData.emoji}</span>`; }; prev.appendChild(img);
-        } else { prev.innerHTML = `<span>${catData.emoji}</span>`; }
+        } else { prev.innerHTML = `<span>${catData.emoji}</span>`;
+        }
         
         let btn = item.owned ?
         (isEq ? `<button class="item-btn btn-equipped" onclick="equipItem('${currentCategory}', '${itemId}')">${catData.type === 'multiple' ? 'Quitar ✓' : 'Equipado ✓'}</button>` : `<button class="item-btn btn-equip" onclick="equipItem('${currentCategory}', '${itemId}')">Equipar</button>`) : `<button class="item-btn btn-buy" onclick="buyItem('${currentCategory}', '${itemId}')">Comprar 🪙${item.price}</button>`;
@@ -584,7 +687,6 @@ window.equipItem = function(category, itemId) {
     }
     saveGame(); renderInventory(); 
 };
-
 window.buyItem = function(category, itemId) {
     let item = inventoryData[category].items[itemId];
     if (playerCoins >= item.price) { playerCoins -= item.price;
