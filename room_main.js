@@ -138,8 +138,7 @@ function applyCurrentSettings() {
     let pixelRatio = 1;
     if (gameSettings.calidad === 'baja') pixelRatio = 1;
     else if (gameSettings.calidad === 'media') pixelRatio = Math.min(window.devicePixelRatio, 1.2);
-    else if (gameSettings.calidad === 'alta') pixelRatio = Math.min(window.devicePixelRatio, 1.8);
-    else if (gameSettings.calidad === 'maxima') pixelRatio = window.devicePixelRatio; // Nativa
+    else if (gameSettings.calidad === 'alta') pixelRatio = Math.min(window.devicePixelRatio, 2); // Ultra
 
     renderer.setPixelRatio(pixelRatio);
 
@@ -151,7 +150,6 @@ function applyCurrentSettings() {
     if (gameSettings.sombras > 0) {
         let shadowRes = 512; // Media
         if (gameSettings.sombras === 2) shadowRes = isMobileUA ? 1024 : 2048; // Ultra
-        if (gameSettings.sombras === 3) shadowRes = isMobileUA ? 2048 : 4096; // Máxima
         mainLight.shadow.mapSize.set(shadowRes, shadowRes);
     }
 
@@ -417,12 +415,12 @@ const posterEnlargedImage = document.getElementById('poster-enlarged-image');
 document.getElementById('close-poster-view').onclick = () => posterViewModal.classList.remove('visible');
 posterViewModal.onclick = (e) => { if (e.target === posterViewModal) posterViewModal.classList.remove('visible'); };
 
+// --- NUEVA LÓGICA DE INTERACCIÓN (Evita el "Drag Click") ---
 function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
-    const x = event.touches ? event.touches[0].clientX : event.clientX;
-    const y = event.touches ? event.touches[0].clientY : event.clientY;
-    mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
+    // pointer events soportan tanto táctil como ratón en clientX/Y
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
 
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
@@ -445,8 +443,35 @@ function handleInteraction(event) {
         }
     }
 }
-renderer.domElement.addEventListener('click', handleInteraction);
-renderer.domElement.addEventListener('touchstart', (e) => { if(!document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active')) handleInteraction(e); }, {passive: true});
+
+let pointerDownPos = { x: 0, y: 0 };
+let isDragging = false;
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+    pointerDownPos.x = e.clientX;
+    pointerDownPos.y = e.clientY;
+    isDragging = false;
+});
+
+renderer.domElement.addEventListener('pointermove', (e) => {
+    // Si el usuario mueve el ratón o el dedo más de 5 píxeles, lo marcamos como arrastre (drag)
+    const dx = e.clientX - pointerDownPos.x;
+    const dy = e.clientY - pointerDownPos.y;
+    if (Math.sqrt(dx * dx + dy * dy) > 5) {
+        isDragging = true;
+    }
+});
+
+renderer.domElement.addEventListener('pointerup', (e) => {
+    // Solo activamos la interacción si NO hubo arrastre y si los menús están cerrados
+    if (!isDragging) {
+        if (!document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active')) {
+            handleInteraction(e);
+        }
+    }
+    isDragging = false;
+});
+// -------------------------------------------------------------
 
 // --- UI CONFIGURACIÓN FREE FIRE ---
 const settingsModal = document.getElementById('ff-settings-modal');
@@ -467,7 +492,7 @@ document.querySelectorAll('.ff-tab').forEach(tab => {
     };
 });
 
-// Sincronizar UI con gameSettings (LÓGICA ACTUALIZADA DE CALIDAD)
+// Sincronizar UI con gameSettings
 function syncSettingsUI() {
     document.querySelectorAll('#setting-calidad button').forEach(b => {
         b.classList.toggle('active', b.dataset.val === gameSettings.calidad);
@@ -478,7 +503,6 @@ function syncSettingsUI() {
             if(gameSettings.calidad === 'baja') { gameSettings.sombras = 0; gameSettings.fps = 30; }
             else if(gameSettings.calidad === 'media') { gameSettings.sombras = 1; gameSettings.fps = 60; }
             else if(gameSettings.calidad === 'alta') { gameSettings.sombras = 2; gameSettings.fps = 60; }
-            else if(gameSettings.calidad === 'maxima') { gameSettings.sombras = 3; gameSettings.fps = 60; }
             
             syncSettingsUI(); applyCurrentSettings();
         };
