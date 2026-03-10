@@ -274,6 +274,47 @@ if (tvPowerBtn) {
 }
 playNextTv(true);
 
+// --- NUEVA LÓGICA PARA LUNARI DESPIERTA ---
+let lunariMixer = null;
+let baseClip = null;        // animación durmiendo 1
+let randomClip = null;      // animación durmiendo 2 (ocasional)
+let awakeClip = null;       // animación despierta (loop)
+let currentAction = null;
+let isLunariAwake = false;  // estado actual
+
+// Leer estado guardado al cerrar la página
+const lastCloseTime = parseInt(localStorage.getItem('lunari_last_close_time')) || 0;
+const lastLightState = localStorage.getItem('lunari_last_light_state') || 'off';
+const timeSinceClose = Date.now() - lastCloseTime;
+// Despierta si la luz estaba encendida al cerrar y pasó al menos 1 minuto
+const shouldBeAwake = (lastLightState === 'on' && timeSinceClose >= 60000);
+
+// Guardar estado actual antes de cerrar
+window.addEventListener('beforeunload', () => {
+    localStorage.setItem('lunari_last_close_time', Date.now());
+    localStorage.setItem('lunari_last_light_state', lightOn ? 'on' : 'off');
+});
+
+function setLunariState(awake) {
+    if (!lunariMixer || !baseClip || !awakeClip) return; // aún no cargado
+    isLunariAwake = awake;
+    if (awake) {
+        // Reproducir animación despierta en loop
+        if (currentAction) currentAction.fadeOut(0.5);
+        const action = lunariMixer.clipAction(awakeClip);
+        action.reset().fadeIn(0.5).play();
+        action.loop = THREE.LoopRepeat;
+        currentAction = action;
+    } else {
+        // Reproducir ciclo de sueño (base + random ocasional)
+        if (currentAction) currentAction.fadeOut(0.5);
+        const action = lunariMixer.clipAction(baseClip);
+        action.reset().fadeIn(0.5).play();
+        currentAction = action;
+        // El cambio aleatorio a randomClip se mantiene igual (cada 60s)
+    }
+}
+
 let totalModelsToLoad = 0, modelsLoaded = 0;
 for (let cat in inventoryData) {
     if (inventoryData[cat].type === 'multiple') continue; let eqId = inventoryData[cat].equipped;
@@ -282,7 +323,8 @@ for (let cat in inventoryData) {
         if (it.file) totalModelsToLoad++; if (cat === 'foco' && it.baseFile) totalModelsToLoad++; if (cat === 'tele' && it.baseFile) totalModelsToLoad++;
     }
 }
-totalModelsToLoad += 4; // Lunari x2, FocoDia, Cuadro Clima
+// Actualizado: 3 modelos de Lunari + FocoDia + Cuadro Clima = 5
+totalModelsToLoad += 5; // Lunari x3, FocoDia, Cuadro Clima
 
 function checkLoading() {
     modelsLoaded++;
@@ -301,15 +343,55 @@ function checkLoading() {
 if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
 
 const loader = new GLTFLoader();
-let lunariMixer = null, baseAction = null, randomAction = null, currentAction = null;
+
+// Cargar primera animación de sueño
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
-    const lunariModel = gltf.scene; applyMaterialLogic(lunariModel, 'lunari'); scene.add(lunariModel);
-    if (gltf.animations && gltf.animations.length > 0) { lunariMixer = new THREE.AnimationMixer(lunariModel); baseAction = lunariMixer.clipAction(gltf.animations[0]); baseAction.play(); currentAction = baseAction; }
+    const lunariModel = gltf.scene; 
+    applyMaterialLogic(lunariModel, 'lunari'); 
+    scene.add(lunariModel);
+    if (gltf.animations && gltf.animations.length > 0) {
+        lunariMixer = new THREE.AnimationMixer(lunariModel);
+        baseClip = gltf.animations[0];
+        // Si ya tenemos los otros clips, decidir estado
+        if (awakeClip) setLunariState(shouldBeAwake);
+    }
     checkLoading();
 }, undefined, () => checkLoading());
 
+// Cargar segunda animación de sueño (aleatoria)
 loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
-    if (gltf.animations && gltf.animations.length > 0 && lunariMixer) { randomAction = lunariMixer.clipAction(gltf.animations[0]); randomAction.loop = THREE.LoopOnce; randomAction.clampWhenFinished = true; }
+    if (gltf.animations && gltf.animations.length > 0) {
+        randomClip = gltf.animations[0];
+        // Configurar evento cada 60s para cambiar a randomClip si está dormida
+        setInterval(() => {
+            if (!lunariMixer || !randomClip || !baseClip || isLunariAwake) return;
+            if (currentAction) {
+                currentAction.fadeOut(0.5);
+                const newAction = lunariMixer.clipAction(randomClip);
+                newAction.reset().fadeIn(0.5).play();
+                newAction.loop = THREE.LoopOnce;
+                newAction.clampWhenFinished = true;
+                currentAction = newAction;
+                const onFinished = () => {
+                    if (!isLunariAwake) {
+                        currentAction = lunariMixer.clipAction(baseClip);
+                        currentAction.reset().fadeIn(0.5).play();
+                    }
+                };
+                lunariMixer.removeEventListener('finished', onFinished);
+                lunariMixer.addEventListener('finished', onFinished);
+            }
+        }, 60000);
+    }
+    checkLoading();
+}, undefined, () => checkLoading());
+
+// Cargar animación despierta (NUEVA)
+loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
+    if (gltf.animations && gltf.animations.length > 0) {
+        awakeClip = gltf.animations[0];
+        if (lunariMixer && baseClip) setLunariState(shouldBeAwake);
+    }
     checkLoading();
 }, undefined, () => checkLoading());
 
@@ -321,17 +403,6 @@ loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/fo
     scene.add(luzFocoDia); scene.add(focoDiaMesh); focoDiaMesh.visible = false; luzFocoDia.visible = true; 
     actualizarIluminacionFocoDia(); checkLoading();
 }, undefined, () => checkLoading());
-
-setInterval(() => {
-    if (!randomAction || !baseAction || !lunariMixer || currentAction === randomAction) return;
-    if (baseAction && randomAction) {
-        baseAction.fadeOut(0.5); randomAction.reset().fadeIn(0.5).play(); currentAction = randomAction;
-        const onFinished = (event) => {
-            if (event.action === randomAction) { randomAction.fadeOut(0.5); baseAction.reset().fadeIn(0.5).play(); currentAction = baseAction; lunariMixer.removeEventListener('finished', onFinished); }
-        };
-        lunariMixer.addEventListener('finished', onFinished);
-    }
-}, 60000);
 
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
