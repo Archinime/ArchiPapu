@@ -8,12 +8,9 @@
 </head>
 <body>
     <video id="tv-video" style="display:none;" crossorigin="anonymous" playsinline></video>
-    <!-- El video de efecto se crea dinámicamente en JS, no es necesario en HTML -->
 
     <div id="fps-counter" style="display: none;">FPS: <span>60</span></div>
-
-    <div id="coin-display">🪙 <span id="coin-amount">0</span></div>
-    
+    <div id="coin-display" title="Tus Monedas">🪙 <span id="coin-amount">0</span></div>
     <div id="weather-status">🌍 Detectando clima...</div>
     
     <div id="inventory-button" class="top-btn" title="Inventario y Tienda">🎒</div>
@@ -22,7 +19,7 @@
     <div id="ff-settings-modal">
         <div class="ff-modal-content">
             <div class="ff-header">
-                <h2>AJUSTES</h2>
+                <h2>Ajustes del Cuarto</h2>
                 <button id="close-ff-settings">✖</button>
             </div>
             <div class="ff-body">
@@ -35,16 +32,15 @@
                 <div class="ff-content">
                     <div id="tab-graficos" class="ff-tab-pane active">
                         <div class="ff-setting-group">
-                            <label>Calidad General (Ajusta Sombras y Resolución)</label>
+                            <label>Calidad Visual</label>
                             <div class="ff-radio-group" id="setting-calidad">
                                 <button data-val="baja">Suave</button>
                                 <button data-val="media">Estándar</button>
                                 <button data-val="alta">Ultra</button>
                             </div>
                         </div>
-
                         <div class="ff-setting-group">
-                            <label>Cuadros por Segundo (FPS)</label>
+                            <label>Fluidez (FPS)</label>
                             <div class="ff-radio-group" id="setting-fps">
                                 <button data-val="30">Normal (30)</button>
                                 <button data-val="60">Alto (60)</button>
@@ -54,8 +50,12 @@
 
                     <div id="tab-sonido" class="ff-tab-pane">
                         <div class="ff-setting-group">
-                            <label>Volumen Multimedia (TV) - <span id="vol-tv-val">50%</span></label>
-                            <input type="range" id="setting-volumen" min="0" max="100" value="50" class="ff-slider">
+                            <label>Volumen TV - <span id="vol-tv-val">50%</span></label>
+                            <input type="range" id="setting-volumen-tv" min="0" max="100" value="50" class="ff-slider">
+                        </div>
+                        <div class="ff-setting-group">
+                            <label>Efectos y Entorno - <span id="vol-efectos-val">50%</span></label>
+                            <input type="range" id="setting-volumen-efectos" min="0" max="100" value="50" class="ff-slider">
                         </div>
                     </div>
 
@@ -67,8 +67,8 @@
                                 <span class="ff-slider-round"></span>
                             </label>
                         </div>
-                        <div class="ff-setting-group" style="margin-top: 20px; color: #ffeb3b; font-size: 12px;">
-                            <i>*Los cambios en la calidad gráfica aplican restricciones automáticas según tu dispositivo.</i>
+                        <div class="ff-setting-group" style="margin-top: 20px; color: #a5d6a7; font-size: 12px;">
+                            <i>*Los cambios gráficos se ajustan automáticamente según tu dispositivo para evitar sobrecalentamiento.</i>
                         </div>
                     </div>
                 </div>
@@ -106,8 +106,14 @@
         <img id="poster-enlarged-image" src="" alt="Póster">
     </div>
 
-    <div id="loading">Preparando habitación...</div>
+    <div id="loading">
+        <div class="loading-text">Preparando habitación... <span id="loading-count">0/0</span></div>
+        <div id="loading-bar-container"><div id="loading-bar"></div></div>
+    </div>
+    
     <div id="light-status">💡 Luz encendida</div>
+    
+    <div id="daily-reward-toast" style="display:none;">¡Has ganado 100🪙 por entrar hoy!</div>
 
     <script type="importmap">
         {
@@ -117,7 +123,6 @@
             }
         }
     </script>
-
     <script type="module" src="room_main.js"></script>
 </body>
 </html>
