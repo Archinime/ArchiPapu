@@ -80,11 +80,10 @@ let gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
     calidad: baseTier, 
     sombras: baseTier === 'baja' ? 0 : (baseTier === 'media' ? 1 : 2),
     fps: baseTier === 'baja' ? 30 : 60,
-    volumenTV: 50,      // Separado
-    volumenEfectos: 50, // Separado
+    volumenTV: 50,
+    volumenEfectos: 50,
     mostrarFps: false
 };
-// Compatibilidad con versión anterior
 if(gameSettings.volumen) { gameSettings.volumenTV = gameSettings.volumen; gameSettings.volumenEfectos = gameSettings.volumen; delete gameSettings.volumen; }
 
 const loadedSlotMeshes = {};
@@ -154,7 +153,6 @@ function applyCurrentSettings() {
 
     document.getElementById('fps-counter').style.display = gameSettings.mostrarFps ? 'block' : 'none';
     
-    // Aplicar volumen separado
     const tvVideo = document.getElementById('tv-video');
     if (tvVideo) tvVideo.volume = gameSettings.volumenTV / 100;
     tvEffectVideoOff.volume = gameSettings.volumenEfectos / 100;
@@ -274,95 +272,110 @@ if (tvPowerBtn) {
 }
 playNextTv(true);
 
-// --- NUEVA LÓGICA PARA LUNARI DESPIERTA ---
+// --- VARIABLES PARA ANIMACIONES DE LUNARI ---
 let lunariMixer = null;
-let baseClip = null;        // animación durmiendo 1
-let randomClip = null;      // animación durmiendo 2 (ocasional)
-let awakeClip = null;       // animación despierta (loop)
+let baseClip = null;        // durmiendo 1
+let randomClip = null;      // durmiendo 2 (ocasional)
+let awakeClip = null;       // despierta
 let currentAction = null;
-let isLunariAwake = false;  // estado actual
+let isLunariAwake = false;
 
-// Leer estado guardado al cerrar la página
+// Leer estado guardado al cerrar
 const lastCloseTime = parseInt(localStorage.getItem('lunari_last_close_time')) || 0;
 const lastLightState = localStorage.getItem('lunari_last_light_state') || 'off';
 const timeSinceClose = Date.now() - lastCloseTime;
-// Despierta si la luz estaba encendida al cerrar y pasó al menos 1 minuto
 const shouldBeAwake = (lastLightState === 'on' && timeSinceClose >= 60000);
 
-// Guardar estado actual antes de cerrar
+// Guardar estado antes de cerrar
 window.addEventListener('beforeunload', () => {
     localStorage.setItem('lunari_last_close_time', Date.now());
     localStorage.setItem('lunari_last_light_state', lightOn ? 'on' : 'off');
 });
 
+// Función para cambiar el estado de Lunari (solo cuando todos los clips estén listos)
 function setLunariState(awake) {
-    if (!lunariMixer || !baseClip || !awakeClip) return; // aún no cargado
+    if (!lunariMixer || !baseClip || !awakeClip) return; // esperar a que todo esté cargado
     isLunariAwake = awake;
     if (awake) {
-        // Reproducir animación despierta en loop
         if (currentAction) currentAction.fadeOut(0.5);
         const action = lunariMixer.clipAction(awakeClip);
         action.reset().fadeIn(0.5).play();
         action.loop = THREE.LoopRepeat;
         currentAction = action;
     } else {
-        // Reproducir ciclo de sueño (base + random ocasional)
         if (currentAction) currentAction.fadeOut(0.5);
         const action = lunariMixer.clipAction(baseClip);
         action.reset().fadeIn(0.5).play();
         currentAction = action;
-        // El cambio aleatorio a randomClip se mantiene igual (cada 60s)
     }
 }
 
-let totalModelsToLoad = 0, modelsLoaded = 0;
+// --- CONTADOR DE CARGA CORREGIDO ---
+let totalModelsToLoad = 0;
+let modelsLoaded = 0;
+
+// 1. Contar modelos de los slots (cada categoría con su archivo)
 for (let cat in inventoryData) {
-    if (inventoryData[cat].type === 'multiple') continue; let eqId = inventoryData[cat].equipped;
+    if (inventoryData[cat].type === 'multiple') continue;
+    let eqId = inventoryData[cat].equipped;
     if (inventoryData[cat].items && inventoryData[cat].items[eqId]) {
         let it = inventoryData[cat].items[eqId];
-        if (it.file) totalModelsToLoad++; if (cat === 'foco' && it.baseFile) totalModelsToLoad++; if (cat === 'tele' && it.baseFile) totalModelsToLoad++;
+        if (it.file) totalModelsToLoad++;
+        if (cat === 'foco' && it.baseFile) totalModelsToLoad++;
+        if (cat === 'tele' && it.baseFile) totalModelsToLoad++;
     }
 }
-// Actualizado: 3 modelos de Lunari + FocoDia + Cuadro Clima = 5
-totalModelsToLoad += 5; // Lunari x3, FocoDia, Cuadro Clima
 
+// 2. Modelos fijos: Lunari (3), FocoDia (1), Cuadro (1)
+totalModelsToLoad += 5; // 3 animaciones + focoDia + cuadro
+
+// Función de verificación de carga
 function checkLoading() {
     modelsLoaded++;
     const loadingEl = document.getElementById('loading');
     const loadCount = document.getElementById('loading-count');
     const loadBar = document.getElementById('loading-bar');
-    if(loadCount && loadBar) {
+    if (loadCount && loadBar) {
         loadCount.innerText = `${modelsLoaded}/${totalModelsToLoad}`;
         const percent = Math.min((modelsLoaded / totalModelsToLoad) * 100, 100);
         loadBar.style.width = `${percent}%`;
         if (modelsLoaded >= totalModelsToLoad) {
-            setTimeout(() => { if(loadingEl) loadingEl.style.opacity = '0'; setTimeout(()=>loadingEl.style.display='none', 500); }, 500);
+            setTimeout(() => {
+                if (loadingEl) {
+                    loadingEl.style.opacity = '0';
+                    setTimeout(() => loadingEl.style.display = 'none', 500);
+                }
+            }, 500);
         }
     }
 }
-if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
+
+// Si no hay nada que cargar, ocultar loading inmediatamente
+if (totalModelsToLoad === 0 && document.getElementById('loading')) {
+    document.getElementById('loading').style.display = 'none';
+}
 
 const loader = new GLTFLoader();
 
 // Cargar primera animación de sueño
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
-    const lunariModel = gltf.scene; 
-    applyMaterialLogic(lunariModel, 'lunari'); 
+    const lunariModel = gltf.scene;
+    applyMaterialLogic(lunariModel, 'lunari');
     scene.add(lunariModel);
     if (gltf.animations && gltf.animations.length > 0) {
         lunariMixer = new THREE.AnimationMixer(lunariModel);
         baseClip = gltf.animations[0];
-        // Si ya tenemos los otros clips, decidir estado
+        // Si ya tenemos awakeClip, decidir estado
         if (awakeClip) setLunariState(shouldBeAwake);
     }
     checkLoading();
-}, undefined, () => checkLoading());
+}, undefined, (err) => { console.warn('Error cargando lunari_durmiendo1.glb', err); checkLoading(); });
 
 // Cargar segunda animación de sueño (aleatoria)
 loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0) {
         randomClip = gltf.animations[0];
-        // Configurar evento cada 60s para cambiar a randomClip si está dormida
+        // Configurar intervalo para cambiar a randomClip si está dormida
         setInterval(() => {
             if (!lunariMixer || !randomClip || !baseClip || isLunariAwake) return;
             if (currentAction) {
@@ -371,67 +384,111 @@ loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
                 newAction.reset().fadeIn(0.5).play();
                 newAction.loop = THREE.LoopOnce;
                 newAction.clampWhenFinished = true;
-                currentAction = newAction;
+                // Al terminar, volver a baseClip
                 const onFinished = () => {
                     if (!isLunariAwake) {
                         currentAction = lunariMixer.clipAction(baseClip);
                         currentAction.reset().fadeIn(0.5).play();
                     }
+                    lunariMixer.removeEventListener('finished', onFinished);
                 };
-                lunariMixer.removeEventListener('finished', onFinished);
                 lunariMixer.addEventListener('finished', onFinished);
+                currentAction = newAction;
             }
         }, 60000);
     }
     checkLoading();
-}, undefined, () => checkLoading());
+}, undefined, (err) => { console.warn('Error cargando Lunari_Duerme_2.glb', err); checkLoading(); });
 
-// Cargar animación despierta (NUEVA)
+// Cargar animación despierta
 loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0) {
         awakeClip = gltf.animations[0];
         if (lunariMixer && baseClip) setLunariState(shouldBeAwake);
     }
     checkLoading();
-}, undefined, () => checkLoading());
+}, undefined, (err) => { console.warn('Error cargando lunari_esta_despierta.glb', err); checkLoading(); });
 
+// Cargar foco de día
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
-    focoDiaMesh = gltf.scene; applyMaterialLogic(focoDiaMesh, 'foco_dia'); 
+    focoDiaMesh = gltf.scene;
+    applyMaterialLogic(focoDiaMesh, 'foco_dia');
     luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
-    const box = new THREE.Box3().setFromObject(focoDiaMesh); const center = new THREE.Vector3(); box.getCenter(center);
-    luzFocoDia.position.copy(center); luzFocoDia.position.y -= 0.2; luzFocoDia.shadow.bias = -0.005; luzFocoDia.shadow.normalBias = 0.1;
-    scene.add(luzFocoDia); scene.add(focoDiaMesh); focoDiaMesh.visible = false; luzFocoDia.visible = true; 
-    actualizarIluminacionFocoDia(); checkLoading();
-}, undefined, () => checkLoading());
+    const box = new THREE.Box3().setFromObject(focoDiaMesh);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    luzFocoDia.position.copy(center);
+    luzFocoDia.position.y -= 0.2;
+    luzFocoDia.shadow.bias = -0.005;
+    luzFocoDia.shadow.normalBias = 0.1;
+    scene.add(luzFocoDia);
+    scene.add(focoDiaMesh);
+    focoDiaMesh.visible = false;
+    luzFocoDia.visible = true;
+    actualizarIluminacionFocoDia();
+    checkLoading();
+}, undefined, (err) => { console.warn('Error cargando foco_dia.glb', err); checkLoading(); });
 
+// Función para cargar items de los slots
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
-    if (!itemFile) return;
-    if (loadedSlotMeshes[categoryKey]) { scene.remove(loadedSlotMeshes[categoryKey]); disposeThreeJSObject(loadedSlotMeshes[categoryKey]); }
+    if (!itemFile) {
+        if (isInitialLoad) checkLoading(); // Asegurar que no se cuelgue si no hay archivo
+        return;
+    }
+    if (loadedSlotMeshes[categoryKey]) {
+        scene.remove(loadedSlotMeshes[categoryKey]);
+        disposeThreeJSObject(loadedSlotMeshes[categoryKey]);
+    }
     loader.load(getFreshUrl(itemFile), (gltf) => {
-        const model = gltf.scene; applyMaterialLogic(model, categoryKey);
+        const model = gltf.scene;
+        applyMaterialLogic(model, categoryKey);
         if (categoryKey === 'pantalla_tv') {
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
-                    tvScreenMesh = node; 
+                    tvScreenMesh = node;
                     let mats = Array.isArray(node.material) ? node.material : [node.material];
-                    mats.forEach(mat => { 
-                        if (!isTvOn) { mat.map = null; mat.emissiveMap = null; mat.color = new THREE.Color(0x000000); mat.emissive = new THREE.Color(0x000000); mat.emissiveIntensity = 0; } 
-                        else { mat.map = tvTexture; mat.emissiveMap = tvTexture; mat.color = new THREE.Color(0xffffff); mat.emissive = new THREE.Color(0xffffff); mat.emissiveIntensity = 1.0; }
+                    mats.forEach(mat => {
+                        if (!isTvOn) {
+                            mat.map = null;
+                            mat.emissiveMap = null;
+                            mat.color = new THREE.Color(0x000000);
+                            mat.emissive = new THREE.Color(0x000000);
+                            mat.emissiveIntensity = 0;
+                        } else {
+                            mat.map = tvTexture;
+                            mat.emissiveMap = tvTexture;
+                            mat.color = new THREE.Color(0xffffff);
+                            mat.emissive = new THREE.Color(0xffffff);
+                            mat.emissiveIntensity = 1.0;
+                        }
                         mat.needsUpdate = true;
                     });
                 }
             });
             if (!isTvOn) tvVideo.pause();
         }
-        if (categoryKey === 'foco') { focoMesh = model; const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); mainLight.position.copy(center); mainLight.position.y -= 0.2; }
+        if (categoryKey === 'foco') {
+            focoMesh = model;
+            const box = new THREE.Box3().setFromObject(model);
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+            mainLight.position.copy(center);
+            mainLight.position.y -= 0.2;
+        }
         if (categoryKey === 'interruptor') switchMesh = model;
-        scene.add(model); loadedSlotMeshes[categoryKey] = model;
-        if(isInitialLoad) checkLoading();
-    }, undefined, () => { if(isInitialLoad) checkLoading(); });
+        scene.add(model);
+        loadedSlotMeshes[categoryKey] = model;
+        if (isInitialLoad) checkLoading();
+    }, undefined, (err) => {
+        console.warn(`Error cargando ${categoryKey} desde ${itemFile}`, err);
+        if (isInitialLoad) checkLoading();
+    });
 }
 
+// Cargar todos los slots iniciales
 for (let cat in inventoryData) {
-    if (inventoryData[cat].type === 'multiple') continue; let eqId = inventoryData[cat].equipped;
+    if (inventoryData[cat].type === 'multiple') continue;
+    let eqId = inventoryData[cat].equipped;
     if (inventoryData[cat].items && inventoryData[cat].items[eqId]) {
         let it = inventoryData[cat].items[eqId];
         if (it.file) loadItemForSlot(cat, it.file, true);
@@ -440,77 +497,158 @@ for (let cat in inventoryData) {
     }
 }
 
+// Cuadro del clima
 (async function setupWeatherVideo() {
-    const video = document.createElement('video'); video.loop = true; video.muted = true; video.playsInline = true; video.crossOrigin = 'anonymous';
+    const video = document.createElement('video');
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = 'anonymous';
     let videoFile = 'dia_soleado.mp4', weatherEmoji = "☀️", weatherName = "Clima estándar", temperature = "--";
     const statusBox = document.getElementById('weather-status');
 
     try {
         let lat, lon;
-        try { const ipResponse = await fetch('https://ipapi.co/json/'); const ipData = await ipResponse.json(); if(ipData.latitude && ipData.longitude) { lat = ipData.latitude; lon = ipData.longitude; } else throw new Error(); } 
-        catch(e) { lat = -12.0464; lon = -77.0428; }
+        try {
+            const ipResponse = await fetch('https://ipapi.co/json/');
+            const ipData = await ipResponse.json();
+            if (ipData.latitude && ipData.longitude) {
+                lat = ipData.latitude;
+                lon = ipData.longitude;
+            } else throw new Error();
+        } catch (e) {
+            lat = -12.0464;
+            lon = -77.0428;
+        }
         const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
         const data = await response.json();
         const code = data.current_weather.weathercode, isDay = data.current_weather.is_day;
-        esDeDiaLocal = (isDay === 1); lastWeatherCode = code; actualizarIluminacionFocoDia(); temperature = data.current_weather.temperature;
+        esDeDiaLocal = (isDay === 1);
+        lastWeatherCode = code;
+        actualizarIluminacionFocoDia();
+        temperature = data.current_weather.temperature;
 
-        if (code === 0) { weatherName = isDay ? "Despejado" : "Noche despejada"; weatherEmoji = isDay ? "☀️" : "🌙"; videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4'; } 
+        if (code === 0) { weatherName = isDay ? "Despejado" : "Noche despejada"; weatherEmoji = isDay ? "☀️" : "🌙"; videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4'; }
         else if ([1, 2, 3].includes(code)) { weatherName = isDay ? "Nublado" : "Noche nublada"; weatherEmoji = "☁️"; videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4'; }
         else if (code === 45 || code === 48) { weatherName = "Niebla"; weatherEmoji = "🌫️"; videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4'; }
         else if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) { weatherName = "Lluvia"; weatherEmoji = "🌧️"; videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4'; }
         else if ([71, 73, 75, 77, 85, 86].includes(code)) { weatherName = "Nieve"; weatherEmoji = "❄️"; videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4'; }
         else if ([95, 96, 99].includes(code)) { weatherName = "Tormenta"; weatherEmoji = "⛈️"; videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4'; }
-    } catch (error) { weatherEmoji = "❌"; weatherName = "Clima offline"; }
+    } catch (error) {
+        weatherEmoji = "❌";
+        weatherName = "Clima offline";
+    }
 
     statusBox.innerHTML = temperature !== "--" ? `${weatherEmoji} ${weatherName} | ${temperature}°C` : `${weatherEmoji} ${weatherName}`;
-    video.src = videoFile; video.play().catch(e => console.log('Autoplay blocked'));
+    video.src = videoFile;
+    video.play().catch(e => console.log('Autoplay blocked'));
 
-    const videoTexture = new THREE.VideoTexture(video); videoTexture.minFilter = THREE.LinearFilter; videoTexture.magFilter = THREE.LinearFilter; videoTexture.format = THREE.RGBAFormat; videoTexture.encoding = THREE.sRGBEncoding;
+    const videoTexture = new THREE.VideoTexture(video);
+    videoTexture.minFilter = THREE.LinearFilter;
+    videoTexture.magFilter = THREE.LinearFilter;
+    videoTexture.format = THREE.RGBAFormat;
+    videoTexture.encoding = THREE.sRGBEncoding;
+
     loader.load(getFreshUrl('cuadro.glb'), (gltf) => {
         const cuadroModel = gltf.scene;
         cuadroModel.traverse((node) => {
             if (node.isMesh && node.material) {
-                if (Array.isArray(node.material)) { node.material.forEach(mat => { mat.map = videoTexture; mat.emissive = new THREE.Color(0xffffff); mat.emissiveMap = videoTexture; mat.emissiveIntensity = 1.0; mat.needsUpdate = true; }); } 
-                else { node.material.map = videoTexture; node.material.emissive = new THREE.Color(0xffffff); node.material.emissiveMap = videoTexture; node.material.emissiveIntensity = 1.0; node.material.needsUpdate = true; }
+                if (Array.isArray(node.material)) {
+                    node.material.forEach(mat => {
+                        mat.map = videoTexture;
+                        mat.emissive = new THREE.Color(0xffffff);
+                        mat.emissiveMap = videoTexture;
+                        mat.emissiveIntensity = 1.0;
+                        mat.needsUpdate = true;
+                    });
+                } else {
+                    node.material.map = videoTexture;
+                    node.material.emissive = new THREE.Color(0xffffff);
+                    node.material.emissiveMap = videoTexture;
+                    node.material.emissiveIntensity = 1.0;
+                    node.material.needsUpdate = true;
+                }
             }
         });
-        applyMaterialLogic(cuadroModel, 'cuadro'); scene.add(cuadroModel); loadedSlotMeshes['cuadro'] = cuadroModel; checkLoading();
-    }, undefined, () => checkLoading());
+        applyMaterialLogic(cuadroModel, 'cuadro');
+        scene.add(cuadroModel);
+        loadedSlotMeshes['cuadro'] = cuadroModel;
+        checkLoading();
+    }, undefined, (err) => { console.warn('Error cargando cuadro.glb', err); checkLoading(); });
 })();
 
 function updateLighting() {
     if (lightOn) {
-        mainLight.visible = true; ambient.intensity = gameSettings.calidad === 'baja' ? 0.8 : 0.3; hemiLight.intensity = gameSettings.calidad === 'baja' ? 0.8 : 0.4;
+        mainLight.visible = true;
+        ambient.intensity = gameSettings.calidad === 'baja' ? 0.8 : 0.3;
+        hemiLight.intensity = gameSettings.calidad === 'baja' ? 0.8 : 0.4;
         document.getElementById('light-status').innerText = '💡 Luz encendida';
         if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 1.5; });
     } else {
-        mainLight.visible = false; ambient.intensity = 0.02; hemiLight.intensity = 0.05;
+        mainLight.visible = false;
+        ambient.intensity = 0.02;
+        hemiLight.intensity = 0.05;
         document.getElementById('light-status').innerText = '💡 Luz apagada';
         if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 0; });
     }
 }
 
-const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2();
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
 function toggleLight() {
-    lightOn = !lightOn; localStorage.setItem('lightState', lightOn ? 'on' : 'off'); updateLighting();
-    if (lightOn) { audioPrenderLuz.currentTime = 0; audioPrenderLuz.play().catch(e=>{}); } 
-    else { audioApagarLuz.currentTime = 0; audioApagarLuz.play().catch(e=>{}); }
+    lightOn = !lightOn;
+    localStorage.setItem('lightState', lightOn ? 'on' : 'off');
+    updateLighting();
+    if (lightOn) {
+        audioPrenderLuz.currentTime = 0;
+        audioPrenderLuz.play().catch(e => {});
+    } else {
+        audioApagarLuz.currentTime = 0;
+        audioApagarLuz.play().catch(e => {});
+    }
 }
 
-const posterViewModal = document.getElementById('poster-view-modal'); const posterEnlargedImage = document.getElementById('poster-enlarged-image');
-document.getElementById('close-poster-view').onclick = () => { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); };
-posterViewModal.onclick = (e) => { if (e.target === posterViewModal) { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); } };
+const posterViewModal = document.getElementById('poster-view-modal');
+const posterEnlargedImage = document.getElementById('poster-enlarged-image');
+document.getElementById('close-poster-view').onclick = () => {
+    posterViewModal.classList.remove('visible');
+    audioCerrarPoster.currentTime = 0;
+    audioCerrarPoster.play().catch(e => {});
+};
+posterViewModal.onclick = (e) => {
+    if (e.target === posterViewModal) {
+        posterViewModal.classList.remove('visible');
+        audioCerrarPoster.currentTime = 0;
+        audioCerrarPoster.play().catch(e => {});
+    }
+};
 
 function handleInteraction(event) {
-    const rect = renderer.domElement.getBoundingClientRect(); mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
-    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
-    
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) {
+        toggleLight();
+        return;
+    }
+
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
-        const tvControls = document.getElementById('tv-controls'); const currentTime = Date.now();
-        if (currentTime - lastTvClickTime < 300) { if (isTvOn && !tvTransitioning) { if (tvVideo.paused) tvVideo.play().catch(e=>{}); else tvVideo.pause(); } } 
-        else { if (tvControls.style.display === 'none' || tvControls.style.display === '') tvControls.style.display = 'flex'; else tvControls.style.display = 'none'; }
-        lastTvClickTime = currentTime; return;
+        const tvControls = document.getElementById('tv-controls');
+        const currentTime = Date.now();
+        if (currentTime - lastTvClickTime < 300) {
+            if (isTvOn && !tvTransitioning) {
+                if (tvVideo.paused) tvVideo.play().catch(e => {});
+                else tvVideo.pause();
+            }
+        } else {
+            if (tvControls.style.display === 'none' || tvControls.style.display === '') tvControls.style.display = 'flex';
+            else tvControls.style.display = 'none';
+        }
+        lastTvClickTime = currentTime;
+        return;
     }
 
     const posterCategories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
@@ -518,98 +656,222 @@ function handleInteraction(event) {
         const pMesh = loadedSlotMeshes[cat];
         if (pMesh && raycaster.intersectObject(pMesh, true).length > 0) {
             const itemData = inventoryData[cat].items[inventoryData[cat].equipped];
-            if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); audioAbrirPoster.currentTime = 0; audioAbrirPoster.play().catch(e=>{}); }
+            if (itemData && itemData.preview) {
+                posterEnlargedImage.src = itemData.preview;
+                posterViewModal.classList.add('visible');
+                audioAbrirPoster.currentTime = 0;
+                audioAbrirPoster.play().catch(e => {});
+            }
             break;
         }
     }
 }
 
-let pointerDownPos = { x: 0, y: 0 }; let isDragging = false;
-renderer.domElement.addEventListener('pointerdown', (e) => { pointerDownPos.x = e.clientX; pointerDownPos.y = e.clientY; isDragging = false; });
-renderer.domElement.addEventListener('pointermove', (e) => { const dx = e.clientX - pointerDownPos.x; const dy = e.clientY - pointerDownPos.y; if (Math.sqrt(dx * dx + dy * dy) > 5) isDragging = true; });
-renderer.domElement.addEventListener('pointerup', (e) => { if (!isDragging && !document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active')) handleInteraction(e); isDragging = false; });
+let pointerDownPos = { x: 0, y: 0 };
+let isDragging = false;
+renderer.domElement.addEventListener('pointerdown', (e) => {
+    pointerDownPos.x = e.clientX;
+    pointerDownPos.y = e.clientY;
+    isDragging = false;
+});
+renderer.domElement.addEventListener('pointermove', (e) => {
+    const dx = e.clientX - pointerDownPos.x;
+    const dy = e.clientY - pointerDownPos.y;
+    if (Math.sqrt(dx * dx + dy * dy) > 5) isDragging = true;
+});
+renderer.domElement.addEventListener('pointerup', (e) => {
+    if (!isDragging && !document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active')) {
+        handleInteraction(e);
+    }
+    isDragging = false;
+});
 
 const settingsModal = document.getElementById('ff-settings-modal');
 document.getElementById('settings-button').onclick = () => settingsModal.classList.add('active');
-document.getElementById('close-ff-settings').onclick = () => { settingsModal.classList.remove('active'); localStorage.setItem('ff_settings', JSON.stringify(gameSettings)); applyCurrentSettings(); };
+document.getElementById('close-ff-settings').onclick = () => {
+    settingsModal.classList.remove('active');
+    localStorage.setItem('ff_settings', JSON.stringify(gameSettings));
+    applyCurrentSettings();
+};
 document.querySelectorAll('.ff-tab').forEach(tab => {
-    tab.onclick = () => { document.querySelectorAll('.ff-tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.ff-tab-pane').forEach(p => p.classList.remove('active')); tab.classList.add('active'); document.getElementById(tab.dataset.target).classList.add('active'); };
+    tab.onclick = () => {
+        document.querySelectorAll('.ff-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.ff-tab-pane').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.target).classList.add('active');
+    };
 });
 
 function syncSettingsUI() {
     document.querySelectorAll('#setting-calidad button').forEach(b => {
         b.classList.toggle('active', b.dataset.val === gameSettings.calidad);
-        b.onclick = () => { gameSettings.calidad = b.dataset.val; if(gameSettings.calidad === 'baja') { gameSettings.sombras = 0; gameSettings.fps = 30; } else if(gameSettings.calidad === 'media') { gameSettings.sombras = 1; gameSettings.fps = 60; } else if(gameSettings.calidad === 'alta') { gameSettings.sombras = 2; gameSettings.fps = 60; } syncSettingsUI(); applyCurrentSettings(); };
+        b.onclick = () => {
+            gameSettings.calidad = b.dataset.val;
+            if (gameSettings.calidad === 'baja') { gameSettings.sombras = 0; gameSettings.fps = 30; }
+            else if (gameSettings.calidad === 'media') { gameSettings.sombras = 1; gameSettings.fps = 60; }
+            else if (gameSettings.calidad === 'alta') { gameSettings.sombras = 2; gameSettings.fps = 60; }
+            syncSettingsUI();
+            applyCurrentSettings();
+        };
     });
     document.querySelectorAll('#setting-fps button').forEach(b => {
         b.classList.toggle('active', parseInt(b.dataset.val) === gameSettings.fps);
-        b.onclick = () => { gameSettings.fps = parseInt(b.dataset.val); syncSettingsUI(); };
+        b.onclick = () => {
+            gameSettings.fps = parseInt(b.dataset.val);
+            syncSettingsUI();
+        };
     });
-    
-    // Controles separados
-    const volTV = document.getElementById('setting-volumen-tv'); volTV.value = gameSettings.volumenTV; document.getElementById('vol-tv-val').innerText = `${gameSettings.volumenTV}%`;
-    volTV.oninput = (e) => { gameSettings.volumenTV = e.target.value; document.getElementById('vol-tv-val').innerText = `${gameSettings.volumenTV}%`; applyCurrentSettings(); };
-    
-    const volEf = document.getElementById('setting-volumen-efectos'); volEf.value = gameSettings.volumenEfectos; document.getElementById('vol-efectos-val').innerText = `${gameSettings.volumenEfectos}%`;
-    volEf.oninput = (e) => { gameSettings.volumenEfectos = e.target.value; document.getElementById('vol-efectos-val').innerText = `${gameSettings.volumenEfectos}%`; applyCurrentSettings(); };
 
-    const fpsCheck = document.getElementById('setting-showfps'); fpsCheck.checked = gameSettings.mostrarFps; fpsCheck.onchange = (e) => { gameSettings.mostrarFps = e.target.checked; applyCurrentSettings(); };
+    const volTV = document.getElementById('setting-volumen-tv');
+    volTV.value = gameSettings.volumenTV;
+    document.getElementById('vol-tv-val').innerText = `${gameSettings.volumenTV}%`;
+    volTV.oninput = (e) => {
+        gameSettings.volumenTV = e.target.value;
+        document.getElementById('vol-tv-val').innerText = `${gameSettings.volumenTV}%`;
+        applyCurrentSettings();
+    };
+
+    const volEf = document.getElementById('setting-volumen-efectos');
+    volEf.value = gameSettings.volumenEfectos;
+    document.getElementById('vol-efectos-val').innerText = `${gameSettings.volumenEfectos}%`;
+    volEf.oninput = (e) => {
+        gameSettings.volumenEfectos = e.target.value;
+        document.getElementById('vol-efectos-val').innerText = `${gameSettings.volumenEfectos}%`;
+        applyCurrentSettings();
+    };
+
+    const fpsCheck = document.getElementById('setting-showfps');
+    fpsCheck.checked = gameSettings.mostrarFps;
+    fpsCheck.onchange = (e) => {
+        gameSettings.mostrarFps = e.target.checked;
+        applyCurrentSettings();
+    };
 }
 
 let currentCategory = 'cama', openGroup = 'muebles';
 function renderInventory() {
-    const sidebar = document.getElementById('inv-sidebar'), content = document.getElementById('inv-content'); sidebar.innerHTML = ''; content.innerHTML = '';
+    const sidebar = document.getElementById('inv-sidebar'), content = document.getElementById('inv-content');
+    sidebar.innerHTML = '';
+    content.innerHTML = '';
     inventoryGroups.forEach(group => {
-        const groupDiv = document.createElement('div'); groupDiv.className = 'inv-group';
-        const groupBtn = document.createElement('button'); groupBtn.className = 'group-btn';
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'inv-group';
+        const groupBtn = document.createElement('button');
+        groupBtn.className = 'group-btn';
         groupBtn.innerHTML = `<span>${group.emoji} ${group.label}</span> <span style="transition:0.3s; transform: ${openGroup === group.id ? 'rotate(90deg)' : 'rotate(0deg)'}">▶</span>`;
-        groupBtn.onclick = () => { openGroup = openGroup === group.id ? null : group.id; renderInventory(); };
+        groupBtn.onclick = () => {
+            openGroup = openGroup === group.id ? null : group.id;
+            renderInventory();
+        };
         groupDiv.appendChild(groupBtn);
-        const groupContent = document.createElement('div'); groupContent.className = `group-content ${openGroup === group.id ? 'open' : ''}`;
+        const groupContent = document.createElement('div');
+        groupContent.className = `group-content ${openGroup === group.id ? 'open' : ''}`;
         group.categories.forEach(catKey => {
-            const catData = inventoryData[catKey]; if(!catData) return;
-            const btn = document.createElement('button'); btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
+            const catData = inventoryData[catKey];
+            if (!catData) return;
+            const btn = document.createElement('button');
+            btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
             btn.innerHTML = `<span class="cat-icon-emoji">${catData.emoji}</span> <span>${catData.label}</span>`;
-            btn.onclick = () => { currentCategory = catKey; renderInventory(); };
+            btn.onclick = () => {
+                currentCategory = catKey;
+                renderInventory();
+            };
             groupContent.appendChild(btn);
         });
-        groupDiv.appendChild(groupContent); sidebar.appendChild(groupDiv);
+        groupDiv.appendChild(groupContent);
+        sidebar.appendChild(groupDiv);
     });
 
-    const catData = inventoryData[currentCategory]; if (!catData) return;
+    const catData = inventoryData[currentCategory];
+    if (!catData) return;
     for (let itemId in catData.items) {
-        const item = catData.items[itemId]; let isEq = catData.type === 'multiple' ? catData.equipped.includes(itemId) : catData.equipped === itemId;
-        const card = document.createElement('div'); card.className = 'item-card';
-        const prev = document.createElement('div'); prev.className = 'item-preview';
-        if (item.preview) { const img = document.createElement('img'); img.src = item.preview; img.alt = item.name; img.onerror = () => { prev.innerHTML = `<span>${catData.emoji}</span>`; }; prev.appendChild(img); } else prev.innerHTML = `<span>${catData.emoji}</span>`;
+        const item = catData.items[itemId];
+        let isEq = catData.type === 'multiple' ? catData.equipped.includes(itemId) : catData.equipped === itemId;
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        const prev = document.createElement('div');
+        prev.className = 'item-preview';
+        if (item.preview) {
+            const img = document.createElement('img');
+            img.src = item.preview;
+            img.alt = item.name;
+            img.onerror = () => { prev.innerHTML = `<span>${catData.emoji}</span>`; };
+            prev.appendChild(img);
+        } else prev.innerHTML = `<span>${catData.emoji}</span>`;
         let btn = item.owned ? (isEq ? `<button class="item-btn btn-equipped" onclick="equipItem('${currentCategory}', '${itemId}')">${catData.type === 'multiple' ? 'Quitar ✓' : 'Equipado ✓'}</button>` : `<button class="item-btn btn-equip" onclick="equipItem('${currentCategory}', '${itemId}')">Equipar</button>`) : `<button class="item-btn btn-buy" onclick="buyItem('${currentCategory}', '${itemId}')">Comprar 🪙${item.price}</button>`;
-        card.innerHTML = `<div>${prev.outerHTML}<h4>${item.name}</h4><div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div></div>${btn}`; content.appendChild(card);
+        card.innerHTML = `<div>${prev.outerHTML}<h4>${item.name}</h4><div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div></div>${btn}`;
+        content.appendChild(card);
     }
 }
 
 window.equipItem = function(category, itemId) {
     const catData = inventoryData[category];
-    if (catData.type === 'multiple') { const idx = catData.equipped.indexOf(itemId); if (idx > -1) catData.equipped.splice(idx, 1); else catData.equipped.push(itemId); updatePlaylist(); } 
-    else { catData.equipped = itemId; const itemData = catData.items[itemId]; loadItemForSlot(category, itemData.file, false); if (category === 'foco' && itemData.baseFile) loadItemForSlot('base_foco', itemData.baseFile, false); if (category === 'tele' && itemData.baseFile) loadItemForSlot('pantalla_tv', itemData.baseFile, false); }
-    saveGame(); renderInventory(); 
+    if (catData.type === 'multiple') {
+        const idx = catData.equipped.indexOf(itemId);
+        if (idx > -1) catData.equipped.splice(idx, 1);
+        else catData.equipped.push(itemId);
+        updatePlaylist();
+    } else {
+        catData.equipped = itemId;
+        const itemData = catData.items[itemId];
+        loadItemForSlot(category, itemData.file, false);
+        if (category === 'foco' && itemData.baseFile) loadItemForSlot('base_foco', itemData.baseFile, false);
+        if (category === 'tele' && itemData.baseFile) loadItemForSlot('pantalla_tv', itemData.baseFile, false);
+    }
+    saveGame();
+    renderInventory();
 };
+
 window.buyItem = function(category, itemId) {
     let item = inventoryData[category].items[itemId];
-    if (playerCoins >= item.price) { playerCoins -= item.price; item.owned = true; saveGame(); renderInventory(); } else alert("No tienes suficientes monedas.");
+    if (playerCoins >= item.price) {
+        playerCoins -= item.price;
+        item.owned = true;
+        saveGame();
+        renderInventory();
+    } else alert("No tienes suficientes monedas.");
 };
-document.getElementById('inventory-button').onclick = () => { document.getElementById('inventory-modal').classList.add('visible'); renderInventory(); };
-document.getElementById('close-inv').onclick = () => { document.getElementById('inventory-modal').classList.remove('visible'); };
 
-let then = performance.now(); let frames = 0, lastFpsTime = then;
+document.getElementById('inventory-button').onclick = () => {
+    document.getElementById('inventory-modal').classList.add('visible');
+    renderInventory();
+};
+document.getElementById('close-inv').onclick = () => {
+    document.getElementById('inventory-modal').classList.remove('visible');
+};
+
+let then = performance.now();
+let frames = 0, lastFpsTime = then;
 function animate() {
-    requestAnimationFrame(animate); const now = performance.now(); const elapsed = now - then; const fpsInterval = gameSettings.fps > 0 ? 1000 / gameSettings.fps : 0;
+    requestAnimationFrame(animate);
+    const now = performance.now();
+    const elapsed = now - then;
+    const fpsInterval = gameSettings.fps > 0 ? 1000 / gameSettings.fps : 0;
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
-        const delta = clock.getDelta(); if (lunariMixer) lunariMixer.update(delta);
-        controls.update(); renderer.render(scene, camera);
-        if (gameSettings.mostrarFps) { frames++; if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now; } }
+        const delta = clock.getDelta();
+        if (lunariMixer) lunariMixer.update(delta);
+        controls.update();
+        renderer.render(scene, camera);
+        if (gameSettings.mostrarFps) {
+            frames++;
+            if (now - lastFpsTime >= 1000) {
+                document.querySelector('#fps-counter span').innerText = frames;
+                frames = 0;
+                lastFpsTime = now;
+            }
+        }
     }
 }
 
-window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); applyCurrentSettings(); });
-syncSettingsUI(); applyCurrentSettings(); updateLighting(); animate();
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    applyCurrentSettings();
+});
+
+syncSettingsUI();
+applyCurrentSettings();
+updateLighting();
+animate();

@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'room-cache-v8'; // Subimos la versión
+const CACHE_NAME = 'room-cache-v9'; // Incrementa la versión
 const urlsToCache = [
     './',
     './index.html',
@@ -15,7 +15,8 @@ const urlsToCache = [
     'apagar_luz.mp3',
     'abrir_poster.mp3',
     'guardar_poster.mp3',
-    'sonido_boton.mp3'
+    'sonido_boton.mp3',
+    'lunari_esta_despierta.glb'  // <-- NUEVO
 ];
 
 self.addEventListener('install', event => {
@@ -41,7 +42,6 @@ self.addEventListener('fetch', event => {
     const requestUrl = event.request.url;
     const isMedia = requestUrl.endsWith('.mp4') || requestUrl.endsWith('.glb') || requestUrl.endsWith('.mp3');
 
-    // Caché Primero para multimedia (no cambian y pesan mucho)
     if (isMedia) {
         event.respondWith(
             caches.match(event.request).then(cachedResponse => {
@@ -54,7 +54,6 @@ self.addEventListener('fetch', event => {
             }).catch(() => caches.match(event.request))
         );
     } else {
-        // Red Primero para HTML, JS, CSS
         event.respondWith(
             fetch(event.request).then(networkResponse => {
                 if (!requestUrl.includes('nocache=')) {
