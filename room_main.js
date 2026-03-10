@@ -100,22 +100,38 @@ const audioPrenderLuz = new Audio('prender_luz.mp3');
 const audioApagarLuz = new Audio('apagar_luz.mp3');
 const audioAbrirPoster = new Audio('abrir_poster.mp3');
 const audioCerrarPoster = new Audio('guardar_poster.mp3');
+const audioBotonTV = new Audio('sonido_boton.mp3'); // Sonido para botones de TV
 
-// --- NUEVO: Video de efecto para la TV ---
-const tvEffectVideo = document.createElement('video');
-tvEffectVideo.src = 'efecto_tele.mp4';
-tvEffectVideo.crossOrigin = 'anonymous';
-tvEffectVideo.playsInline = true;
-tvEffectVideo.preload = 'auto';
-tvEffectVideo.loop = false;
-tvEffectVideo.muted = false; // Permitir sonido
-document.body.appendChild(tvEffectVideo); // Oculto, pero necesario para que cargue
-tvEffectVideo.style.display = 'none';
+// --- NUEVO: Videos de efecto para la TV (diferenciados) ---
+const tvEffectVideoOff = document.createElement('video'); // Para apagar
+tvEffectVideoOff.src = 'efecto_tele.mp4';
+tvEffectVideoOff.crossOrigin = 'anonymous';
+tvEffectVideoOff.playsInline = true;
+tvEffectVideoOff.preload = 'auto';
+tvEffectVideoOff.loop = false;
+tvEffectVideoOff.muted = false;
+document.body.appendChild(tvEffectVideoOff);
+tvEffectVideoOff.style.display = 'none';
 
-const tvEffectTexture = new THREE.VideoTexture(tvEffectVideo);
-tvEffectTexture.minFilter = THREE.LinearFilter;
-tvEffectTexture.magFilter = THREE.LinearFilter;
-tvEffectTexture.format = THREE.RGBAFormat;
+const tvEffectVideoOn = document.createElement('video'); // Para encender (invertido)
+tvEffectVideoOn.src = 'efecto_tele - Invertido.mp4';
+tvEffectVideoOn.crossOrigin = 'anonymous';
+tvEffectVideoOn.playsInline = true;
+tvEffectVideoOn.preload = 'auto';
+tvEffectVideoOn.loop = false;
+tvEffectVideoOn.muted = false;
+document.body.appendChild(tvEffectVideoOn);
+tvEffectVideoOn.style.display = 'none';
+
+const tvEffectTextureOff = new THREE.VideoTexture(tvEffectVideoOff);
+tvEffectTextureOff.minFilter = THREE.LinearFilter;
+tvEffectTextureOff.magFilter = THREE.LinearFilter;
+tvEffectTextureOff.format = THREE.RGBAFormat;
+
+const tvEffectTextureOn = new THREE.VideoTexture(tvEffectVideoOn);
+tvEffectTextureOn.minFilter = THREE.LinearFilter;
+tvEffectTextureOn.magFilter = THREE.LinearFilter;
+tvEffectTextureOn.format = THREE.RGBAFormat;
 
 // --- Escena, Cámara y Reloj ---
 const scene = new THREE.Scene();
@@ -185,7 +201,8 @@ function applyCurrentSettings() {
     document.getElementById('fps-counter').style.display = gameSettings.mostrarFps ? 'block' : 'none';
     const tvVideo = document.getElementById('tv-video');
     if (tvVideo) tvVideo.volume = gameSettings.volumen / 100;
-    tvEffectVideo.volume = gameSettings.volumen / 100; // También ajustar volumen del efecto
+    tvEffectVideoOff.volume = gameSettings.volumen / 100;
+    tvEffectVideoOn.volume = gameSettings.volumen / 100;
 }
 
 function actualizarIluminacionFocoDia() {
@@ -266,57 +283,74 @@ function playNextTv(random = false) {
     }
 }
 
-// Eventos de botones de la TV
-tvVideo.addEventListener('ended', () => playNextTv(false));
+// Eventos de botones de la TV (con sonido)
+const tvPrevBtn = document.getElementById('tv-prev');
+const tvPlayPauseBtn = document.getElementById('tv-play-pause');
+const tvNextBtn = document.getElementById('tv-next');
+const tvPowerBtn = document.getElementById('tv-power');
 
-document.getElementById('tv-prev').onclick = () => {
+function playButtonSound() {
+    audioBotonTV.currentTime = 0;
+    audioBotonTV.play().catch(e => console.warn('Error al reproducir sonido de botón:', e));
+}
+
+tvPrevBtn.onclick = () => {
+    playButtonSound();
     if (!isTvOn || tvTransitioning) return;
     updatePlaylist();
     if(tvPlaylist.length === 0) return;
     currentTvIndex = (currentTvIndex - 1 + tvPlaylist.length) % tvPlaylist.length; tvVideo.src = tvPlaylist[currentTvIndex]; tvVideo.play();
 };
-document.getElementById('tv-next').onclick = () => {
-    if (isTvOn && !tvTransitioning) playNextTv(false);
-};
-document.getElementById('tv-play-pause').onclick = () => { 
+
+tvPlayPauseBtn.onclick = () => { 
+    playButtonSound();
     if (!isTvOn || tvTransitioning) return;
     if(tvVideo.paused) tvVideo.play(); else tvVideo.pause(); 
 };
 
-// --- NUEVA LÓGICA DEL BOTÓN DE POWER CON EFECTO DE VIDEO ---
-const tvPowerBtn = document.getElementById('tv-power');
+tvNextBtn.onclick = () => {
+    playButtonSound();
+    if (isTvOn && !tvTransitioning) playNextTv(false);
+};
+
+// --- LÓGICA DEL BOTÓN DE POWER CON EFECTOS DIFERENCIADOS ---
 if (tvPowerBtn) {
     // Establecer emoji inicial según estado
     tvPowerBtn.innerText = isTvOn ? '🟢' : '🔴';
 
     tvPowerBtn.addEventListener('click', () => {
+        playButtonSound(); // También suena al hacer clic en power
+
         if (tvTransitioning || !tvScreenMesh) return;
 
         tvTransitioning = true;
 
-        // Bloquear interacción durante la transición
         const mats = Array.isArray(tvScreenMesh.material) ? tvScreenMesh.material : [tvScreenMesh.material];
 
         // Pausar cualquier reproducción actual
         tvVideo.pause();
 
+        // Seleccionar el video de efecto adecuado
+        const effectVideo = isTvOn ? tvEffectVideoOff : tvEffectVideoOn; // Si está encendida, vamos a apagar (off); si está apagada, vamos a encender (on)
+        const effectTexture = isTvOn ? tvEffectTextureOff : tvEffectTextureOn;
+
         // Asignar la textura del efecto a la pantalla
         mats.forEach(mat => {
-            mat.map = tvEffectTexture;
-            mat.emissiveMap = tvEffectTexture;
+            mat.map = effectTexture;
+            mat.emissiveMap = effectTexture;
             mat.color.setHex(0xffffff);
             mat.emissive.setHex(0xffffff);
             mat.emissiveIntensity = 1.0;
             mat.needsUpdate = true;
         });
 
-        // Reproducir el video de efecto con su sonido
-        tvEffectVideo.currentTime = 0;
-        tvEffectVideo.play().catch(e => console.warn('Error reproduciendo efecto:', e));
+        // Reproducir el video de efecto
+        effectVideo.currentTime = 0;
+        effectVideo.play().catch(e => console.warn('Error reproduciendo efecto:', e));
 
         // Cuando termine el efecto, completar la acción
         const onEffectEnded = () => {
-            tvEffectVideo.removeEventListener('ended', onEffectEnded);
+            effectVideo.removeEventListener('ended', onEffectEnded);
 
             if (isTvOn) {
                 // Estaba encendida -> apagar
@@ -361,7 +395,7 @@ if (tvPowerBtn) {
             tvTransitioning = false;
         };
 
-        tvEffectVideo.addEventListener('ended', onEffectEnded, { once: true });
+        effectVideo.addEventListener('ended', onEffectEnded, { once: true });
     });
 }
 

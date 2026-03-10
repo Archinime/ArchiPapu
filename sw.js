@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'room-cache-v6'; // Versión actualizada para incluir nuevos efectos
+const CACHE_NAME = 'room-cache-v7'; // Versión actualizada para incluir nuevos efectos y sonidos
 const urlsToCache = [
     './',
     './index.html',
@@ -9,11 +9,13 @@ const urlsToCache = [
     'gohan_vs_cell.mp4',
     'zoro_vs_king.mp4',
     'rezero.mp4',
-    'efecto_tele.mp4',          // Nuevo efecto para TV
-    'prender_luz.mp3',           // Sonido al encender luz
-    'apagar_luz.mp3',            // Sonido al apagar luz
-    'abrir_poster.mp3',          // Sonido al abrir póster
-    'guardar_poster.mp3'         // Sonido al cerrar póster
+    'efecto_tele.mp4',                // Efecto al apagar
+    'efecto_tele - Invertido.mp4',     // Efecto al encender
+    'prender_luz.mp3',
+    'apagar_luz.mp3',
+    'abrir_poster.mp3',
+    'guardar_poster.mp3',
+    'sonido_boton.mp3'                 // Sonido para botones de TV
 ];
 
 // Instalación
