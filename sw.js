@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'room-cache-v5'; // Versión actualizada para forzar los nuevos cambios
+const CACHE_NAME = 'room-cache-v6'; // Versión actualizada para incluir nuevos efectos
 const urlsToCache = [
     './',
     './index.html',
@@ -8,7 +8,12 @@ const urlsToCache = [
     './inventory-data.js',
     'gohan_vs_cell.mp4',
     'zoro_vs_king.mp4',
-    'rezero.mp4'
+    'rezero.mp4',
+    'efecto_tele.mp4',          // Nuevo efecto para TV
+    'prender_luz.mp3',           // Sonido al encender luz
+    'apagar_luz.mp3',            // Sonido al apagar luz
+    'abrir_poster.mp3',          // Sonido al abrir póster
+    'guardar_poster.mp3'         // Sonido al cerrar póster
 ];
 
 // Instalación
