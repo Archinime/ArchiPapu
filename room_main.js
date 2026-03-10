@@ -76,12 +76,13 @@ let baseTier = 'alta';
 if (isMobileUA || deviceMemory <= 4 || cpuCores <= 4) baseTier = 'media';
 if (isMobileUA && (deviceMemory <= 2 || cpuCores <= 2)) baseTier = 'baja';
 
-let gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
+let gameSettings = JSON.parse(localStorage.getItem('ff_settings')) ||
+{
     calidad: baseTier, 
     sombras: baseTier === 'baja' ? 0 : (baseTier === 'media' ? 1 : 2),
     fps: baseTier === 'baja' ? 30 : 60,
-    volumenTV: 50,      
-    volumenEfectos: 50, 
+    volumenTV: 50,
+    volumenEfectos: 50,
     mostrarFps: false
 };
 // Compatibilidad con versión anterior
@@ -90,11 +91,8 @@ if(gameSettings.volumen) { gameSettings.volumenTV = gameSettings.volumen; gameSe
 const loadedSlotMeshes = {};
 let switchMesh = null, focoMesh = null, focoDiaMesh = null, luzFocoDia = null;
 let esDeDiaLocal = true;
-
-// AQUÍ LEEMOS EL ESTADO DE LA TELEVISIÓN
-let isTvOn = localStorage.getItem('room_tv_on') === 'true'; 
+let isTvOn = localStorage.getItem('tvState') === 'on'; // Guardar el estado de la TV
 let tvTransitioning = false; let lastTvClickTime = 0; let tvScreenMesh = null;
-
 const audioPrenderLuz = new Audio('prender_luz.mp3');
 const audioApagarLuz = new Audio('apagar_luz.mp3');
 const audioAbrirPoster = new Audio('abrir_poster.mp3');
@@ -119,7 +117,8 @@ scene.background = new THREE.Color(0x050508);
 const clock = new THREE.Clock();
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
 let camPosY = 6, camPosZ = 14, targetY = 6;
-if (window.innerWidth < 768 || isMobileUA) { camPosY = 6; camPosZ = 12; targetY = 5; }
+if (window.innerWidth < 768 || isMobileUA) { camPosY = 6;
+camPosZ = 12; targetY = 5; }
 camera.position.set(0, camPosY, camPosZ);
 
 const renderer = new THREE.WebGLRenderer({ antialias: gameSettings.calidad !== 'baja', powerPreference: "high-performance" });
@@ -137,18 +136,13 @@ const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.
 scene.add(hemiLight);
 
 const mainLight = new THREE.SpotLight(0xffeedd, 6); mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3;
-mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
+mainLight.penumbra = 0.8;
+mainLight.decay = 2; mainLight.distance = 60;
 mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.002;
-mainLight.shadow.normalBias = 0.05; mainLight.shadow.radius = 4; scene.add(mainLight); scene.add(mainLight.target);
+mainLight.shadow.normalBias = 0.05;
+mainLight.shadow.radius = 4; scene.add(mainLight); scene.add(mainLight.target);
 
-// AQUÍ LEEMOS EL ESTADO DE LA LUZ
 let lightOn = localStorage.getItem('lightState') !== 'off';
-
-// === SISTEMA DE SUEÑO LUNARI ===
-let currentHour = new Date().getHours();
-let isSleepTime = (currentHour >= 22 || currentHour < 7); // De 10 PM a 7 AM
-// Solo despertará si NO es hora de dormir, O si dejaste la luz prendida, O si dejaste la tele prendida
-let shouldWakeUp = !isSleepTime || lightOn || isTvOn;
 
 function applyCurrentSettings() {
     let pixelRatio = 1;
@@ -160,7 +154,8 @@ function applyCurrentSettings() {
     renderer.shadowMap.type = gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     mainLight.castShadow = gameSettings.sombras > 0;
     if (gameSettings.sombras > 0) {
-        let shadowRes = gameSettings.sombras === 2 ? (isMobileUA ? 1024 : 2048) : 512;
+        let shadowRes = gameSettings.sombras === 2 ?
+        (isMobileUA ? 1024 : 2048) : 512;
         mainLight.shadow.mapSize.set(shadowRes, shadowRes);
     }
 
@@ -183,12 +178,6 @@ function applyCurrentSettings() {
 function updateLunariText(isDay, weatherCode) {
     const dialogBox = document.getElementById('dialogue-text');
     if(!dialogBox) return;
-
-    if (!shouldWakeUp) {
-        dialogBox.innerHTML = "<i>Zzz... Zzz...</i><br><span style='font-size:11px;color:#aaa;'>(Lunari está profundamente dormida)</span>";
-        return;
-    }
-
     if (!isDay) { dialogBox.innerHTML = "¡Qué noche tan tranquila!<br>¿Deberíamos dormir pronto?"; }
     else if ([51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99].includes(weatherCode)) {
         dialogBox.innerHTML = "El clima está feo afuera.<br>¡Mejor nos quedamos viendo anime!";
@@ -205,7 +194,8 @@ function actualizarIluminacionFocoDia() {
     else if (hora >= 17 && hora < 19) { colorHex = 0xff8c00; lightInt = 0.7; emInt = 0.7; dist = 40; }
     else { colorHex = 0x5566aa; lightInt = 0.25; emInt = 0.25; dist = 25; }
 
-    if (luzFocoDia) { luzFocoDia.color.setHex(colorHex); luzFocoDia.intensity = lightInt; luzFocoDia.distance = dist; luzFocoDia.castShadow = gameSettings.sombras > 0; }
+    if (luzFocoDia) { luzFocoDia.color.setHex(colorHex); luzFocoDia.intensity = lightInt;
+    luzFocoDia.distance = dist; luzFocoDia.castShadow = gameSettings.sombras > 0; }
     if (focoDiaMesh) {
         focoDiaMesh.traverse((n) => {
             if (n.isMesh && n.material) { n.material.emissive.setHex(colorHex); n.material.emissiveIntensity = emInt; n.material.needsUpdate = true; }
@@ -252,7 +242,8 @@ function updatePlaylist() {
 
 function playNextTv(random = false) {
     updatePlaylist(); if(tvPlaylist.length === 0) return;
-    currentTvIndex = random ? Math.floor(Math.random() * tvPlaylist.length) : (currentTvIndex + 1) % tvPlaylist.length;
+    currentTvIndex = random ?
+    Math.floor(Math.random() * tvPlaylist.length) : (currentTvIndex + 1) % tvPlaylist.length;
     tvVideo.src = tvPlaylist[currentTvIndex]; tvVideo.volume = gameSettings.volumenTV / 100;
     if (isTvOn && !tvTransitioning) tvVideo.play().catch(e => console.warn('User interaction needed', e));
 }
@@ -269,7 +260,6 @@ tvNextBtn.onclick = () => { playButtonSound();
 if (isTvOn && !tvTransitioning) playNextTv(false); };
 
 if (tvPowerBtn) {
-    // Configuración inicial visual del botón según el guardado
     tvPowerBtn.innerText = isTvOn ? '🟢' : '🔴';
     tvPowerBtn.style.color = isTvOn ? '#00ff00' : 'red';
     tvPowerBtn.style.textShadow = isTvOn ? '0 0 5px #00ff00' : '0 0 5px red';
@@ -288,13 +278,13 @@ if (tvPowerBtn) {
         const onEffectEnded = () => {
             effectVideo.removeEventListener('ended', onEffectEnded);
             if (isTvOn) {
-                isTvOn = false; 
-                localStorage.setItem('room_tv_on', 'false'); // Guardamos estado de la TV
+                isTvOn = false;
+                localStorage.setItem('tvState', 'off'); // Guardar estado
                 tvPowerBtn.innerText = '🔴'; tvPowerBtn.style.color = 'red'; tvPowerBtn.style.textShadow = '0 0 5px red';
                 mats.forEach(mat => { mat.map = null; mat.emissiveMap = null; mat.color.setHex(0x000000); mat.emissive.setHex(0x000000); mat.emissiveIntensity = 0; mat.needsUpdate = true; });
             } else {
                 isTvOn = true;
-                localStorage.setItem('room_tv_on', 'true'); // Guardamos estado de la TV
+                localStorage.setItem('tvState', 'on'); // Guardar estado
                 tvPowerBtn.innerText = '🟢'; tvPowerBtn.style.color = '#00ff00'; tvPowerBtn.style.textShadow = '0 0 5px #00ff00';
                 mats.forEach(mat => { mat.map = tvTexture; mat.emissiveMap = tvTexture; mat.color.setHex(0xffffff); mat.emissive.setHex(0xffffff); mat.emissiveIntensity = 1.0; mat.needsUpdate = true; });
                 if (tvPlaylist.length > 0) { tvVideo.currentTime = 0; tvVideo.play().catch(e=>{}); }
@@ -316,12 +306,12 @@ for (let cat in inventoryData) {
     }
 }
 
-// Calculamos el total de modelos dependiendo si carga la de dormida (2 modelos) o despierta (1 modelo)
-if (shouldWakeUp) {
-    totalModelsToLoad += 3; // Lunari Despierta, FocoDia, Cuadro Clima
-} else {
-    totalModelsToLoad += 4; // Lunari Durmiendo1, Lunari Durmiendo2, FocoDia, Cuadro Clima
-}
+// LOGICA DE SUEÑO LUNARI
+const currentHour = new Date().getHours();
+const isNightTime = currentHour >= 22 || currentHour < 7; // Horario de sueño: de 10 PM a 7 AM
+const isLunariAwake = !isNightTime || lightOn || isTvOn;
+
+totalModelsToLoad += isLunariAwake ? 3 : 4; // Dependiendo de si despierta o duerme carga 1 o 2 modelos + FocoDia + Cuadro
 
 function checkLoading() {
     modelsLoaded++;
@@ -342,52 +332,27 @@ if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getEl
 const loader = new GLTFLoader();
 let lunariMixer = null, baseAction = null, randomAction = null, currentAction = null;
 
-// Lógica para cargar el modelo de Lunari correspondiente
-if (shouldWakeUp) {
-    loader.load(getFreshUrl('lunari_despierta.glb'), (gltf) => {
+if (isLunariAwake) {
+    // Lunari Despierta
+    loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
         const lunariModel = gltf.scene; applyMaterialLogic(lunariModel, 'lunari'); scene.add(lunariModel);
-        if (gltf.animations && gltf.animations.length > 0) { 
-            lunariMixer = new THREE.AnimationMixer(lunariModel); 
-            baseAction = lunariMixer.clipAction(gltf.animations[0]); 
-            baseAction.play(); 
-            currentAction = baseAction; 
-        }
+        if (gltf.animations && gltf.animations.length > 0) { lunariMixer = new THREE.AnimationMixer(lunariModel); baseAction = lunariMixer.clipAction(gltf.animations[0]); baseAction.play(); currentAction = baseAction; }
         checkLoading();
-    }, undefined, (error) => { console.error('Error cargando lunari despierta:', error); checkLoading(); });
+    }, undefined, () => checkLoading());
 } else {
+    // Lunari Durmiendo
     loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
         const lunariModel = gltf.scene; applyMaterialLogic(lunariModel, 'lunari'); scene.add(lunariModel);
-        if (gltf.animations && gltf.animations.length > 0) { 
-            lunariMixer = new THREE.AnimationMixer(lunariModel); 
-            baseAction = lunariMixer.clipAction(gltf.animations[0]); 
-            baseAction.play(); 
-            currentAction = baseAction; 
-        }
+        if (gltf.animations && gltf.animations.length > 0) { lunariMixer = new THREE.AnimationMixer(lunariModel); baseAction = lunariMixer.clipAction(gltf.animations[0]); baseAction.play(); currentAction = baseAction; }
         checkLoading();
-    }, undefined, (error) => { console.error('Error cargando lunari_durmiendo1:', error); checkLoading(); });
+    }, undefined, () => checkLoading());
 
     loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
-        if (gltf.animations && gltf.animations.length > 0 && lunariMixer) { 
-            randomAction = lunariMixer.clipAction(gltf.animations[0]); 
-            randomAction.loop = THREE.LoopOnce; 
-            randomAction.clampWhenFinished = true; 
-        }
+        if (gltf.animations && gltf.animations.length > 0 && lunariMixer) { randomAction = lunariMixer.clipAction(gltf.animations[0]); randomAction.loop = THREE.LoopOnce; randomAction.clampWhenFinished = true; }
         checkLoading();
-    }, undefined, (error) => { console.error('Error cargando Lunari_Duerme_2:', error); checkLoading(); });
-
-    setInterval(() => {
-        if (!randomAction || !baseAction || !lunariMixer || currentAction === randomAction) return;
-        if (baseAction && randomAction) {
-            baseAction.fadeOut(0.5); randomAction.reset().fadeIn(0.5).play(); currentAction = randomAction;
-            const onFinished = (event) => {
-                if (event.action === randomAction) { randomAction.fadeOut(0.5); baseAction.reset().fadeIn(0.5).play(); currentAction = baseAction; lunariMixer.removeEventListener('finished', onFinished); }
-            };
-            lunariMixer.addEventListener('finished', onFinished);
-        }
-    }, 60000);
+    }, undefined, () => checkLoading());
 }
 
-// Cargas normales (Foco, Cuadro)
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
     focoDiaMesh = gltf.scene; applyMaterialLogic(focoDiaMesh, 'foco_dia'); 
     luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
@@ -396,6 +361,17 @@ loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/fo
     scene.add(luzFocoDia); scene.add(focoDiaMesh); focoDiaMesh.visible = false; luzFocoDia.visible = true; 
     actualizarIluminacionFocoDia(); checkLoading();
 }, undefined, () => checkLoading());
+
+setInterval(() => {
+    if (!randomAction || !baseAction || !lunariMixer || currentAction === randomAction) return;
+    if (baseAction && randomAction) {
+        baseAction.fadeOut(0.5); randomAction.reset().fadeIn(0.5).play(); currentAction = randomAction;
+        const onFinished = (event) => {
+            if (event.action === randomAction) { randomAction.fadeOut(0.5); baseAction.reset().fadeIn(0.5).play(); currentAction = baseAction; lunariMixer.removeEventListener('finished', onFinished); }
+        };
+        lunariMixer.addEventListener('finished', onFinished);
+    }
+}, 60000);
 
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
@@ -413,7 +389,7 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                         mat.needsUpdate = true;
                     });
                 }
-             });
+            });
             if (!isTvOn) tvVideo.pause();
         }
         if (categoryKey === 'foco') { focoMesh = model;
@@ -451,15 +427,28 @@ for (let cat in inventoryData) {
         esDeDiaLocal = (isDay === 1);
         lastWeatherCode = code; actualizarIluminacionFocoDia(); temperature = data.current_weather.temperature;
 
-        if (code === 0) { weatherName = isDay ? "Despejado" : "Noche despejada"; weatherEmoji = isDay ? "☀️" : "🌙"; videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4'; } 
-        else if ([1, 2, 3].includes(code)) { weatherName = isDay ? "Nublado" : "Noche nublada"; weatherEmoji = "☁️"; videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4'; }
-        else if (code === 45 || code === 48) { weatherName = "Niebla"; weatherEmoji = "🌫️"; videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4'; }
-        else if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) { weatherName = "Lluvia"; weatherEmoji = "🌧️"; videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4'; }
-        else if ([71, 73, 75, 77, 85, 86].includes(code)) { weatherName = "Nieve"; weatherEmoji = "❄️"; videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4'; }
-        else if ([95, 96, 99].includes(code)) { weatherName = "Tormenta"; weatherEmoji = "⛈️"; videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4'; }
-    } catch (error) { weatherEmoji = "❌"; weatherName = "Clima offline"; }
+        if (code === 0) { weatherName = isDay ? "Despejado" : "Noche despejada";
+            weatherEmoji = isDay ? "☀️" : "🌙"; videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4';
+        } 
+        else if ([1, 2, 3].includes(code)) { weatherName = isDay ?
+            "Nublado" : "Noche nublada"; weatherEmoji = "☁️"; videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4';
+        }
+        else if (code === 45 || code === 48) { weatherName = "Niebla";
+            weatherEmoji = "🌫️"; videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4';
+        }
+        else if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) { weatherName = "Lluvia";
+            weatherEmoji = "🌧️"; videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
+        }
+        else if ([71, 73, 75, 77, 85, 86].includes(code)) { weatherName = "Nieve";
+            weatherEmoji = "❄️"; videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4';
+        }
+        else if ([95, 96, 99].includes(code)) { weatherName = "Tormenta"; weatherEmoji = "⛈️";
+            videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4'; }
+    } catch (error) { weatherEmoji = "❌";
+        weatherName = "Clima offline"; }
 
-    statusBox.innerHTML = temperature !== "--" ? `${weatherEmoji} ${weatherName} | ${temperature}°C` : `${weatherEmoji} ${weatherName}`;
+    statusBox.innerHTML = temperature !== "--" ? `${weatherEmoji} ${weatherName} |
+${temperature}°C` : `${weatherEmoji} ${weatherName}`;
     video.src = videoFile; video.play().catch(e => console.log('Autoplay blocked'));
 
     const videoTexture = new THREE.VideoTexture(video); videoTexture.minFilter = THREE.LinearFilter;
@@ -493,20 +482,20 @@ const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2();
 function toggleLight() {
     lightOn = !lightOn;
     localStorage.setItem('lightState', lightOn ? 'on' : 'off'); updateLighting();
-    if (lightOn) { audioPrenderLuz.currentTime = 0; audioPrenderLuz.play().catch(e=>{}); } 
+    if (lightOn) { audioPrenderLuz.currentTime = 0; audioPrenderLuz.play().catch(e=>{});
+    } 
     else { audioApagarLuz.currentTime = 0; audioApagarLuz.play().catch(e=>{}); }
 }
 
 const posterViewModal = document.getElementById('poster-view-modal'); const posterEnlargedImage = document.getElementById('poster-enlarged-image');
 document.getElementById('close-poster-view').onclick = () => { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); };
 posterViewModal.onclick = (e) => { if (e.target === posterViewModal) { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); } };
-
 function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
-
-    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
+    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return;
+    }
     
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
@@ -524,7 +513,8 @@ function handleInteraction(event) {
         const pMesh = loadedSlotMeshes[cat];
         if (pMesh && raycaster.intersectObject(pMesh, true).length > 0) {
             const itemData = inventoryData[cat].items[inventoryData[cat].equipped];
-            if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); audioAbrirPoster.currentTime = 0; audioAbrirPoster.play().catch(e=>{}); }
+            if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); audioAbrirPoster.currentTime = 0; audioAbrirPoster.play().catch(e=>{});
+            }
             break;
         }
     }
@@ -541,7 +531,6 @@ document.getElementById('close-ff-settings').onclick = () => { settingsModal.cla
 document.querySelectorAll('.ff-tab').forEach(tab => {
     tab.onclick = () => { document.querySelectorAll('.ff-tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.ff-tab-pane').forEach(p => p.classList.remove('active')); tab.classList.add('active'); document.getElementById(tab.dataset.target).classList.add('active'); };
 });
-
 function syncSettingsUI() {
     document.querySelectorAll('#setting-calidad button').forEach(b => {
         b.classList.toggle('active', b.dataset.val === gameSettings.calidad);
@@ -551,7 +540,7 @@ function syncSettingsUI() {
         b.classList.toggle('active', parseInt(b.dataset.val) === gameSettings.fps);
         b.onclick = () => { gameSettings.fps = parseInt(b.dataset.val); syncSettingsUI(); };
     });
-
+    // Controles separados
     const volTV = document.getElementById('setting-volumen-tv'); volTV.value = gameSettings.volumenTV; document.getElementById('vol-tv-val').innerText = `${gameSettings.volumenTV}%`;
     volTV.oninput = (e) => { gameSettings.volumenTV = e.target.value; document.getElementById('vol-tv-val').innerText = `${gameSettings.volumenTV}%`; applyCurrentSettings(); };
     
@@ -572,7 +561,8 @@ function renderInventory() {
         groupBtn.innerHTML = `<span>${group.emoji} ${group.label}</span> <span style="transition:0.3s; transform: ${openGroup === group.id ? 'rotate(90deg)' : 'rotate(0deg)'}">▶</span>`;
         groupBtn.onclick = () => { openGroup = openGroup === group.id ? null : group.id; renderInventory(); };
         groupDiv.appendChild(groupBtn);
-        const groupContent = document.createElement('div'); groupContent.className = `group-content ${openGroup === group.id ? 'open' : ''}`;
+        const groupContent = document.createElement('div'); groupContent.className = `group-content ${openGroup === group.id 
+? 'open' : ''}`;
         group.categories.forEach(catKey => {
             const catData = inventoryData[catKey]; if(!catData) return;
             const btn = document.createElement('button'); btn.className = `cat-btn ${catKey === currentCategory ? 'active' : ''}`;
@@ -601,8 +591,9 @@ function renderInventory() {
 window.equipItem = function(category, itemId) {
     const catData = inventoryData[category];
     if (catData.type === 'multiple') { const idx = catData.equipped.indexOf(itemId); if (idx > -1) catData.equipped.splice(idx, 1); else catData.equipped.push(itemId); updatePlaylist();
-    } else { catData.equipped = itemId; const itemData = catData.items[itemId]; loadItemForSlot(category, itemData.file, false);
-    if (category === 'foco' && itemData.baseFile) loadItemForSlot('base_foco', itemData.baseFile, false); if (category === 'tele' && itemData.baseFile) loadItemForSlot('pantalla_tv', itemData.baseFile, false);
+    } 
+    else { catData.equipped = itemId; const itemData = catData.items[itemId]; loadItemForSlot(category, itemData.file, false);
+        if (category === 'foco' && itemData.baseFile) loadItemForSlot('base_foco', itemData.baseFile, false); if (category === 'tele' && itemData.baseFile) loadItemForSlot('pantalla_tv', itemData.baseFile, false);
     }
     saveGame(); renderInventory(); 
 };
@@ -623,8 +614,9 @@ function animate() {
         const delta = clock.getDelta(); if (lunariMixer) lunariMixer.update(delta);
         controls.update(); renderer.render(scene, camera);
         if (gameSettings.mostrarFps) { frames++;
-        if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now;
-        } }
+            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now;
+            } 
+        }
     }
 }
 
