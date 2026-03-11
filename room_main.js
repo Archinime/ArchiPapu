@@ -39,8 +39,7 @@ tvEffectVideoOn.style.display = 'none';
 const tvEffectTextureOff = new THREE.VideoTexture(tvEffectVideoOff);
 tvEffectTextureOff.minFilter = THREE.LinearFilter; tvEffectTextureOff.magFilter = THREE.LinearFilter;
 tvEffectTextureOff.format = THREE.RGBAFormat;
-const tvEffectTextureOn = new THREE.VideoTexture(tvEffectVideoOn); 
-tvEffectTextureOn.minFilter = THREE.LinearFilter; tvEffectTextureOn.magFilter = THREE.LinearFilter;
+const tvEffectTextureOn = new THREE.VideoTexture(tvEffectVideoOn); tvEffectTextureOn.minFilter = THREE.LinearFilter; tvEffectTextureOn.magFilter = THREE.LinearFilter;
 tvEffectTextureOn.format = THREE.RGBAFormat;
 
 // Aplicar Ajustes Gráficos Base
@@ -48,34 +47,25 @@ function applyCurrentSettings() {
     let pixelRatio = 1;
     if (State.gameSettings.calidad === 'media') pixelRatio = Math.min(window.devicePixelRatio, 1.2);
     else if (State.gameSettings.calidad === 'alta') pixelRatio = Math.min(window.devicePixelRatio, 2); 
-    else if (State.gameSettings.calidad === 'ultra') pixelRatio = window.devicePixelRatio;
 
     renderer.setPixelRatio(pixelRatio);
     renderer.shadowMap.enabled = State.gameSettings.sombras > 0;
+    renderer.shadowMap.type = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     mainLight.castShadow = State.gameSettings.sombras > 0;
-
-    // Configuración dinámica del mapa de sombras
+    
+    // CORRECCIÓN: Resolución dinámica y alta fidelidad para el modo Ultra
     if (State.gameSettings.sombras > 0) {
-        let shadowRes = 512;
-        if (State.gameSettings.calidad === 'ultra' || State.gameSettings.sombras >= 3) {
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            mainLight.shadow.bias = -0.0001;
-            shadowRes = isMobileUA ? 2048 : 4096;
-        } else if (State.gameSettings.sombras === 2) {
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            mainLight.shadow.bias = -0.0005;
-            shadowRes = isMobileUA ? 1024 : 2048;
-        } else {
-            renderer.shadowMap.type = THREE.PCFShadowMap;
-            mainLight.shadow.bias = -0.001;
-            shadowRes = 512;
-        }
-
-        mainLight.shadow.mapSize.set(shadowRes, shadowRes);
-        
-        if (mainLight.shadow.map) {
-            mainLight.shadow.map.dispose();
-            mainLight.shadow.map = null;
+        let shadowRes = State.gameSettings.sombras === 2 ? 
+            (isMobileUA ? 2048 : 4096) : // Ultra: Sombras limpias y definidas
+            (isMobileUA ? 512 : 1024);   // Estándar
+            
+        if (mainLight.shadow.mapSize.width !== shadowRes) {
+            mainLight.shadow.mapSize.set(shadowRes, shadowRes);
+            // Limpiar la memoria de la sombra anterior para forzar la actualización a la nueva resolución
+            if (mainLight.shadow.map) {
+                mainLight.shadow.map.dispose();
+                mainLight.shadow.map = null;
+            }
         }
     }
 
@@ -123,8 +113,22 @@ function actualizarIluminacionFocoDia() {
     else { colorHex = 0x5566aa; lightInt = 0.25; emInt = 0.25; dist = 25; }
 
     if (luzFocoDia) { 
-        luzFocoDia.color.setHex(colorHex); luzFocoDia.intensity = lightInt;
-        luzFocoDia.distance = dist; luzFocoDia.castShadow = State.gameSettings.sombras > 0; 
+        luzFocoDia.color.setHex(colorHex); 
+        luzFocoDia.intensity = lightInt;
+        luzFocoDia.distance = dist; 
+        luzFocoDia.castShadow = State.gameSettings.sombras > 0; 
+        
+        // CORRECCIÓN: Asignar resolución de sombras ultra a la luz del día también
+        if (State.gameSettings.sombras > 0) {
+            let diaShadowRes = State.gameSettings.sombras === 2 ? (isMobileUA ? 2048 : 4096) : 1024;
+            if (luzFocoDia.shadow.mapSize.width !== diaShadowRes) {
+                luzFocoDia.shadow.mapSize.set(diaShadowRes, diaShadowRes);
+                if (luzFocoDia.shadow.map) {
+                    luzFocoDia.shadow.map.dispose();
+                    luzFocoDia.shadow.map = null;
+                }
+            }
+        }
     }
     if (focoDiaMesh) {
         focoDiaMesh.traverse((n) => {
@@ -155,7 +159,7 @@ function applyMaterialLogic(model, categoryKey) {
                     if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo')) node.material.shadowSide = THREE.BackSide;
                     node.material.side = THREE.DoubleSide; node.material.needsUpdate = true;
                 }
-           }
+            }
         }
     });
 }
@@ -174,7 +178,8 @@ function updatePlaylist() {
 
 function playNextTv(random = false) {
     updatePlaylist(); if(tvPlaylist.length === 0) return;
-    currentTvIndex = random ? Math.floor(Math.random() * tvPlaylist.length) : (currentTvIndex + 1) % tvPlaylist.length;
+    currentTvIndex = random ?
+    Math.floor(Math.random() * tvPlaylist.length) : (currentTvIndex + 1) % tvPlaylist.length;
     tvVideo.src = tvPlaylist[currentTvIndex]; tvVideo.volume = State.gameSettings.volumenTV / 100;
     if (isTvOn && !tvTransitioning) tvVideo.play().catch(e => console.warn('User interaction needed', e));
 }
@@ -184,11 +189,11 @@ const tvPrevBtn = document.getElementById('tv-prev'), tvPlayPauseBtn = document.
 function playButtonSound() { audioBotonTV.currentTime = 0; audioBotonTV.play().catch(e=>{}); }
 
 tvPrevBtn.onclick = () => { playButtonSound(); if (!isTvOn || tvTransitioning) return; updatePlaylist(); if(tvPlaylist.length===0)return;
-currentTvIndex = (currentTvIndex - 1 + tvPlaylist.length) % tvPlaylist.length; tvVideo.src = tvPlaylist[currentTvIndex]; tvVideo.play(); };
+    currentTvIndex = (currentTvIndex - 1 + tvPlaylist.length) % tvPlaylist.length; tvVideo.src = tvPlaylist[currentTvIndex]; tvVideo.play(); };
 tvPlayPauseBtn.onclick = () => { playButtonSound();
-if (!isTvOn || tvTransitioning) return; if(tvVideo.paused) tvVideo.play(); else tvVideo.pause(); };
+    if (!isTvOn || tvTransitioning) return; if(tvVideo.paused) tvVideo.play(); else tvVideo.pause(); };
 tvNextBtn.onclick = () => { playButtonSound();
-if (isTvOn && !tvTransitioning) playNextTv(false); };
+    if (isTvOn && !tvTransitioning) playNextTv(false); };
 
 if (tvPowerBtn) {
     tvPowerBtn.innerText = isTvOn ? '🟢' : '🔴';
@@ -226,9 +231,19 @@ playNextTv(true);
 // -------------------------------------------------------------
 const lunariSystem = {
     currentState: null,
-    models: { dormir: null, despertar: null },
-    mixers: { dormir: null, despertar: null },
-    actions: { dormir_base: null, dormir_random: null, despertar_base: null },
+    models: {
+        dormir: null,
+        despertar: null
+    },
+    mixers: {
+        dormir: null,
+        despertar: null
+    },
+    actions: {
+        dormir_base: null,
+        dormir_random: null,
+        despertar_base: null
+    },
     activeAction: null,
 
     evaluateState() {
@@ -285,7 +300,8 @@ for (let cat in State.inventoryData) {
         if (cat === 'foco' && it.baseFile) totalModelsToLoad++; if (cat === 'tele' && it.baseFile) totalModelsToLoad++;
     }
 }
-totalModelsToLoad += 5; // Lunari Dormir(Mesh+Anim), Lunari Despierta(Mesh), FocoDia, Cuadro Clima
+totalModelsToLoad += 5;
+// Aumentado para: Lunari Dormir(Mesh+Anim), Lunari Despierta(Mesh), FocoDia, Cuadro Clima
 
 function checkLoading() {
     modelsLoaded++;
@@ -307,7 +323,7 @@ const loader = new GLTFLoader();
 // Cargar Lunari: Durmiendo (Base)
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const model = gltf.scene; 
-    model.visible = false;
+    model.visible = false; 
     applyMaterialLogic(model, 'lunari'); 
     scene.add(model);
     lunariSystem.models.dormir = model;
@@ -317,7 +333,6 @@ loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
         lunariSystem.actions.dormir_base = lunariSystem.mixers.dormir.clipAction(gltf.animations[0]); 
     }
     
-    // Forzamos la actualización del estado para que la muestre solo si es la hora correcta
     lunariSystem.currentState = null; 
     lunariSystem.evaluateState();
     
@@ -337,7 +352,7 @@ loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
 // Cargar Lunari: Despierta
 loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
     const model = gltf.scene; 
-    model.visible = false;
+    model.visible = false; 
     applyMaterialLogic(model, 'lunari'); 
     scene.add(model);
     lunariSystem.models.despertar = model;
@@ -347,7 +362,6 @@ loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
         lunariSystem.actions.despertar_base = lunariSystem.mixers.despertar.clipAction(gltf.animations[0]); 
     }
     
-    // Forzamos la actualización del estado para que la muestre solo si es la hora correcta
     lunariSystem.currentState = null; 
     lunariSystem.evaluateState();
     
@@ -409,8 +423,7 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             });
             if (!isTvOn) tvVideo.pause();
         }
-        if (categoryKey === 'foco') { 
-            focoMesh = model;
+        if (categoryKey === 'foco') { focoMesh = model;
             const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); mainLight.position.copy(center); mainLight.position.y -= 0.2;
         }
         if (categoryKey === 'interruptor') switchMesh = model;
@@ -454,12 +467,24 @@ for (let cat in State.inventoryData) {
         esDeDiaLocal = (isDay === 1);
         lastWeatherCode = code; actualizarIluminacionFocoDia(); temperature = data.current_weather.temperature;
         
-        if (code === 0) { weatherName = isDay ? "Despejado" : "Noche despejada"; weatherEmoji = isDay ? "☀️" : "🌙"; videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4'; } 
-        else if ([1, 2, 3].includes(code)) { weatherName = isDay ? "Nublado" : "Noche nublada"; weatherEmoji = "☁️"; videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4'; }
-        else if (code === 45 || code === 48) { weatherName = "Niebla"; weatherEmoji = "🌫️"; videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4'; }
-        else if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) { weatherName = "Lluvia"; weatherEmoji = "🌧️"; videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4'; }
-        else if ([71, 73, 75, 77, 85, 86].includes(code)) { weatherName = "Nieve"; weatherEmoji = "❄️"; videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4'; }
-        else if ([95, 96, 99].includes(code)) { weatherName = "Tormenta"; weatherEmoji = "⛈️"; videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4'; }
+        if (code === 0) { weatherName = isDay ? "Despejado" : "Noche despejada";
+            weatherEmoji = isDay ? "☀️" : "🌙";
+            videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4';
+        } 
+        else if ([1, 2, 3].includes(code)) { weatherName = isDay ? "Nublado" : "Noche nublada"; 
+            weatherEmoji = "☁️"; videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4';
+        }
+        else if (code === 45 || code === 48) { weatherName = "Niebla";
+            weatherEmoji = "🌫️"; videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4';
+        }
+        else if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) { weatherName = "Lluvia";
+            weatherEmoji = "🌧️"; videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
+        }
+        else if ([71, 73, 75, 77, 85, 86].includes(code)) { weatherName = "Nieve";
+            weatherEmoji = "❄️"; videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4';
+        }
+        else if ([95, 96, 99].includes(code)) { weatherName = "Tormenta"; weatherEmoji = "⛈️";
+            videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4'; }
     } catch (error) { weatherEmoji = "❌"; weatherName = "Clima offline"; }
 
     statusBox.innerHTML = temperature !== "--" ? `${weatherEmoji} ${weatherName} | ${temperature}°C` : `${weatherEmoji} ${weatherName}`;
@@ -472,12 +497,8 @@ for (let cat in State.inventoryData) {
         const cuadroModel = gltf.scene;
         cuadroModel.traverse((node) => {
             if (node.isMesh && node.material) {
-                if (Array.isArray(node.material)) { 
-                    node.material.forEach(mat => { mat.map = videoTexture; mat.emissive = new THREE.Color(0xffffff); mat.emissiveMap = videoTexture; mat.emissiveIntensity = 1.0; mat.needsUpdate = true; }); 
-                } 
-                else { 
-                    node.material.map = videoTexture; node.material.emissive = new THREE.Color(0xffffff); node.material.emissiveMap = videoTexture; node.material.emissiveIntensity = 1.0; node.material.needsUpdate = true; 
-                }
+                if (Array.isArray(node.material)) { node.material.forEach(mat => { mat.map = videoTexture; mat.emissive = new THREE.Color(0xffffff); mat.emissiveMap = videoTexture; mat.emissiveIntensity = 1.0; mat.needsUpdate = true; }); } 
+                else { node.material.map = videoTexture; node.material.emissive = new THREE.Color(0xffffff); node.material.emissiveMap = videoTexture; node.material.emissiveIntensity = 1.0; node.material.needsUpdate = true; }
             }
         });
         applyMaterialLogic(cuadroModel, 'cuadro'); scene.add(cuadroModel); loadedSlotMeshes['cuadro'] = cuadroModel; checkLoading();
@@ -521,13 +542,10 @@ function handleInteraction(event) {
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
         const tvControls = document.getElementById('tv-controls');
         const currentTime = Date.now();
-        if (currentTime - lastTvClickTime < 300) { 
-            if (isTvOn && !tvTransitioning) { if (tvVideo.paused) tvVideo.play().catch(e=>{}); else tvVideo.pause(); } 
-        } 
-        else { 
-            if (tvControls.style.display === 'none' || tvControls.style.display === '') tvControls.style.display = 'flex';
-            else tvControls.style.display = 'none'; 
-        }
+        if (currentTime - lastTvClickTime < 300) { if (isTvOn && !tvTransitioning) { if (tvVideo.paused) tvVideo.play().catch(e=>{});
+        else tvVideo.pause(); } } 
+        else { if (tvControls.style.display === 'none' || tvControls.style.display === '') tvControls.style.display = 'flex';
+        else tvControls.style.display = 'none'; }
         lastTvClickTime = currentTime; return;
     }
 
@@ -550,37 +568,26 @@ renderer.domElement.addEventListener('pointerup', (e) => { if (!isDragging && !d
 // UI y Ajustes Modal
 const settingsModal = document.getElementById('ff-settings-modal');
 document.getElementById('settings-button').onclick = () => settingsModal.classList.add('active');
-document.getElementById('close-ff-settings').onclick = () => { 
-    settingsModal.classList.remove('active');
-    localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); applyCurrentSettings(); 
-};
+document.getElementById('close-ff-settings').onclick = () => { settingsModal.classList.remove('active');
+    localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); applyCurrentSettings(); };
 document.querySelectorAll('.ff-tab').forEach(tab => {
-    tab.onclick = () => { 
-        document.querySelectorAll('.ff-tab').forEach(t => t.classList.remove('active')); 
-        document.querySelectorAll('.ff-tab-pane').forEach(p => p.classList.remove('active')); 
-        tab.classList.add('active'); document.getElementById(tab.dataset.target).classList.add('active'); 
-    };
+    tab.onclick = () => { document.querySelectorAll('.ff-tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.ff-tab-pane').forEach(p => p.classList.remove('active')); tab.classList.add('active'); document.getElementById(tab.dataset.target).classList.add('active'); };
 });
 
 function syncSettingsUI() {
     document.querySelectorAll('#setting-calidad button').forEach(b => {
         b.classList.toggle('active', b.dataset.val === State.gameSettings.calidad);
-        b.onclick = () => { 
-            State.gameSettings.calidad = b.dataset.val; 
-            if(State.gameSettings.calidad === 'baja') { State.gameSettings.sombras = 0; State.gameSettings.fps = 30; } 
-            else if(State.gameSettings.calidad === 'media') { State.gameSettings.sombras = 1; State.gameSettings.fps = 60; } 
-            else if(State.gameSettings.calidad === 'alta') { State.gameSettings.sombras = 2; State.gameSettings.fps = 60; } 
-            else if(State.gameSettings.calidad === 'ultra') { State.gameSettings.sombras = 3; State.gameSettings.fps = 60; } 
-            syncSettingsUI(); applyCurrentSettings(); 
-        };
+        b.onclick = () => { State.gameSettings.calidad = b.dataset.val; if(State.gameSettings.calidad === 'baja') { State.gameSettings.sombras = 0; State.gameSettings.fps = 30; } else if(State.gameSettings.calidad === 'media') { State.gameSettings.sombras = 1; State.gameSettings.fps = 60; } else if(State.gameSettings.calidad === 'alta') { State.gameSettings.sombras = 2; State.gameSettings.fps = 60; } syncSettingsUI(); applyCurrentSettings(); };
     });
+    
     document.querySelectorAll('#setting-fps button').forEach(b => {
         b.classList.toggle('active', parseInt(b.dataset.val) === State.gameSettings.fps);
         b.onclick = () => { State.gameSettings.fps = parseInt(b.dataset.val); syncSettingsUI(); };
     });
     
     const volTV = document.getElementById('setting-volumen-tv'); volTV.value = State.gameSettings.volumenTV; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`;
-    volTV.oninput = (e) => { State.gameSettings.volumenTV = e.target.value; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; applyCurrentSettings(); };
+    volTV.oninput = (e) => { State.gameSettings.volumenTV = e.target.value;
+        document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; applyCurrentSettings(); };
     
     const volEf = document.getElementById('setting-volumen-efectos'); volEf.value = State.gameSettings.volumenEfectos;
     document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`;
@@ -595,6 +602,7 @@ function syncSettingsUI() {
 let currentCategory = 'cama', openGroup = 'muebles';
 function renderInventory() {
     const sidebar = document.getElementById('inv-sidebar'), content = document.getElementById('inv-content'); sidebar.innerHTML = ''; content.innerHTML = '';
+    
     inventoryGroups.forEach(group => {
         const groupDiv = document.createElement('div'); groupDiv.className = 'inv-group';
         const groupBtn = document.createElement('button'); groupBtn.className = 'group-btn';
@@ -619,26 +627,17 @@ function renderInventory() {
         let isEq = catData.type === 'multiple' ? catData.equipped.includes(itemId) : catData.equipped === itemId;
         const card = document.createElement('div'); card.className = 'item-card';
         const prev = document.createElement('div'); prev.className = 'item-preview';
-        
-        if (item.preview) { 
-            const img = document.createElement('img'); img.src = item.preview; img.alt = item.name;
-            img.onerror = () => { prev.innerHTML = `<span>${catData.emoji}</span>`; }; prev.appendChild(img); 
-        } else {
-            prev.innerHTML = `<span>${catData.emoji}</span>`;
-        }
-        
+        if (item.preview) { const img = document.createElement('img'); img.src = item.preview; img.alt = item.name;
+            img.onerror = () => { prev.innerHTML = `<span>${catData.emoji}</span>`; }; prev.appendChild(img); } else prev.innerHTML = `<span>${catData.emoji}</span>`;
         let btn = item.owned ?
-            (isEq ? `<button class="item-btn btn-equipped" onclick="equipItem('${currentCategory}', '${itemId}')">${catData.type === 'multiple' ? 'Quitar ✓' : 'Equipado ✓'}</button>` : `<button class="item-btn btn-equip" onclick="equipItem('${currentCategory}', '${itemId}')">Equipar</button>`) : 
-            `<button class="item-btn btn-buy" onclick="buyItem('${currentCategory}', '${itemId}')">Comprar 🪙${item.price}</button>`;
-            
+        (isEq ? `<button class="item-btn btn-equipped" onclick="equipItem('${currentCategory}', '${itemId}')">${catData.type === 'multiple' ? 'Quitar ✓' : 'Equipado ✓'}</button>` : `<button class="item-btn btn-equip" onclick="equipItem('${currentCategory}', '${itemId}')">Equipar</button>`) : `<button class="item-btn btn-buy" onclick="buyItem('${currentCategory}', '${itemId}')">Comprar 🪙${item.price}</button>`;
         card.innerHTML = `<div>${prev.outerHTML}<h4>${item.name}</h4><div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div></div>${btn}`; content.appendChild(card);
     }
 }
 
 window.equipItem = function(category, itemId) {
     const catData = State.inventoryData[category];
-    if (catData.type === 'multiple') { 
-        const idx = catData.equipped.indexOf(itemId); if (idx > -1) catData.equipped.splice(idx, 1); else catData.equipped.push(itemId); updatePlaylist();
+    if (catData.type === 'multiple') { const idx = catData.equipped.indexOf(itemId); if (idx > -1) catData.equipped.splice(idx, 1); else catData.equipped.push(itemId); updatePlaylist();
     } else { 
         catData.equipped = itemId; const itemData = catData.items[itemId];
         loadItemForSlot(category, itemData.file, false);
@@ -650,10 +649,9 @@ window.equipItem = function(category, itemId) {
 
 window.buyItem = function(category, itemId) {
     let item = State.inventoryData[category].items[itemId];
-    if (State.playerCoins >= item.price) { 
-        State.playerCoins -= item.price;
-        item.owned = true; State.saveGame(); renderInventory(); 
-    } else alert("No tienes suficientes monedas.");
+    if (State.playerCoins >= item.price) { State.playerCoins -= item.price;
+        item.owned = true; State.saveGame(); renderInventory(); } 
+    else alert("No tienes suficientes monedas.");
 };
 
 document.getElementById('inventory-button').onclick = () => { document.getElementById('inventory-modal').classList.add('visible'); renderInventory(); };
@@ -666,6 +664,7 @@ function animate() {
     requestAnimationFrame(animate); const now = performance.now();
     const elapsed = now - then;
     const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
+    
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
         const delta = clock.getDelta(); 
@@ -673,8 +672,7 @@ function animate() {
         
         controls.update(); renderer.render(scene, camera);
         
-        if (State.gameSettings.mostrarFps) { 
-            frames++;
+        if (State.gameSettings.mostrarFps) { frames++;
             if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now; } 
         }
     }
