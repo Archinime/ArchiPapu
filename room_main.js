@@ -199,14 +199,13 @@ if (tvPowerBtn) {
 playNextTv(true);
 
 // -------------------------------------------------------------
-// --- NUEVO SISTEMA DE ANIMACIONES Y ESTADOS DE LUNARI ---
+// --- SISTEMA DE ANIMACIONES Y ESTADOS DE LUNARI ---
 // -------------------------------------------------------------
 const lunariSystem = {
     currentState: null,
     models: {
         dormir: null,
         despertar: null
-        // Aquí agregarás los futuros modelos (ej. ver_tele: null)
     },
     mixers: {
         dormir: null,
@@ -222,8 +221,7 @@ const lunariSystem = {
     evaluateState() {
         const hora = new Date().getHours();
         
-        // HORARIOS: Ajusta las horas aquí. 
-        // 22 a 6 (10 PM a 6:59 AM) = Dormir. El resto del día = Despierta.
+        // HORARIOS: 22 a 6 (10 PM a 6:59 AM) = Dormir. Resto = Despierta.
         if (hora >= 22 || hora < 7) {
             this.setState('dormir');
         } else {
@@ -235,7 +233,7 @@ const lunariSystem = {
         if (this.currentState === newState) return;
         this.currentState = newState;
 
-        // Ocultar todos los modelos de la escena
+        // Ocultar rigurosamente todos los modelos de la escena primero
         for (let key in this.models) {
             if (this.models[key]) this.models[key].visible = false;
         }
@@ -243,7 +241,7 @@ const lunariSystem = {
         // Detener la animación en curso
         if (this.activeAction) this.activeAction.stop();
 
-        // Mostrar el modelo correcto y reproducir su animación base
+        // Mostrar solo el modelo correcto y reproducir su animación
         if (newState === 'dormir' && this.models.dormir) {
             this.models.dormir.visible = true;
             this.activeAction = this.actions.dormir_base;
@@ -298,13 +296,21 @@ const loader = new GLTFLoader();
 
 // Cargar Lunari: Durmiendo (Base)
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
-    const model = gltf.scene; applyMaterialLogic(model, 'lunari'); scene.add(model);
+    const model = gltf.scene; 
+    model.visible = false; // <-- CORRECCIÓN: Nace oculta para evitar cruces de malla
+    applyMaterialLogic(model, 'lunari'); 
+    scene.add(model);
     lunariSystem.models.dormir = model;
+    
     if (gltf.animations && gltf.animations.length > 0) { 
         lunariSystem.mixers.dormir = new THREE.AnimationMixer(model); 
         lunariSystem.actions.dormir_base = lunariSystem.mixers.dormir.clipAction(gltf.animations[0]); 
     }
+    
+    // Forzamos la actualización del estado para que la muestre solo si es la hora correcta
+    lunariSystem.currentState = null; 
     lunariSystem.evaluateState();
+    
     checkLoading();
 }, undefined, () => checkLoading());
 
@@ -320,13 +326,21 @@ loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
 
 // Cargar Lunari: Despierta
 loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
-    const model = gltf.scene; applyMaterialLogic(model, 'lunari'); scene.add(model);
+    const model = gltf.scene; 
+    model.visible = false; // <-- CORRECCIÓN: Nace oculta para evitar cruces de malla
+    applyMaterialLogic(model, 'lunari'); 
+    scene.add(model);
     lunariSystem.models.despertar = model;
+    
     if (gltf.animations && gltf.animations.length > 0) { 
         lunariSystem.mixers.despertar = new THREE.AnimationMixer(model); 
         lunariSystem.actions.despertar_base = lunariSystem.mixers.despertar.clipAction(gltf.animations[0]); 
     }
+    
+    // Forzamos la actualización del estado para que la muestre solo si es la hora correcta
+    lunariSystem.currentState = null; 
     lunariSystem.evaluateState();
+    
     checkLoading();
 }, undefined, () => checkLoading());
 
@@ -340,16 +354,11 @@ loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/fo
     actualizarIluminacionFocoDia(); checkLoading();
 }, undefined, () => checkLoading());
 
-
 // Bucle de Evaluación (Cada minuto)
 setInterval(() => {
-    // 1. Chequeamos la iluminación ambiental (foco)
     actualizarIluminacionFocoDia();
-    
-    // 2. Evaluamos si es hora de que Lunari cambie de estado (ej. despertarse)
     lunariSystem.evaluateState();
 
-    // 3. Si está durmiendo, disparamos su animación aleatoria
     if (lunariSystem.currentState === 'dormir') {
         const { dormir_base, dormir_random } = lunariSystem.actions;
         if (dormir_base && dormir_random && lunariSystem.activeAction !== dormir_random) {
@@ -412,7 +421,7 @@ for (let cat in State.inventoryData) {
     }
 }
 
-// Entorno del Clima y API (Detección automática por IP sin pedir permisos al usuario)
+// Entorno del Clima y API
 (async function setupWeatherVideo() {
     const video = document.createElement('video'); video.loop = true; video.muted = true; video.playsInline = true; video.crossOrigin = 'anonymous';
     let videoFile = 'dia_soleado.mp4', weatherEmoji = "☀️", weatherName = "Clima estándar", temperature = "--";
@@ -421,13 +430,12 @@ for (let cat in State.inventoryData) {
     try {
         let lat, lon;
         try { 
-            // Esta llamada usa IP silenciosamente, no invoca los permisos de navegador.
             const ipResponse = await fetch('https://ipapi.co/json/'); 
             const ipData = await ipResponse.json(); 
             if(ipData.latitude && ipData.longitude) { lat = ipData.latitude; lon = ipData.longitude; } 
             else throw new Error(); 
         } 
-        catch(e) { lat = -12.0464; lon = -77.0428; } // Respaldo si falla
+        catch(e) { lat = -12.0464; lon = -77.0428; } 
 
         const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
         const data = await response.json();
@@ -628,7 +636,7 @@ function animate() {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
         
         const delta = clock.getDelta(); 
-        lunariSystem.update(delta); // Ahora se actualiza desde el nuevo sistema
+        lunariSystem.update(delta); 
         
         controls.update(); renderer.render(scene, camera);
         
