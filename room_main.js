@@ -12,7 +12,9 @@ const { scene, clock, camera, renderer, controls, ambient, hemiLight, mainLight 
 // Variables Globales de Instancia
 const loadedSlotMeshes = {};
 let switchMesh = null, focoMesh = null, focoDiaMesh = null, luzFocoDia = null;
+
 let esDeDiaLocal = true;
+let lastWeatherCode = 0;
 let isTvOn = false; let tvTransitioning = false; let lastTvClickTime = 0; let tvScreenMesh = null;
 
 // Configuración de Audio y Video
@@ -23,16 +25,19 @@ const audioCerrarPoster = new Audio('guardar_poster.mp3');
 const audioBotonTV = new Audio('sonido_boton.mp3');
 
 const tvEffectVideoOff = document.createElement('video');
-tvEffectVideoOff.src = 'efecto_tele.mp4'; tvEffectVideoOff.crossOrigin = 'anonymous'; tvEffectVideoOff.playsInline = true;
+tvEffectVideoOff.src = 'efecto_tele.mp4'; tvEffectVideoOff.crossOrigin = 'anonymous';
+tvEffectVideoOff.playsInline = true;
 document.body.appendChild(tvEffectVideoOff);
 tvEffectVideoOff.style.display = 'none';
 
 const tvEffectVideoOn = document.createElement('video'); 
-tvEffectVideoOn.src = 'efecto_tele - Invertido.mp4'; tvEffectVideoOn.crossOrigin = 'anonymous'; tvEffectVideoOn.playsInline = true;
+tvEffectVideoOn.src = 'efecto_tele - Invertido.mp4'; tvEffectVideoOn.crossOrigin = 'anonymous';
+tvEffectVideoOn.playsInline = true;
 document.body.appendChild(tvEffectVideoOn);
 tvEffectVideoOn.style.display = 'none';
 
-const tvEffectTextureOff = new THREE.VideoTexture(tvEffectVideoOff); tvEffectTextureOff.minFilter = THREE.LinearFilter; tvEffectTextureOff.magFilter = THREE.LinearFilter; tvEffectTextureOff.format = THREE.RGBAFormat;
+const tvEffectTextureOff = new THREE.VideoTexture(tvEffectVideoOff); tvEffectTextureOff.minFilter = THREE.LinearFilter; tvEffectTextureOff.magFilter = THREE.LinearFilter;
+tvEffectTextureOff.format = THREE.RGBAFormat;
 const tvEffectTextureOn = new THREE.VideoTexture(tvEffectVideoOn); tvEffectTextureOn.minFilter = THREE.LinearFilter; tvEffectTextureOn.magFilter = THREE.LinearFilter; tvEffectTextureOn.format = THREE.RGBAFormat;
 
 // Aplicar Ajustes Gráficos Base
@@ -45,7 +50,7 @@ function applyCurrentSettings() {
     renderer.shadowMap.enabled = State.gameSettings.sombras > 0;
     renderer.shadowMap.type = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     mainLight.castShadow = State.gameSettings.sombras > 0;
-    
+
     if (State.gameSettings.sombras > 0) {
         let shadowRes = State.gameSettings.sombras === 2 ? (isMobileUA ? 1024 : 2048) : 512;
         mainLight.shadow.mapSize.set(shadowRes, shadowRes);
@@ -62,7 +67,8 @@ function applyCurrentSettings() {
     tvEffectVideoOn.volume = State.gameSettings.volumenEfectos / 100;
     
     let volEf = State.gameSettings.volumenEfectos / 100;
-    audioPrenderLuz.volume = volEf; audioApagarLuz.volume = volEf;
+    audioPrenderLuz.volume = volEf;
+    audioApagarLuz.volume = volEf;
     audioAbrirPoster.volume = volEf; audioCerrarPoster.volume = volEf;
     audioBotonTV.volume = volEf;
 }
@@ -71,7 +77,15 @@ function applyCurrentSettings() {
 function updateLunariText(isDay, weatherCode) {
     const dialogBox = document.getElementById('dialogue-text');
     if(!dialogBox) return;
-    if (!isDay) { dialogBox.innerHTML = "¡Qué noche tan tranquila!<br>¿Deberíamos dormir pronto?"; }
+
+    if (lunariSystem.currentState === 'dormir') {
+        dialogBox.innerHTML = "Zzz...<br>(Lunari está profundamente dormida)";
+        return;
+    }
+
+    if (!isDay) { 
+        dialogBox.innerHTML = "¡Qué noche tan tranquila!<br>¿Deberíamos dormir pronto?";
+    }
     else if ([51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99].includes(weatherCode)) {
         dialogBox.innerHTML = "El clima está feo afuera.<br>¡Mejor nos quedamos viendo anime!";
     } else {
@@ -79,7 +93,6 @@ function updateLunariText(isDay, weatherCode) {
     }
 }
 
-let lastWeatherCode = 0;
 function actualizarIluminacionFocoDia() {
     const hora = new Date().getHours(); let colorHex, lightInt, emInt, dist;
     if (hora >= 6 && hora < 9) { colorHex = 0xffe4b5; lightInt = 0.8; emInt = 0.8; dist = 35; }
@@ -87,7 +100,8 @@ function actualizarIluminacionFocoDia() {
     else if (hora >= 17 && hora < 19) { colorHex = 0xff8c00; lightInt = 0.7; emInt = 0.7; dist = 40; }
     else { colorHex = 0x5566aa; lightInt = 0.25; emInt = 0.25; dist = 25; }
 
-    if (luzFocoDia) { luzFocoDia.color.setHex(colorHex); luzFocoDia.intensity = lightInt; luzFocoDia.distance = dist; luzFocoDia.castShadow = State.gameSettings.sombras > 0; }
+    if (luzFocoDia) { luzFocoDia.color.setHex(colorHex); luzFocoDia.intensity = lightInt;
+        luzFocoDia.distance = dist; luzFocoDia.castShadow = State.gameSettings.sombras > 0; }
     if (focoDiaMesh) {
         focoDiaMesh.traverse((n) => {
             if (n.isMesh && n.material) { n.material.emissive.setHex(colorHex); n.material.emissiveIntensity = emInt; n.material.needsUpdate = true; }
@@ -95,7 +109,6 @@ function actualizarIluminacionFocoDia() {
     }
     updateLunariText(esDeDiaLocal, lastWeatherCode);
 }
-setInterval(actualizarIluminacionFocoDia, 60000);
 
 // Lógica de Materiales 3D
 function applyMaterialLogic(model, categoryKey) {
@@ -125,7 +138,8 @@ function applyMaterialLogic(model, categoryKey) {
 
 // Lógica de Televisión
 const tvVideo = document.getElementById('tv-video');
-const tvTexture = new THREE.VideoTexture(tvVideo); tvTexture.minFilter = THREE.LinearFilter; tvTexture.magFilter = THREE.LinearFilter; tvTexture.format = THREE.RGBAFormat;
+const tvTexture = new THREE.VideoTexture(tvVideo); tvTexture.minFilter = THREE.LinearFilter; tvTexture.magFilter = THREE.LinearFilter;
+tvTexture.format = THREE.RGBAFormat;
 tvTexture.encoding = THREE.sRGBEncoding;
 
 let tvPlaylist = []; let currentTvIndex = -1;
@@ -136,7 +150,8 @@ function updatePlaylist() {
 
 function playNextTv(random = false) {
     updatePlaylist(); if(tvPlaylist.length === 0) return;
-    currentTvIndex = random ? Math.floor(Math.random() * tvPlaylist.length) : (currentTvIndex + 1) % tvPlaylist.length;
+    currentTvIndex = random ?
+        Math.floor(Math.random() * tvPlaylist.length) : (currentTvIndex + 1) % tvPlaylist.length;
     tvVideo.src = tvPlaylist[currentTvIndex]; tvVideo.volume = State.gameSettings.volumenTV / 100;
     if (isTvOn && !tvTransitioning) tvVideo.play().catch(e => console.warn('User interaction needed', e));
 }
@@ -146,11 +161,11 @@ const tvPrevBtn = document.getElementById('tv-prev'), tvPlayPauseBtn = document.
 function playButtonSound() { audioBotonTV.currentTime = 0; audioBotonTV.play().catch(e=>{}); }
 
 tvPrevBtn.onclick = () => { playButtonSound(); if (!isTvOn || tvTransitioning) return; updatePlaylist(); if(tvPlaylist.length===0)return;
-currentTvIndex = (currentTvIndex - 1 + tvPlaylist.length) % tvPlaylist.length; tvVideo.src = tvPlaylist[currentTvIndex]; tvVideo.play(); };
+    currentTvIndex = (currentTvIndex - 1 + tvPlaylist.length) % tvPlaylist.length; tvVideo.src = tvPlaylist[currentTvIndex]; tvVideo.play(); };
 tvPlayPauseBtn.onclick = () => { playButtonSound();
-if (!isTvOn || tvTransitioning) return; if(tvVideo.paused) tvVideo.play(); else tvVideo.pause(); };
+    if (!isTvOn || tvTransitioning) return; if(tvVideo.paused) tvVideo.play(); else tvVideo.pause(); };
 tvNextBtn.onclick = () => { playButtonSound();
-if (isTvOn && !tvTransitioning) playNextTv(false); };
+    if (isTvOn && !tvTransitioning) playNextTv(false); };
 
 if (tvPowerBtn) {
     tvPowerBtn.innerText = isTvOn ? '🟢' : '🔴';
@@ -183,6 +198,74 @@ if (tvPowerBtn) {
 }
 playNextTv(true);
 
+// -------------------------------------------------------------
+// --- NUEVO SISTEMA DE ANIMACIONES Y ESTADOS DE LUNARI ---
+// -------------------------------------------------------------
+const lunariSystem = {
+    currentState: null,
+    models: {
+        dormir: null,
+        despertar: null
+        // Aquí agregarás los futuros modelos (ej. ver_tele: null)
+    },
+    mixers: {
+        dormir: null,
+        despertar: null
+    },
+    actions: {
+        dormir_base: null,
+        dormir_random: null,
+        despertar_base: null
+    },
+    activeAction: null,
+
+    evaluateState() {
+        const hora = new Date().getHours();
+        
+        // HORARIOS: Ajusta las horas aquí. 
+        // 22 a 6 (10 PM a 6:59 AM) = Dormir. El resto del día = Despierta.
+        if (hora >= 22 || hora < 7) {
+            this.setState('dormir');
+        } else {
+            this.setState('despertar');
+        }
+    },
+
+    setState(newState) {
+        if (this.currentState === newState) return;
+        this.currentState = newState;
+
+        // Ocultar todos los modelos de la escena
+        for (let key in this.models) {
+            if (this.models[key]) this.models[key].visible = false;
+        }
+
+        // Detener la animación en curso
+        if (this.activeAction) this.activeAction.stop();
+
+        // Mostrar el modelo correcto y reproducir su animación base
+        if (newState === 'dormir' && this.models.dormir) {
+            this.models.dormir.visible = true;
+            this.activeAction = this.actions.dormir_base;
+            if (this.activeAction) this.activeAction.play();
+        } 
+        else if (newState === 'despertar' && this.models.despertar) {
+            this.models.despertar.visible = true;
+            this.activeAction = this.actions.despertar_base;
+            if (this.activeAction) this.activeAction.play();
+        }
+        
+        // Actualiza la caja de texto
+        updateLunariText(esDeDiaLocal, lastWeatherCode);
+    },
+
+    update(delta) {
+        for (let key in this.mixers) {
+            if (this.mixers[key]) this.mixers[key].update(delta);
+        }
+    }
+};
+
 // Sistema de Carga de Modelos 3D
 let totalModelsToLoad = 0, modelsLoaded = 0;
 for (let cat in State.inventoryData) {
@@ -193,7 +276,7 @@ for (let cat in State.inventoryData) {
         if (cat === 'foco' && it.baseFile) totalModelsToLoad++; if (cat === 'tele' && it.baseFile) totalModelsToLoad++;
     }
 }
-totalModelsToLoad += 4; // Lunari x2, FocoDia, Cuadro Clima
+totalModelsToLoad += 5; // Aumentado para: Lunari Dormir(Mesh+Anim), Lunari Despierta(Mesh), FocoDia, Cuadro Clima
 
 function checkLoading() {
     modelsLoaded++;
@@ -212,19 +295,42 @@ function checkLoading() {
 if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
 
 const loader = new GLTFLoader();
-let lunariMixer = null, baseAction = null, randomAction = null, currentAction = null;
 
+// Cargar Lunari: Durmiendo (Base)
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
-    const lunariModel = gltf.scene; applyMaterialLogic(lunariModel, 'lunari'); scene.add(lunariModel);
-    if (gltf.animations && gltf.animations.length > 0) { lunariMixer = new THREE.AnimationMixer(lunariModel); baseAction = lunariMixer.clipAction(gltf.animations[0]); baseAction.play(); currentAction = baseAction; }
+    const model = gltf.scene; applyMaterialLogic(model, 'lunari'); scene.add(model);
+    lunariSystem.models.dormir = model;
+    if (gltf.animations && gltf.animations.length > 0) { 
+        lunariSystem.mixers.dormir = new THREE.AnimationMixer(model); 
+        lunariSystem.actions.dormir_base = lunariSystem.mixers.dormir.clipAction(gltf.animations[0]); 
+    }
+    lunariSystem.evaluateState();
     checkLoading();
 }, undefined, () => checkLoading());
 
+// Cargar Lunari: Durmiendo (Animación Aleatoria)
 loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
-    if (gltf.animations && gltf.animations.length > 0 && lunariMixer) { randomAction = lunariMixer.clipAction(gltf.animations[0]); randomAction.loop = THREE.LoopOnce; randomAction.clampWhenFinished = true; }
+    if (gltf.animations && gltf.animations.length > 0 && lunariSystem.mixers.dormir) { 
+        lunariSystem.actions.dormir_random = lunariSystem.mixers.dormir.clipAction(gltf.animations[0]); 
+        lunariSystem.actions.dormir_random.loop = THREE.LoopOnce; 
+        lunariSystem.actions.dormir_random.clampWhenFinished = true; 
+    }
     checkLoading();
 }, undefined, () => checkLoading());
 
+// Cargar Lunari: Despierta
+loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
+    const model = gltf.scene; applyMaterialLogic(model, 'lunari'); scene.add(model);
+    lunariSystem.models.despertar = model;
+    if (gltf.animations && gltf.animations.length > 0) { 
+        lunariSystem.mixers.despertar = new THREE.AnimationMixer(model); 
+        lunariSystem.actions.despertar_base = lunariSystem.mixers.despertar.clipAction(gltf.animations[0]); 
+    }
+    lunariSystem.evaluateState();
+    checkLoading();
+}, undefined, () => checkLoading());
+
+// Foco Día
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
     focoDiaMesh = gltf.scene; applyMaterialLogic(focoDiaMesh, 'foco_dia'); 
     luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
@@ -234,14 +340,33 @@ loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/fo
     actualizarIluminacionFocoDia(); checkLoading();
 }, undefined, () => checkLoading());
 
+
+// Bucle de Evaluación (Cada minuto)
 setInterval(() => {
-    if (!randomAction || !baseAction || !lunariMixer || currentAction === randomAction) return;
-    if (baseAction && randomAction) {
-        baseAction.fadeOut(0.5); randomAction.reset().fadeIn(0.5).play(); currentAction = randomAction;
-        const onFinished = (event) => {
-            if (event.action === randomAction) { randomAction.fadeOut(0.5); baseAction.reset().fadeIn(0.5).play(); currentAction = baseAction; lunariMixer.removeEventListener('finished', onFinished); }
-        };
-        lunariMixer.addEventListener('finished', onFinished);
+    // 1. Chequeamos la iluminación ambiental (foco)
+    actualizarIluminacionFocoDia();
+    
+    // 2. Evaluamos si es hora de que Lunari cambie de estado (ej. despertarse)
+    lunariSystem.evaluateState();
+
+    // 3. Si está durmiendo, disparamos su animación aleatoria
+    if (lunariSystem.currentState === 'dormir') {
+        const { dormir_base, dormir_random } = lunariSystem.actions;
+        if (dormir_base && dormir_random && lunariSystem.activeAction !== dormir_random) {
+            dormir_base.fadeOut(0.5); 
+            dormir_random.reset().fadeIn(0.5).play(); 
+            lunariSystem.activeAction = dormir_random;
+            
+            const onFinished = (event) => {
+                if (event.action === dormir_random) { 
+                    dormir_random.fadeOut(0.5); 
+                    dormir_base.reset().fadeIn(0.5).play(); 
+                    lunariSystem.activeAction = dormir_base; 
+                    lunariSystem.mixers.dormir.removeEventListener('finished', onFinished); 
+                }
+            };
+            lunariSystem.mixers.dormir.addEventListener('finished', onFinished);
+        }
     }
 }, 60000);
 
@@ -265,7 +390,9 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             });
             if (!isTvOn) tvVideo.pause();
         }
-        if (categoryKey === 'foco') { focoMesh = model; const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); mainLight.position.copy(center); mainLight.position.y -= 0.2; }
+        if (categoryKey === 'foco') { focoMesh = model;
+            const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); mainLight.position.copy(center); mainLight.position.y -= 0.2;
+        }
         if (categoryKey === 'interruptor') switchMesh = model;
         
         scene.add(model); loadedSlotMeshes[categoryKey] = model;
@@ -275,7 +402,8 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
 
 // Cargar todo el inventario inicial
 for (let cat in State.inventoryData) {
-    if (State.inventoryData[cat].type === 'multiple') continue; let eqId = State.inventoryData[cat].equipped;
+    if (State.inventoryData[cat].type === 'multiple') continue;
+    let eqId = State.inventoryData[cat].equipped;
     if (State.inventoryData[cat].items && State.inventoryData[cat].items[eqId]) {
         let it = State.inventoryData[cat].items[eqId];
         if (it.file) loadItemForSlot(cat, it.file, true);
@@ -284,7 +412,7 @@ for (let cat in State.inventoryData) {
     }
 }
 
-// Entorno del Clima y API
+// Entorno del Clima y API (Detección automática por IP sin pedir permisos al usuario)
 (async function setupWeatherVideo() {
     const video = document.createElement('video'); video.loop = true; video.muted = true; video.playsInline = true; video.crossOrigin = 'anonymous';
     let videoFile = 'dia_soleado.mp4', weatherEmoji = "☀️", weatherName = "Clima estándar", temperature = "--";
@@ -292,21 +420,40 @@ for (let cat in State.inventoryData) {
 
     try {
         let lat, lon;
-        try { const ipResponse = await fetch('https://ipapi.co/json/'); const ipData = await ipResponse.json(); if(ipData.latitude && ipData.longitude) { lat = ipData.latitude; lon = ipData.longitude; } else throw new Error(); } 
-        catch(e) { lat = -12.0464; lon = -77.0428; }
+        try { 
+            // Esta llamada usa IP silenciosamente, no invoca los permisos de navegador.
+            const ipResponse = await fetch('https://ipapi.co/json/'); 
+            const ipData = await ipResponse.json(); 
+            if(ipData.latitude && ipData.longitude) { lat = ipData.latitude; lon = ipData.longitude; } 
+            else throw new Error(); 
+        } 
+        catch(e) { lat = -12.0464; lon = -77.0428; } // Respaldo si falla
+
         const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
         const data = await response.json();
         const code = data.current_weather.weathercode, isDay = data.current_weather.is_day;
         esDeDiaLocal = (isDay === 1);
         lastWeatherCode = code; actualizarIluminacionFocoDia(); temperature = data.current_weather.temperature;
 
-        if (code === 0) { weatherName = isDay ? "Despejado" : "Noche despejada"; weatherEmoji = isDay ? "☀️" : "🌙"; videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4'; } 
-        else if ([1, 2, 3].includes(code)) { weatherName = isDay ? "Nublado" : "Noche nublada"; weatherEmoji = "☁️"; videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4'; }
-        else if (code === 45 || code === 48) { weatherName = "Niebla"; weatherEmoji = "🌫️"; videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4'; }
-        else if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) { weatherName = "Lluvia"; weatherEmoji = "🌧️"; videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4'; }
-        else if ([71, 73, 75, 77, 85, 86].includes(code)) { weatherName = "Nieve"; weatherEmoji = "❄️"; videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4'; }
-        else if ([95, 96, 99].includes(code)) { weatherName = "Tormenta"; weatherEmoji = "⛈️"; videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4'; }
-    } catch (error) { weatherEmoji = "❌"; weatherName = "Clima offline"; }
+        if (code === 0) { weatherName = isDay ? "Despejado" : "Noche despejada";
+            weatherEmoji = isDay ? "☀️" : "🌙"; videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4';
+        } 
+        else if ([1, 2, 3].includes(code)) { weatherName = isDay ? "Nublado" : "Noche nublada"; 
+            weatherEmoji = "☁️"; videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4';
+        }
+        else if (code === 45 || code === 48) { weatherName = "Niebla";
+            weatherEmoji = "🌫️"; videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4';
+        }
+        else if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) { weatherName = "Lluvia";
+            weatherEmoji = "🌧️"; videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
+        }
+        else if ([71, 73, 75, 77, 85, 86].includes(code)) { weatherName = "Nieve";
+            weatherEmoji = "❄️"; videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4';
+        }
+        else if ([95, 96, 99].includes(code)) { weatherName = "Tormenta"; weatherEmoji = "⛈️";
+            videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4'; }
+    } catch (error) { weatherEmoji = "❌";
+        weatherName = "Clima offline"; }
 
     statusBox.innerHTML = temperature !== "--" ? `${weatherEmoji} ${weatherName} | ${temperature}°C` : `${weatherEmoji} ${weatherName}`;
     video.src = videoFile; video.play().catch(e => console.log('Autoplay blocked'));
@@ -356,7 +503,6 @@ function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
-    
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
     
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
@@ -387,7 +533,8 @@ renderer.domElement.addEventListener('pointerup', (e) => { if (!isDragging && !d
 // UI y Ajustes Modal
 const settingsModal = document.getElementById('ff-settings-modal');
 document.getElementById('settings-button').onclick = () => settingsModal.classList.add('active');
-document.getElementById('close-ff-settings').onclick = () => { settingsModal.classList.remove('active'); localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); applyCurrentSettings(); };
+document.getElementById('close-ff-settings').onclick = () => { settingsModal.classList.remove('active');
+    localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); applyCurrentSettings(); };
 document.querySelectorAll('.ff-tab').forEach(tab => {
     tab.onclick = () => { document.querySelectorAll('.ff-tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.ff-tab-pane').forEach(p => p.classList.remove('active')); tab.classList.add('active'); document.getElementById(tab.dataset.target).classList.add('active'); };
 });
@@ -401,16 +548,17 @@ function syncSettingsUI() {
         b.classList.toggle('active', parseInt(b.dataset.val) === State.gameSettings.fps);
         b.onclick = () => { State.gameSettings.fps = parseInt(b.dataset.val); syncSettingsUI(); };
     });
-    
     const volTV = document.getElementById('setting-volumen-tv'); volTV.value = State.gameSettings.volumenTV; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`;
-    volTV.oninput = (e) => { State.gameSettings.volumenTV = e.target.value; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; applyCurrentSettings(); };
+    volTV.oninput = (e) => { State.gameSettings.volumenTV = e.target.value;
+        document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; applyCurrentSettings(); };
     
     const volEf = document.getElementById('setting-volumen-efectos'); volEf.value = State.gameSettings.volumenEfectos;
     document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`;
     volEf.oninput = (e) => { State.gameSettings.volumenEfectos = e.target.value; document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`; applyCurrentSettings(); };
 
     const fpsCheck = document.getElementById('setting-showfps');
-    fpsCheck.checked = State.gameSettings.mostrarFps; fpsCheck.onchange = (e) => { State.gameSettings.mostrarFps = e.target.checked; applyCurrentSettings(); };
+    fpsCheck.checked = State.gameSettings.mostrarFps;
+    fpsCheck.onchange = (e) => { State.gameSettings.mostrarFps = e.target.checked; applyCurrentSettings(); };
 }
 
 // Lógica del Inventario UI
@@ -442,9 +590,9 @@ function renderInventory() {
         const card = document.createElement('div'); card.className = 'item-card';
         const prev = document.createElement('div'); prev.className = 'item-preview';
         if (item.preview) { const img = document.createElement('img'); img.src = item.preview; img.alt = item.name;
-        img.onerror = () => { prev.innerHTML = `<span>${catData.emoji}</span>`; }; prev.appendChild(img); } else prev.innerHTML = `<span>${catData.emoji}</span>`;
+            img.onerror = () => { prev.innerHTML = `<span>${catData.emoji}</span>`; }; prev.appendChild(img); } else prev.innerHTML = `<span>${catData.emoji}</span>`;
         let btn = item.owned ?
-        (isEq ? `<button class="item-btn btn-equipped" onclick="equipItem('${currentCategory}', '${itemId}')">${catData.type === 'multiple' ? 'Quitar ✓' : 'Equipado ✓'}</button>` : `<button class="item-btn btn-equip" onclick="equipItem('${currentCategory}', '${itemId}')">Equipar</button>`) : `<button class="item-btn btn-buy" onclick="buyItem('${currentCategory}', '${itemId}')">Comprar 🪙${item.price}</button>`;
+            (isEq ? `<button class="item-btn btn-equipped" onclick="equipItem('${currentCategory}', '${itemId}')">${catData.type === 'multiple' ? 'Quitar ✓' : 'Equipado ✓'}</button>` : `<button class="item-btn btn-equip" onclick="equipItem('${currentCategory}', '${itemId}')">Equipar</button>`) : `<button class="item-btn btn-buy" onclick="buyItem('${currentCategory}', '${itemId}')">Comprar 🪙${item.price}</button>`;
         card.innerHTML = `<div>${prev.outerHTML}<h4>${item.name}</h4><div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div></div>${btn}`; content.appendChild(card);
     }
 }
@@ -453,19 +601,19 @@ window.equipItem = function(category, itemId) {
     const catData = State.inventoryData[category];
     if (catData.type === 'multiple') { const idx = catData.equipped.indexOf(itemId); if (idx > -1) catData.equipped.splice(idx, 1); else catData.equipped.push(itemId); updatePlaylist();
     } else { 
-        catData.equipped = itemId; const itemData = catData.items[itemId]; loadItemForSlot(category, itemData.file, false);
-        if (category === 'foco' && itemData.baseFile) loadItemForSlot('base_foco', itemData.baseFile, false); 
+        catData.equipped = itemId; const itemData = catData.items[itemId];
+        loadItemForSlot(category, itemData.file, false);
+        if (category === 'foco' && itemData.baseFile) loadItemForSlot('base_foco', itemData.baseFile, false);
         if (category === 'tele' && itemData.baseFile) loadItemForSlot('pantalla_tv', itemData.baseFile, false);
     }
     State.saveGame(); renderInventory(); 
 };
-
 window.buyItem = function(category, itemId) {
     let item = State.inventoryData[category].items[itemId];
-    if (State.playerCoins >= item.price) { State.playerCoins -= item.price; item.owned = true; State.saveGame(); renderInventory(); } 
+    if (State.playerCoins >= item.price) { State.playerCoins -= item.price;
+        item.owned = true; State.saveGame(); renderInventory(); } 
     else alert("No tienes suficientes monedas.");
 };
-
 document.getElementById('inventory-button').onclick = () => { document.getElementById('inventory-modal').classList.add('visible'); renderInventory(); };
 document.getElementById('close-inv').onclick = () => { document.getElementById('inventory-modal').classList.remove('visible'); };
 
@@ -474,11 +622,14 @@ let then = performance.now();
 let frames = 0, lastFpsTime = then;
 function animate() {
     requestAnimationFrame(animate); const now = performance.now();
-    const elapsed = now - then; const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
-    
+    const elapsed = now - then;
+    const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
-        const delta = clock.getDelta(); if (lunariMixer) lunariMixer.update(delta);
+        
+        const delta = clock.getDelta(); 
+        lunariSystem.update(delta); // Ahora se actualiza desde el nuevo sistema
+        
         controls.update(); renderer.render(scene, camera);
         
         if (State.gameSettings.mostrarFps) { frames++;

@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'room-cache-v8'; // Subimos la versión
+const CACHE_NAME = 'room-cache-v9'; // Sube la versión a v9
 const urlsToCache = [
     './',
     './index.html',
@@ -15,7 +15,8 @@ const urlsToCache = [
     'apagar_luz.mp3',
     'abrir_poster.mp3',
     'guardar_poster.mp3',
-    'sonido_boton.mp3'
+    'sonido_boton.mp3',
+    'lunari_esta_despierta.glb' // <-- NUEVO ARCHIVO AÑADIDO
 ];
 
 self.addEventListener('install', event => {
