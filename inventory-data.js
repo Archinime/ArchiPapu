@@ -366,7 +366,7 @@ export const defaultInventoryConfig = {
         } 
     },
 
-    // --- SISTEMA DE VIDEOS ---
+    // --- NUEVO: SISTEMA DE VIDEOS ---
     videos: {
         label: "Videos TV", emoji: "📼", equipped: ["gohan_cell", "zoro_king", "rezero"], type: "multiple",
         items: {
