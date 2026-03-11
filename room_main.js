@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { initModels, loadItemForSlot, checkLoading } from './room_models.js';
-import { initUI, renderInventory, syncSettingsUI } from './room_ui.js';
+import { initModels } from './room_models.js';
+import { initUI } from './room_ui.js';
+import { defaultInventoryConfig } from './inventory-data.js';
 
 // ==================== UTILIDADES ====================
 export function getFreshUrl(url) {
@@ -26,11 +26,31 @@ export function disposeThreeJSObject(node) {
 
 // ==================== ESTADO GLOBAL ====================
 export let playerCoins = parseInt(localStorage.getItem('room_coins')) || 1000;
-export let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig;
-import { defaultInventoryConfig, inventoryGroups } from './inventory-data.js';
+export let inventoryData = JSON.parse(localStorage.getItem('room_inventory')) || JSON.parse(JSON.stringify(defaultInventoryConfig));
+export let gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || (() => {
+    const ua = navigator.userAgent;
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    const deviceMemory = navigator.deviceMemory || 4;
+    const cpuCores = navigator.hardwareConcurrency || 4;
+    let baseTier = 'alta';
+    if (isMobile || deviceMemory <= 4 || cpuCores <= 4) baseTier = 'media';
+    if (isMobile && (deviceMemory <= 2 || cpuCores <= 2)) baseTier = 'baja';
+    return {
+        calidad: baseTier,
+        sombras: baseTier === 'baja' ? 0 : (baseTier === 'media' ? 1 : 2),
+        fps: baseTier === 'baja' ? 30 : 60,
+        volumenTV: 50,
+        volumenEfectos: 50,
+        mostrarFps: false
+    };
+})();
 
-// Limpiar legacy
-if (inventoryData.base_foco) delete inventoryData.base_foco;
+// Compatibilidad con versiones anteriores
+if (gameSettings.volumen) {
+    gameSettings.volumenTV = gameSettings.volumen;
+    gameSettings.volumenEfectos = gameSettings.volumen;
+    delete gameSettings.volumen;
+}
 
 // Recompensa diaria
 function checkDailyReward() {
@@ -49,22 +69,24 @@ document.getElementById('coin-amount').innerText = playerCoins;
 
 // Sincronizar inventario con default
 for (let cat in defaultInventoryConfig) {
-    if(!inventoryData[cat]) inventoryData[cat] = defaultInventoryConfig[cat];
-    inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
-    inventoryData[cat].label = defaultInventoryConfig[cat].label;
-    inventoryData[cat].type = defaultInventoryConfig[cat].type || 'single';
-    if (inventoryData[cat].type === 'multiple') {
-        if (!Array.isArray(inventoryData[cat].equipped)) inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
-    } else {
-        if (!inventoryData[cat].items[inventoryData[cat].equipped]) inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
-    }
-    for(let item in defaultInventoryConfig[cat].items) {
-        if(!inventoryData[cat].items[item]) inventoryData[cat].items[item] = defaultInventoryConfig[cat].items[item];
-        else {
-            inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file;
-            inventoryData[cat].items[item].name = defaultInventoryConfig[cat].items[item].name;
-            if(defaultInventoryConfig[cat].items[item].baseFile) inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile;
-            if(defaultInventoryConfig[cat].items[item].preview) inventoryData[cat].items[item].preview = defaultInventoryConfig[cat].items[item].preview;
+    if (!inventoryData[cat]) inventoryData[cat] = JSON.parse(JSON.stringify(defaultInventoryConfig[cat]));
+    else {
+        inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
+        inventoryData[cat].label = defaultInventoryConfig[cat].label;
+        inventoryData[cat].type = defaultInventoryConfig[cat].type || 'single';
+        if (inventoryData[cat].type === 'multiple' && !Array.isArray(inventoryData[cat].equipped)) {
+            inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
+        }
+        for (let item in defaultInventoryConfig[cat].items) {
+            if (!inventoryData[cat].items[item]) {
+                inventoryData[cat].items[item] = JSON.parse(JSON.stringify(defaultInventoryConfig[cat].items[item]));
+            } else {
+                // Actualizar propiedades por si cambian
+                inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file;
+                inventoryData[cat].items[item].name = defaultInventoryConfig[cat].items[item].name;
+                if (defaultInventoryConfig[cat].items[item].baseFile) inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile;
+                if (defaultInventoryConfig[cat].items[item].preview) inventoryData[cat].items[item].preview = defaultInventoryConfig[cat].items[item].preview;
+            }
         }
     }
 }
@@ -75,80 +97,70 @@ export function saveGame() {
     document.getElementById('coin-amount').innerText = playerCoins;
 }
 
-// ==================== DETECCIÓN DE DISPOSITIVO Y AJUSTES ====================
-const ua = navigator.userAgent;
-export const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-const deviceMemory = navigator.deviceMemory || 4; 
-const cpuCores = navigator.hardwareConcurrency || 4;
-let baseTier = 'alta';
-if (isMobileUA || deviceMemory <= 4 || cpuCores <= 4) baseTier = 'media';
-if (isMobileUA && (deviceMemory <= 2 || cpuCores <= 2)) baseTier = 'baja';
-
-export let gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
-    calidad: baseTier, 
-    sombras: baseTier === 'baja' ? 0 : (baseTier === 'media' ? 1 : 2),
-    fps: baseTier === 'baja' ? 30 : 60,
-    volumenTV: 50,
-    volumenEfectos: 50,
-    mostrarFps: false
+// ==================== VARIABLES COMPARTIDAS MUTABLES ====================
+export const shared = {
+    loadedSlotMeshes: {},
+    switchMesh: null,
+    focoMesh: null,
+    focoDiaMesh: null,
+    luzFocoDia: null,
+    tvScreenMesh: null,
+    tvPlaylist: [],
+    currentTvIndex: -1,
+    isTvOn: false,
+    tvTransitioning: false,
+    lastTvClickTime: 0,
+    lunariMixer: null,
+    esDeDiaLocal: true,
+    lastWeatherCode: 0
 };
-if(gameSettings.volumen) { gameSettings.volumenTV = gameSettings.volumen; gameSettings.volumenEfectos = gameSettings.volumen; delete gameSettings.volumen; }
-
-// ==================== VARIABLES DE ESCENA Y OBJETOS ====================
-export const loadedSlotMeshes = {};
-export let switchMesh = null, focoMesh = null, focoDiaMesh = null, luzFocoDia = null;
-export let esDeDiaLocal = true;
-export let isTvOn = false; 
-export let tvTransitioning = false; 
-export let lastTvClickTime = 0; 
-export let tvScreenMesh = null;
-
-// Audio
-export const audioPrenderLuz = new Audio('prender_luz.mp3');
-export const audioApagarLuz = new Audio('apagar_luz.mp3');
-export const audioAbrirPoster = new Audio('abrir_poster.mp3');
-export const audioCerrarPoster = new Audio('guardar_poster.mp3');
-export const audioBotonTV = new Audio('sonido_boton.mp3');
-
-// Efectos TV
-export const tvEffectVideoOff = document.createElement('video');
-tvEffectVideoOff.src = 'efecto_tele.mp4'; tvEffectVideoOff.crossOrigin = 'anonymous'; tvEffectVideoOff.playsInline = true;
-document.body.appendChild(tvEffectVideoOff); tvEffectVideoOff.style.display = 'none';
-
-export const tvEffectVideoOn = document.createElement('video'); 
-tvEffectVideoOn.src = 'efecto_tele - Invertido.mp4'; tvEffectVideoOn.crossOrigin = 'anonymous'; tvEffectVideoOn.playsInline = true;
-document.body.appendChild(tvEffectVideoOn); tvEffectVideoOn.style.display = 'none';
-
-export const tvEffectTextureOff = new THREE.VideoTexture(tvEffectVideoOff); 
-tvEffectTextureOff.minFilter = THREE.LinearFilter; tvEffectTextureOff.magFilter = THREE.LinearFilter; tvEffectTextureOff.format = THREE.RGBAFormat;
-
-export const tvEffectTextureOn = new THREE.VideoTexture(tvEffectVideoOn); 
-tvEffectTextureOn.minFilter = THREE.LinearFilter; tvEffectTextureOn.magFilter = THREE.LinearFilter; tvEffectTextureOn.format = THREE.RGBAFormat;
 
 // ==================== CONFIGURACIÓN DE THREE.JS ====================
-export const scene = new THREE.Scene(); scene.background = new THREE.Color(0x050508);
+export const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050508);
 export const clock = new THREE.Clock();
 export const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
+
+const ua = navigator.userAgent;
+const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 let camPosY = 6, camPosZ = 14, targetY = 6;
 if (window.innerWidth < 768 || isMobileUA) { camPosY = 6; camPosZ = 12; targetY = 5; }
 camera.position.set(0, camPosY, camPosZ);
 
 export const renderer = new THREE.WebGLRenderer({ antialias: gameSettings.calidad !== 'baja', powerPreference: "high-performance" });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
 document.body.appendChild(renderer.domElement);
 
 export const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; controls.target.set(0, targetY, 0); controls.maxPolarAngle = Math.PI / 2 - 0.05;
-controls.minDistance = 2.5; controls.maxDistance = 16; controls.enablePan = false;
+controls.enableDamping = true;
+controls.target.set(0, targetY, 0);
+controls.maxPolarAngle = Math.PI / 2 - 0.05;
+controls.minDistance = 2.5;
+controls.maxDistance = 16;
+controls.enablePan = false;
 
 // Luces
-export const ambient = new THREE.AmbientLight(0xffffff, 0.3); scene.add(ambient);
-export const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); hemiLight.position.set(0, 20, 0); scene.add(hemiLight);
-export const mainLight = new THREE.SpotLight(0xffeedd, 6); mainLight.position.set(2, 22, 2); mainLight.angle = Math.PI / 3;
-mainLight.penumbra = 0.8; mainLight.decay = 2; mainLight.distance = 60;
-mainLight.shadow.camera.near = 0.5; mainLight.shadow.camera.far = 40; mainLight.shadow.bias = -0.002;
-mainLight.shadow.normalBias = 0.05; mainLight.shadow.radius = 4; scene.add(mainLight); scene.add(mainLight.target);
+export const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+scene.add(ambient);
+export const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
+hemiLight.position.set(0, 20, 0);
+scene.add(hemiLight);
+export const mainLight = new THREE.SpotLight(0xffeedd, 6);
+mainLight.position.set(2, 22, 2);
+mainLight.angle = Math.PI / 3;
+mainLight.penumbra = 0.8;
+mainLight.decay = 2;
+mainLight.distance = 60;
+mainLight.shadow.camera.near = 0.5;
+mainLight.shadow.camera.far = 40;
+mainLight.shadow.bias = -0.002;
+mainLight.shadow.normalBias = 0.05;
+mainLight.shadow.radius = 4;
+scene.add(mainLight);
+scene.add(mainLight.target);
 
 export let lightOn = localStorage.getItem('lightState') !== 'off';
 
@@ -156,7 +168,7 @@ export let lightOn = localStorage.getItem('lightState') !== 'off';
 export function applyCurrentSettings() {
     let pixelRatio = 1;
     if (gameSettings.calidad === 'media') pixelRatio = Math.min(window.devicePixelRatio, 1.2);
-    else if (gameSettings.calidad === 'alta') pixelRatio = Math.min(window.devicePixelRatio, 2); 
+    else if (gameSettings.calidad === 'alta') pixelRatio = Math.min(window.devicePixelRatio, 2);
 
     renderer.setPixelRatio(pixelRatio);
     renderer.shadowMap.enabled = gameSettings.sombras > 0;
@@ -167,41 +179,51 @@ export function applyCurrentSettings() {
         mainLight.shadow.mapSize.set(shadowRes, shadowRes);
     }
 
-    for (let cat in loadedSlotMeshes) applyMaterialLogic(loadedSlotMeshes[cat], cat);
-    if(focoDiaMesh) actualizarIluminacionFocoDia();
+    for (let cat in shared.loadedSlotMeshes) applyMaterialLogic(shared.loadedSlotMeshes[cat], cat);
+    if (shared.focoDiaMesh) actualizarIluminacionFocoDia();
 
     document.getElementById('fps-counter').style.display = gameSettings.mostrarFps ? 'block' : 'none';
-    
+
     const tvVideo = document.getElementById('tv-video');
     if (tvVideo) tvVideo.volume = gameSettings.volumenTV / 100;
-    tvEffectVideoOff.volume = gameSettings.volumenEfectos / 100;
-    tvEffectVideoOn.volume = gameSettings.volumenEfectos / 100;
-    
+    if (tvEffectVideoOff) tvEffectVideoOff.volume = gameSettings.volumenEfectos / 100;
+    if (tvEffectVideoOn) tvEffectVideoOn.volume = gameSettings.volumenEfectos / 100;
+
     let volEf = gameSettings.volumenEfectos / 100;
-    audioPrenderLuz.volume = volEf; audioApagarLuz.volume = volEf;
-    audioAbrirPoster.volume = volEf; audioCerrarPoster.volume = volEf;
+    audioPrenderLuz.volume = volEf;
+    audioApagarLuz.volume = volEf;
+    audioAbrirPoster.volume = volEf;
+    audioCerrarPoster.volume = volEf;
     audioBotonTV.volume = volEf;
 }
 
 export function applyMaterialLogic(model, categoryKey) {
-    if(!model) return;
-    const isFoco = categoryKey === 'foco', isFocoDia = categoryKey === 'foco_dia';
+    if (!model) return;
+    const isFoco = categoryKey === 'foco';
+    const isFocoDia = categoryKey === 'foco_dia';
     const allowShadows = gameSettings.sombras > 0;
     model.traverse((node) => {
         if (node.isMesh) {
             node.frustumCulled = false;
             if (isFoco || isFocoDia) {
-                node.castShadow = false; node.receiveShadow = false;
+                node.castShadow = false;
+                node.receiveShadow = false;
                 if (node.material) {
-                    if (isFoco) { node.material.emissive = new THREE.Color(0xffeedd); node.material.emissiveIntensity = lightOn ? 1.5 : 0; }
+                    if (isFoco) {
+                        node.material.emissive = new THREE.Color(0xffeedd);
+                        node.material.emissiveIntensity = lightOn ? 1.5 : 0;
+                    }
                     if (isFocoDia) node.material.emissive = new THREE.Color(0xffffff);
                 }
             } else {
-                node.castShadow = allowShadows; node.receiveShadow = allowShadows;
-                if(node.material) {
+                node.castShadow = allowShadows;
+                node.receiveShadow = allowShadows;
+                if (node.material) {
                     node.material.shadowSide = THREE.FrontSide;
-                    if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo')) node.material.shadowSide = THREE.BackSide;
-                    node.material.side = THREE.DoubleSide; node.material.needsUpdate = true;
+                    if (node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo'))
+                        node.material.shadowSide = THREE.BackSide;
+                    node.material.side = THREE.DoubleSide;
+                    node.material.needsUpdate = true;
                 }
             }
         }
@@ -210,62 +232,121 @@ export function applyMaterialLogic(model, categoryKey) {
 
 // ==================== ILUMINACIÓN POR HORA ====================
 export function actualizarIluminacionFocoDia() {
-    const hora = new Date().getHours(); let colorHex, lightInt, emInt, dist;
+    const hora = new Date().getHours();
+    let colorHex, lightInt, emInt, dist;
     if (hora >= 6 && hora < 9) { colorHex = 0xffe4b5; lightInt = 0.8; emInt = 0.8; dist = 35; }
     else if (hora >= 9 && hora < 17) { colorHex = 0xffffff; lightInt = 1.5; emInt = 1.5; dist = 50; }
     else if (hora >= 17 && hora < 19) { colorHex = 0xff8c00; lightInt = 0.7; emInt = 0.7; dist = 40; }
     else { colorHex = 0x5566aa; lightInt = 0.25; emInt = 0.25; dist = 25; }
 
-    if (luzFocoDia) { luzFocoDia.color.setHex(colorHex); luzFocoDia.intensity = lightInt; luzFocoDia.distance = dist; luzFocoDia.castShadow = gameSettings.sombras > 0; }
-    if (focoDiaMesh) {
-        focoDiaMesh.traverse((n) => {
-            if (n.isMesh && n.material) { n.material.emissive.setHex(colorHex); n.material.emissiveIntensity = emInt; n.material.needsUpdate = true; }
+    if (shared.luzFocoDia) {
+        shared.luzFocoDia.color.setHex(colorHex);
+        shared.luzFocoDia.intensity = lightInt;
+        shared.luzFocoDia.distance = dist;
+        shared.luzFocoDia.castShadow = gameSettings.sombras > 0;
+    }
+    if (shared.focoDiaMesh) {
+        shared.focoDiaMesh.traverse((n) => {
+            if (n.isMesh && n.material) {
+                n.material.emissive.setHex(colorHex);
+                n.material.emissiveIntensity = emInt;
+                n.material.needsUpdate = true;
+            }
         });
     }
     // updateLunariText se llama desde weather
 }
 setInterval(actualizarIluminacionFocoDia, 60000);
 
-// ==================== TV ====================
-export const tvVideo = document.getElementById('tv-video');
-export const tvTexture = new THREE.VideoTexture(tvVideo); 
-tvTexture.minFilter = THREE.LinearFilter; tvTexture.magFilter = THREE.LinearFilter; tvTexture.format = THREE.RGBAFormat; tvTexture.encoding = THREE.sRGBEncoding;
+// ==================== AUDIO ====================
+export const audioPrenderLuz = new Audio('prender_luz.mp3');
+export const audioApagarLuz = new Audio('apagar_luz.mp3');
+export const audioAbrirPoster = new Audio('abrir_poster.mp3');
+export const audioCerrarPoster = new Audio('guardar_poster.mp3');
+export const audioBotonTV = new Audio('sonido_boton.mp3');
 
-export let tvPlaylist = []; 
-export let currentTvIndex = -1;
+// ==================== VIDEOS EFECTO TV ====================
+export const tvEffectVideoOff = document.createElement('video');
+tvEffectVideoOff.src = 'efecto_tele.mp4';
+tvEffectVideoOff.crossOrigin = 'anonymous';
+tvEffectVideoOff.playsInline = true;
+document.body.appendChild(tvEffectVideoOff);
+tvEffectVideoOff.style.display = 'none';
+
+export const tvEffectVideoOn = document.createElement('video');
+tvEffectVideoOn.src = 'efecto_tele - Invertido.mp4';
+tvEffectVideoOn.crossOrigin = 'anonymous';
+tvEffectVideoOn.playsInline = true;
+document.body.appendChild(tvEffectVideoOn);
+tvEffectVideoOn.style.display = 'none';
+
+export const tvEffectTextureOff = new THREE.VideoTexture(tvEffectVideoOff);
+tvEffectTextureOff.minFilter = THREE.LinearFilter;
+tvEffectTextureOff.magFilter = THREE.LinearFilter;
+tvEffectTextureOff.format = THREE.RGBAFormat;
+
+export const tvEffectTextureOn = new THREE.VideoTexture(tvEffectVideoOn);
+tvEffectTextureOn.minFilter = THREE.LinearFilter;
+tvEffectTextureOn.magFilter = THREE.LinearFilter;
+tvEffectTextureOn.format = THREE.RGBAFormat;
+
+// ==================== TV PRINCIPAL ====================
+export const tvVideo = document.getElementById('tv-video');
+export const tvTexture = new THREE.VideoTexture(tvVideo);
+tvTexture.minFilter = THREE.LinearFilter;
+tvTexture.magFilter = THREE.LinearFilter;
+tvTexture.format = THREE.RGBAFormat;
+tvTexture.encoding = THREE.sRGBEncoding;
+
 export function updatePlaylist() {
-    tvPlaylist = inventoryData.videos.equipped.map(id => inventoryData.videos.items[id].file);
-    if(tvPlaylist.length === 0) tvVideo.pause();
+    shared.tvPlaylist = inventoryData.videos.equipped.map(id => inventoryData.videos.items[id].file);
+    if (shared.tvPlaylist.length === 0) tvVideo.pause();
 }
 
 export function playNextTv(random = false) {
-    updatePlaylist(); if(tvPlaylist.length === 0) return;
-    currentTvIndex = random ? Math.floor(Math.random() * tvPlaylist.length) : (currentTvIndex + 1) % tvPlaylist.length;
-    tvVideo.src = tvPlaylist[currentTvIndex]; tvVideo.volume = gameSettings.volumenTV / 100;
-    if (isTvOn && !tvTransitioning) tvVideo.play().catch(e => console.warn('User interaction needed', e));
+    updatePlaylist();
+    if (shared.tvPlaylist.length === 0) return;
+    shared.currentTvIndex = random ? Math.floor(Math.random() * shared.tvPlaylist.length) : (shared.currentTvIndex + 1) % shared.tvPlaylist.length;
+    tvVideo.src = shared.tvPlaylist[shared.currentTvIndex];
+    tvVideo.volume = gameSettings.volumenTV / 100;
+    if (shared.isTvOn && !shared.tvTransitioning) tvVideo.play().catch(e => console.warn('User interaction needed', e));
 }
 playNextTv(true);
 
 // ==================== INICIALIZAR MÓDULOS ====================
-initModels();  // Configura la carga de modelos (Lunari, foco día, etc.)
-initUI();      // Configura la interfaz y los event listeners
+initModels();  // Configura la carga de modelos
+initUI();      // Configura la interfaz y event listeners
 
 // ==================== BUCLE DE ANIMACIÓN ====================
-let then = performance.now(); let frames = 0, lastFpsTime = then;
+let then = performance.now();
+let frames = 0, lastFpsTime = then;
 function animate() {
-    requestAnimationFrame(animate); const now = performance.now(); const elapsed = now - then; const fpsInterval = gameSettings.fps > 0 ? 1000 / gameSettings.fps : 0;
+    requestAnimationFrame(animate);
+    const now = performance.now();
+    const elapsed = now - then;
+    const fpsInterval = gameSettings.fps > 0 ? 1000 / gameSettings.fps : 0;
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
-        const delta = clock.getDelta(); 
-        // lunariMixer se importa desde models? Lo manejaremos con una variable exportada
-        if (lunariMixer) lunariMixer.update(delta);
-        controls.update(); renderer.render(scene, camera);
-        if (gameSettings.mostrarFps) { frames++; if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now; } }
+        const delta = clock.getDelta();
+        if (shared.lunariMixer) shared.lunariMixer.update(delta);
+        controls.update();
+        renderer.render(scene, camera);
+        if (gameSettings.mostrarFps) {
+            frames++;
+            if (now - lastFpsTime >= 1000) {
+                document.querySelector('#fps-counter span').innerText = frames;
+                frames = 0;
+                lastFpsTime = now;
+            }
+        }
     }
 }
 animate();
 
-// ==================== EXPORTAR ADICIONALES ====================
-// (lunariMixer se asignará desde models)
-export let lunariMixer = null;
-export function setLunariMixer(mixer) { lunariMixer = mixer; }
+// ==================== MANEJAR REDIMENSIONAMIENTO ====================
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    applyCurrentSettings();
+});
