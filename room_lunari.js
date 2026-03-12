@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-// --- NUEVO: Importar TVManager para interactuar con la TV ---
 import { TVManager } from './room_tv.js';
 
 export const LunariSystem = {
@@ -38,7 +37,7 @@ export const LunariSystem = {
             this.activeAction = this.actions.despertar_base;
             if (this.activeAction) this.activeAction.play();
             
-            // --- NUEVO: Al despertar (modelo lunari_esta_despierta.glb), se prende la TV automáticamente ---
+            // Llama a prender la tele. Si no le dimos al botón "Iniciar" aún, el sistema esperará
             TVManager.turnOnAutomatically();
         }
         

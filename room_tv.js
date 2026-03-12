@@ -15,9 +15,12 @@ export const TVManager = {
     tvPlaylist: [],
     currentTvIndex: -1,
     audioBotonTV: new Audio('sonido_boton.mp3'),
+    
+    // Variables para controlar el nuevo sistema de inicio
+    hasInteracted: false, 
+    pendingAutoTurnOn: false, 
 
     init() {
-        // Configuraciones vitales para móviles (playsInline)
         this.tvEffectVideoOff.src = 'efecto_tele.mp4';
         this.tvEffectVideoOff.crossOrigin = 'anonymous'; 
         this.tvEffectVideoOff.playsInline = true;
@@ -32,7 +35,6 @@ export const TVManager = {
         document.body.appendChild(this.tvEffectVideoOn); 
         this.tvEffectVideoOn.style.display = 'none';
 
-        // Asegurarnos que la TV principal también tenga playsInline (Obligatorio en iOS)
         this.tvVideo.playsInline = true;
         this.tvVideo.setAttribute('playsinline', '');
         this.tvVideo.setAttribute('webkit-playsinline', '');
@@ -54,15 +56,86 @@ export const TVManager = {
         this.tvEffectTextureOn.format = THREE.RGBAFormat;
 
         this.setupControls();
-
-        // Preparar la playlist inicial
         this.updatePlaylist();
         
-        // Escuchar cuando un video termina para reproducir el siguiente en orden
         this.tvVideo.addEventListener('ended', () => {
             if (this.isTvOn && !this.tvTransitioning) {
-                // Parámetro false = avanza al siguiente en orden
                 this.playNextTv(false);
+            }
+        });
+
+        // Llamamos a la pantalla de inicio
+        this.setupStartScreen();
+    },
+
+    // --- NUEVO: Pantalla de "Iniciar Habitación" Anti-Lag ---
+    setupStartScreen() {
+        const overlay = document.createElement('div');
+        overlay.id = 'start-interaction-overlay';
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100vw';
+        overlay.style.height = '100vh';
+        overlay.style.background = 'rgba(10, 10, 15, 0.95)';
+        overlay.style.backdropFilter = 'blur(10px)';
+        overlay.style.display = 'flex';
+        overlay.style.flexDirection = 'column';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.zIndex = '99999';
+        overlay.style.transition = 'opacity 0.5s ease';
+        overlay.style.opacity = '0'; // Oculto al principio
+        overlay.style.pointerEvents = 'none';
+
+        const btn = document.createElement('button');
+        btn.innerHTML = '▶ INICIAR HABITACIÓN';
+        btn.style.background = 'linear-gradient(90deg, #80cbc4, #4db6ac)';
+        btn.style.color = '#111';
+        btn.style.padding = '15px 40px';
+        btn.style.borderRadius = '30px';
+        btn.style.border = 'none';
+        btn.style.fontSize = '22px';
+        btn.style.fontWeight = 'bold';
+        btn.style.cursor = 'pointer';
+        btn.style.boxShadow = '0 0 20px rgba(128, 203, 196, 0.6)';
+        btn.style.transition = 'transform 0.2s';
+        
+        btn.onmouseover = () => btn.style.transform = 'scale(1.05)';
+        btn.onmouseout = () => btn.style.transform = 'scale(1)';
+
+        overlay.appendChild(btn);
+        document.body.appendChild(overlay);
+
+        // Esperar inteligentemente a que tu div de "loading" desaparezca
+        const checkLoading = setInterval(() => {
+            const loadingDiv = document.getElementById('loading');
+            if (!loadingDiv || window.getComputedStyle(loadingDiv).display === 'none' || window.getComputedStyle(loadingDiv).opacity === '0') {
+                clearInterval(checkLoading);
+                // Terminó de cargar, mostramos el botón Iniciar
+                overlay.style.opacity = '1';
+                overlay.style.pointerEvents = 'auto';
+            }
+        }, 500);
+
+        // Acción al presionar el botón
+        btn.addEventListener('click', () => {
+            this.hasInteracted = true;
+            
+            // Truco maestro: Iniciamos y pausamos los medios de inmediato para conseguir permisos permanentes del navegador
+            this.tvVideo.play().catch(()=>{});
+            this.tvVideo.pause();
+            this.audioBotonTV.play().catch(()=>{});
+            this.audioBotonTV.pause();
+            this.audioBotonTV.currentTime = 0;
+
+            // Desaparecer la pantalla de inicio
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.remove(), 500);
+
+            // Si Lunari ya se despertó mientras cargaba y la tele quedó "en espera", la encendemos ahora.
+            if (this.pendingAutoTurnOn) {
+                this.turnOnAutomatically();
             }
         });
     },
@@ -72,59 +145,20 @@ export const TVManager = {
         if(this.tvPlaylist.length === 0) this.tvVideo.pause();
     },
 
-    // NUEVA FUNCIÓN: Sistema anti-bloqueo para Celulares/Tablets
-    attemptToPlay() {
-        // Asegurar volumen normal si no está silenciado
-        if (!this.tvVideo.muted) {
-            this.tvVideo.volume = State.gameSettings.volumenTV / 100;
-        }
-
-        const playPromise = this.tvVideo.play();
-        
-        if (playPromise !== undefined) {
-            playPromise.then(() => {
-                // Reproducción exitosa de forma normal (En PC funciona directo)
-            }).catch(error => {
-                console.warn('Autoplay bloqueado por el celular. Forzando inicio en silencio...', error);
-                
-                // Si el celular bloquea el video, lo silenciamos y forzamos el inicio visual
-                this.tvVideo.muted = true;
-                this.tvVideo.play().then(() => {
-                    
-                    // Función que se dispara apenas el usuario toque la pantalla para DEVOLVER EL SONIDO
-                    const unmuteOnInteract = () => {
-                        this.tvVideo.muted = false;
-                        this.tvVideo.volume = State.gameSettings.volumenTV / 100;
-                        
-                        // Limpiar los eventos de toque
-                        document.removeEventListener('pointerdown', unmuteOnInteract);
-                        document.removeEventListener('touchstart', unmuteOnInteract);
-                        document.removeEventListener('click', unmuteOnInteract);
-                    };
-                    
-                    // Esperamos cualquier toque o clic en la pantalla
-                    document.addEventListener('pointerdown', unmuteOnInteract);
-                    document.addEventListener('touchstart', unmuteOnInteract);
-                    document.addEventListener('click', unmuteOnInteract);
-                    
-                }).catch(e => console.error('Fallo crítico al reproducir en móvil:', e));
-            });
-        }
-    },
-
     playNextTv(random = false) {
         this.updatePlaylist();
         if(this.tvPlaylist.length === 0) return;
         
-        // Selección de índice (aleatorio al prender, en orden para los siguientes)
         this.currentTvIndex = random 
             ? Math.floor(Math.random() * this.tvPlaylist.length) 
             : (this.currentTvIndex + 1) % this.tvPlaylist.length;
             
         this.tvVideo.src = this.tvPlaylist[this.currentTvIndex];
+        this.tvVideo.volume = State.gameSettings.volumenTV / 100;
         
         if (this.isTvOn && !this.tvTransitioning) {
-            this.attemptToPlay();
+            // Como ya le dimos a "Iniciar", esto reproducirá el video limpio y sin lag
+            this.tvVideo.play().catch(e => console.warn('Aún necesita interacción', e));
         }
     },
 
@@ -146,27 +180,19 @@ export const TVManager = {
             if(this.tvPlaylist.length===0)return;
             this.currentTvIndex = (this.currentTvIndex - 1 + this.tvPlaylist.length) % this.tvPlaylist.length; 
             this.tvVideo.src = this.tvPlaylist[this.currentTvIndex]; 
-            this.tvVideo.muted = false; // Restablecer sonido manual
-            this.attemptToPlay(); 
+            this.tvVideo.play(); 
         };
         
         tvPlayPauseBtn.onclick = () => { 
             this.playButtonSound();
             if (!this.isTvOn || this.tvTransitioning) return; 
-            if(this.tvVideo.paused) {
-                this.tvVideo.muted = false;
-                this.attemptToPlay();
-            } else {
-                this.tvVideo.pause(); 
-            }
+            if(this.tvVideo.paused) this.tvVideo.play(); 
+            else this.tvVideo.pause(); 
         };
         
         tvNextBtn.onclick = () => { 
             this.playButtonSound();
-            if (this.isTvOn && !this.tvTransitioning) {
-                this.tvVideo.muted = false;
-                this.playNextTv(false); 
-            }
+            if (this.isTvOn && !this.tvTransitioning) this.playNextTv(false); 
         };
 
         if (tvPowerBtn) {
@@ -223,13 +249,11 @@ export const TVManager = {
                             mat.needsUpdate = true; 
                         });
                         
-                        // Si la tele se prendió a mano
-                        this.tvVideo.muted = false;
                         if (this.tvPlaylist.length > 0 && !this.tvVideo.src) {
                             this.playNextTv(true);
                         } else if (this.tvPlaylist.length > 0) {
                             this.tvVideo.currentTime = 0; 
-                            this.attemptToPlay();
+                            this.tvVideo.play().catch(e=>{});
                         }
                     }
                     this.tvTransitioning = false;
@@ -239,13 +263,19 @@ export const TVManager = {
         }
     },
 
-    // Encender la tele automáticamente desde LunariSystem
+    // --- NUEVO Lógica mejorada de encendido ---
     turnOnAutomatically() {
+        // Si Lunari despierta pero el usuario NO ha presionado "Iniciar", ponemos el encendido en cola
+        if (!this.hasInteracted) {
+            this.pendingAutoTurnOn = true;
+            return; 
+        }
+
+        this.pendingAutoTurnOn = false;
         if (this.isTvOn || this.tvTransitioning) return;
         
         this.isTvOn = true;
         
-        // Actualizar botón UI
         const tvPowerBtn = document.getElementById('tv-power');
         if (tvPowerBtn) {
             tvPowerBtn.innerText = '🟢'; 
@@ -253,7 +283,6 @@ export const TVManager = {
             tvPowerBtn.style.textShadow = '0 0 5px #00ff00';
         }
 
-        // Si el mesh de la TV ya está cargado, aplicamos la textura
         if (this.tvScreenMesh) {
             const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
             mats.forEach(mat => { 
@@ -266,7 +295,6 @@ export const TVManager = {
             });
         }
 
-        // Inicia el video automáticamente con la lógica de Móvil
         this.playNextTv(true);
     },
     
