@@ -17,17 +17,25 @@ export const TVManager = {
     audioBotonTV: new Audio('sonido_boton.mp3'),
 
     init() {
+        // Configuraciones vitales para móviles (playsInline)
         this.tvEffectVideoOff.src = 'efecto_tele.mp4';
         this.tvEffectVideoOff.crossOrigin = 'anonymous'; 
         this.tvEffectVideoOff.playsInline = true;
+        this.tvEffectVideoOff.setAttribute('playsinline', '');
         document.body.appendChild(this.tvEffectVideoOff); 
         this.tvEffectVideoOff.style.display = 'none';
 
         this.tvEffectVideoOn.src = 'efecto_tele - Invertido.mp4'; 
         this.tvEffectVideoOn.crossOrigin = 'anonymous';
         this.tvEffectVideoOn.playsInline = true;
+        this.tvEffectVideoOn.setAttribute('playsinline', '');
         document.body.appendChild(this.tvEffectVideoOn); 
         this.tvEffectVideoOn.style.display = 'none';
+
+        // Asegurarnos que la TV principal también tenga playsInline (Obligatorio en iOS)
+        this.tvVideo.playsInline = true;
+        this.tvVideo.setAttribute('playsinline', '');
+        this.tvVideo.setAttribute('webkit-playsinline', '');
 
         this.tvTexture = new THREE.VideoTexture(this.tvVideo); 
         this.tvTexture.minFilter = THREE.LinearFilter; 
@@ -47,13 +55,13 @@ export const TVManager = {
 
         this.setupControls();
 
-        // Preparar la playlist inicial en silencio
+        // Preparar la playlist inicial
         this.updatePlaylist();
         
-        // --- NUEVO: Escuchar cuando un video termina para reproducir el siguiente en orden ---
+        // Escuchar cuando un video termina para reproducir el siguiente en orden
         this.tvVideo.addEventListener('ended', () => {
             if (this.isTvOn && !this.tvTransitioning) {
-                // Parámetro false = avanza al siguiente en orden, no de forma aleatoria
+                // Parámetro false = avanza al siguiente en orden
                 this.playNextTv(false);
             }
         });
@@ -64,20 +72,59 @@ export const TVManager = {
         if(this.tvPlaylist.length === 0) this.tvVideo.pause();
     },
 
+    // NUEVA FUNCIÓN: Sistema anti-bloqueo para Celulares/Tablets
+    attemptToPlay() {
+        // Asegurar volumen normal si no está silenciado
+        if (!this.tvVideo.muted) {
+            this.tvVideo.volume = State.gameSettings.volumenTV / 100;
+        }
+
+        const playPromise = this.tvVideo.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                // Reproducción exitosa de forma normal (En PC funciona directo)
+            }).catch(error => {
+                console.warn('Autoplay bloqueado por el celular. Forzando inicio en silencio...', error);
+                
+                // Si el celular bloquea el video, lo silenciamos y forzamos el inicio visual
+                this.tvVideo.muted = true;
+                this.tvVideo.play().then(() => {
+                    
+                    // Función que se dispara apenas el usuario toque la pantalla para DEVOLVER EL SONIDO
+                    const unmuteOnInteract = () => {
+                        this.tvVideo.muted = false;
+                        this.tvVideo.volume = State.gameSettings.volumenTV / 100;
+                        
+                        // Limpiar los eventos de toque
+                        document.removeEventListener('pointerdown', unmuteOnInteract);
+                        document.removeEventListener('touchstart', unmuteOnInteract);
+                        document.removeEventListener('click', unmuteOnInteract);
+                    };
+                    
+                    // Esperamos cualquier toque o clic en la pantalla
+                    document.addEventListener('pointerdown', unmuteOnInteract);
+                    document.addEventListener('touchstart', unmuteOnInteract);
+                    document.addEventListener('click', unmuteOnInteract);
+                    
+                }).catch(e => console.error('Fallo crítico al reproducir en móvil:', e));
+            });
+        }
+    },
+
     playNextTv(random = false) {
         this.updatePlaylist();
         if(this.tvPlaylist.length === 0) return;
         
-        // Si es el encendido (random = true), elige aleatoriamente. Si no, va al siguiente en orden.
+        // Selección de índice (aleatorio al prender, en orden para los siguientes)
         this.currentTvIndex = random 
             ? Math.floor(Math.random() * this.tvPlaylist.length) 
             : (this.currentTvIndex + 1) % this.tvPlaylist.length;
             
         this.tvVideo.src = this.tvPlaylist[this.currentTvIndex];
-        this.tvVideo.volume = State.gameSettings.volumenTV / 100;
         
         if (this.isTvOn && !this.tvTransitioning) {
-            this.tvVideo.play().catch(e => console.warn('User interaction needed', e));
+            this.attemptToPlay();
         }
     },
 
@@ -99,19 +146,27 @@ export const TVManager = {
             if(this.tvPlaylist.length===0)return;
             this.currentTvIndex = (this.currentTvIndex - 1 + this.tvPlaylist.length) % this.tvPlaylist.length; 
             this.tvVideo.src = this.tvPlaylist[this.currentTvIndex]; 
-            this.tvVideo.play(); 
+            this.tvVideo.muted = false; // Restablecer sonido manual
+            this.attemptToPlay(); 
         };
         
         tvPlayPauseBtn.onclick = () => { 
             this.playButtonSound();
             if (!this.isTvOn || this.tvTransitioning) return; 
-            if(this.tvVideo.paused) this.tvVideo.play(); 
-            else this.tvVideo.pause(); 
+            if(this.tvVideo.paused) {
+                this.tvVideo.muted = false;
+                this.attemptToPlay();
+            } else {
+                this.tvVideo.pause(); 
+            }
         };
         
         tvNextBtn.onclick = () => { 
             this.playButtonSound();
-            if (this.isTvOn && !this.tvTransitioning) this.playNextTv(false); 
+            if (this.isTvOn && !this.tvTransitioning) {
+                this.tvVideo.muted = false;
+                this.playNextTv(false); 
+            }
         };
 
         if (tvPowerBtn) {
@@ -168,12 +223,13 @@ export const TVManager = {
                             mat.needsUpdate = true; 
                         });
                         
-                        // Si la tele se prendió a mano, seguimos desde donde estaba. Si no, playNextTv() lo hace
+                        // Si la tele se prendió a mano
+                        this.tvVideo.muted = false;
                         if (this.tvPlaylist.length > 0 && !this.tvVideo.src) {
                             this.playNextTv(true);
                         } else if (this.tvPlaylist.length > 0) {
                             this.tvVideo.currentTime = 0; 
-                            this.tvVideo.play().catch(e=>{});
+                            this.attemptToPlay();
                         }
                     }
                     this.tvTransitioning = false;
@@ -183,7 +239,7 @@ export const TVManager = {
         }
     },
 
-    // --- NUEVO: Encender la tele automáticamente y poner video aleatorio ---
+    // Encender la tele automáticamente desde LunariSystem
     turnOnAutomatically() {
         if (this.isTvOn || this.tvTransitioning) return;
         
@@ -197,7 +253,7 @@ export const TVManager = {
             tvPowerBtn.style.textShadow = '0 0 5px #00ff00';
         }
 
-        // Si el mesh de la TV ya está cargado, aplicamos la textura de la tele encendida
+        // Si el mesh de la TV ya está cargado, aplicamos la textura
         if (this.tvScreenMesh) {
             const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
             mats.forEach(mat => { 
@@ -210,7 +266,7 @@ export const TVManager = {
             });
         }
 
-        // Reproduce el primer video de manera aleatoria
+        // Inicia el video automáticamente con la lógica de Móvil
         this.playNextTv(true);
     },
     
