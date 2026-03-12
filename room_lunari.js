@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+// --- NUEVO: Importar TVManager para interactuar con la TV ---
+import { TVManager } from './room_tv.js';
 
 export const LunariSystem = {
     currentState: null,
@@ -9,8 +11,11 @@ export const LunariSystem = {
 
     evaluateState(esDeDiaLocal, lastWeatherCode) {
         const hora = new Date().getHours();
-        if (hora >= 22 || hora < 7) { this.setState('dormir', esDeDiaLocal, lastWeatherCode); } 
-        else { this.setState('despertar', esDeDiaLocal, lastWeatherCode); }
+        if (hora >= 22 || hora < 7) { 
+            this.setState('dormir', esDeDiaLocal, lastWeatherCode);
+        } else { 
+            this.setState('despertar', esDeDiaLocal, lastWeatherCode);
+        }
     },
 
     setState(newState, esDeDiaLocal, lastWeatherCode) {
@@ -20,8 +25,9 @@ export const LunariSystem = {
         for (let key in this.models) {
             if (this.models[key]) this.models[key].visible = false;
         }
+        
         if (this.activeAction) this.activeAction.stop();
-
+        
         if (newState === 'dormir' && this.models.dormir) {
             this.models.dormir.visible = true;
             this.activeAction = this.actions.dormir_base;
@@ -31,6 +37,9 @@ export const LunariSystem = {
             this.models.despertar.visible = true;
             this.activeAction = this.actions.despertar_base;
             if (this.activeAction) this.activeAction.play();
+            
+            // --- NUEVO: Al despertar (modelo lunari_esta_despierta.glb), se prende la TV automáticamente ---
+            TVManager.turnOnAutomatically();
         }
         
         this.updateLunariText(esDeDiaLocal, lastWeatherCode);
