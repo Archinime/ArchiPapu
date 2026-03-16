@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { State, isMobileUA, checkDailyReward, getFreshUrl, disposeThreeJSObject } from './room_state.js';
 import { SceneSetup } from './room_scene.js';
 import { TVManager } from './room_tv.js';
-import { PCManager } from './room_pc.js'; // AÑADIDO
+import { PCManager } from './room_pc.js'; 
 import { LunariSystem } from './room_lunari.js';
 import { WeatherSystem } from './room_clima.js';
 import { UIManager } from './room_ui.js';
@@ -24,7 +24,7 @@ const audioCerrarPoster = new Audio('guardar_poster.mp3');
 
 // Inicializar Módulos
 TVManager.init();
-PCManager.init(); // AÑADIDO
+PCManager.init(); 
 
 function applyCurrentSettings() {
     let pixelRatio = 1;
@@ -37,7 +37,8 @@ function applyCurrentSettings() {
     mainLight.castShadow = State.gameSettings.sombras > 0;
 
     if (State.gameSettings.sombras > 0) {
-        let shadowRes = State.gameSettings.sombras === 2 ? (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
+        let shadowRes = State.gameSettings.sombras === 2 ?
+        (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
         if (mainLight.shadow.mapSize.width !== shadowRes) {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
@@ -102,13 +103,13 @@ function checkLoading() {
         loadCount.innerText = `${modelsLoaded}/${totalModelsToLoad}`;
         const percent = Math.min((modelsLoaded / totalModelsToLoad) * 100, 100);
         loadBar.style.width = `${percent}%`;
-        if (modelsLoaded >= totalModelsToLoad) { setTimeout(() => { if(loadingEl) loadingEl.style.opacity = '0'; setTimeout(()=>loadingEl.style.display='none', 500); }, 500); }
+        if (modelsLoaded >= totalModelsToLoad) { setTimeout(() => { if(loadingEl) loadingEl.style.opacity = '0'; setTimeout(()=>loadingEl.style.display='none', 500); }, 500);
+        }
     }
 }
 if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
 
 const loader = new GLTFLoader();
-
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.dormir = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.dormir = new THREE.AnimationMixer(model); LunariSystem.actions.dormir_base = LunariSystem.mixers.dormir.clipAction(gltf.animations[0]); }
@@ -160,6 +161,7 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     
     loader.load(getFreshUrl(itemFile), (gltf) => {
         const model = gltf.scene; applyMaterialLogic(model, categoryKey);
+        
         if (categoryKey === 'pantalla_tv') {
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
@@ -175,8 +177,8 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
 
-        // AÑADIDO: Lógica para cargar la PC (asume que la categoría en inventory-data.txt es 'pc')
-        if (categoryKey === 'pc') {
+        // Lógica actualizada para la PC: apunta exclusivamente al slot 'pantalla_pc'
+        if (categoryKey === 'pantalla_pc') {
             PCManager.setScreenMesh(model);
         }
 
@@ -220,7 +222,8 @@ const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2();
 function toggleLight() {
     State.lightOn = !State.lightOn;
     localStorage.setItem('lightState', State.lightOn ? 'on' : 'off'); updateLighting();
-    if (State.lightOn) { audioPrenderLuz.currentTime = 0; audioPrenderLuz.play().catch(e=>{}); } else { audioApagarLuz.currentTime = 0; audioApagarLuz.play().catch(e=>{}); }
+    if (State.lightOn) { audioPrenderLuz.currentTime = 0; audioPrenderLuz.play().catch(e=>{}); } else { audioApagarLuz.currentTime = 0;
+    audioApagarLuz.play().catch(e=>{}); }
 }
 
 const posterViewModal = document.getElementById('poster-view-modal'), posterEnlargedImage = document.getElementById('poster-enlarged-image');
@@ -237,13 +240,15 @@ function handleInteraction(event) {
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
         const tvControls = document.getElementById('tv-controls'), currentTime = Date.now();
-        if (currentTime - TVManager.lastTvClickTime < 300) { if (TVManager.isTvOn && !TVManager.tvTransitioning) { if (TVManager.tvVideo.paused) TVManager.tvVideo.play().catch(e=>{}); else TVManager.tvVideo.pause(); } } 
-        else { if (tvControls.style.display === 'none' || tvControls.style.display === '') tvControls.style.display = 'flex'; else tvControls.style.display = 'none'; }
+        if (currentTime - TVManager.lastTvClickTime < 300) { if (TVManager.isTvOn && !TVManager.tvTransitioning) { if (TVManager.tvVideo.paused) TVManager.tvVideo.play().catch(e=>{}); else TVManager.tvVideo.pause();
+        } } 
+        else { if (tvControls.style.display === 'none' || tvControls.style.display === '') tvControls.style.display = 'flex';
+        else tvControls.style.display = 'none'; }
         TVManager.lastTvClickTime = currentTime; return;
     }
 
-    // AÑADIDO: Interacción con la PC
-    const pcMesh = loadedSlotMeshes['pc'];
+    // Interacción con la PC apuntando al slot 'pantalla_pc'
+    const pcMesh = loadedSlotMeshes['pantalla_pc'];
     if (pcMesh && raycaster.intersectObject(pcMesh, true).length > 0) {
         PCManager.openOS();
         return;
@@ -254,7 +259,8 @@ function handleInteraction(event) {
         const pMesh = loadedSlotMeshes[cat];
         if (pMesh && raycaster.intersectObject(pMesh, true).length > 0) {
             const itemData = State.inventoryData[cat].items[State.inventoryData[cat].equipped];
-            if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); audioAbrirPoster.currentTime = 0; audioAbrirPoster.play().catch(e=>{}); }
+            if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); audioAbrirPoster.currentTime = 0; audioAbrirPoster.play().catch(e=>{});
+            }
             break;
         }
     }
@@ -269,7 +275,8 @@ let then = performance.now(), frames = 0, lastFpsTime = then;
 function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
-    const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
+    const fpsInterval = State.gameSettings.fps > 0 ?
+    1000 / State.gameSettings.fps : 0;
     
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
@@ -278,7 +285,8 @@ function animate() {
         
         if (State.gameSettings.mostrarFps) { 
             frames++;
-            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now; } 
+            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now;
+            } 
         }
     }
 }
