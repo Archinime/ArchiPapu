@@ -1,17 +1,11 @@
 // sw.js
-const CACHE_NAME = 'room-cache-v10'; // Subimos la versión a v10 para forzar la actualización
+const CACHE_NAME = 'room-cache-v10'; // Sube la versión a v10
 const urlsToCache = [
     './',
     './index.html',
     './room_style.css',
     './room_main.js',
-    './room_state.js',    // Añadidos los nuevos módulos
-    './room_scene.js',    
-    './room_tv.js',       
-    './room_pc.js',       
-    './room_lunari.js',   
-    './room_clima.js',    
-    './room_ui.js',       
+    './inventory-data.js',
     'gohan_vs_cell.mp4',
     'zoro_vs_king.mp4',
     'rezero.mp4',
@@ -22,20 +16,14 @@ const urlsToCache = [
     'abrir_poster.mp3',
     'guardar_poster.mp3',
     'sonido_boton.mp3',
-    'lunari_esta_despierta.glb'
-    // Asegúrate de añadir aquí cualquier otro .glb o archivo base que uses siempre
+    'lunari_esta_despierta.glb' // <-- NUEVO ARCHIVO AÑADIDO
 ];
 
 self.addEventListener('install', event => {
-    self.skipWaiting(); // Fuerza a que el nuevo SW tome el control inmediatamente
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then(cache => {
-                // Usamos allSettled para que si un archivo falla (ej. un mp4 no existe), el SW siga instalándose con el resto
-                return Promise.allSettled(
-                    urlsToCache.map(url => cache.add(url).catch(err => console.warn('No se pudo precachear:', url)))
-                );
-            })
+            .then(cache => cache.addAll(urlsToCache))
+            .then(() => self.skipWaiting())
     );
 });
 
@@ -51,11 +39,6 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-    // IMPORTANTE: Solo interceptar peticiones GET y válidas (evita errores con extensiones de Chrome o POSTs)
-    if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
-        return;
-    }
-
     const requestUrl = event.request.url;
     const isMedia = requestUrl.endsWith('.mp4') || requestUrl.endsWith('.glb') || requestUrl.endsWith('.mp3');
 
@@ -64,28 +47,23 @@ self.addEventListener('fetch', event => {
         event.respondWith(
             caches.match(event.request).then(cachedResponse => {
                 if (cachedResponse) return cachedResponse;
-                
                 return fetch(event.request).then(networkResponse => {
-                    // Solo cachear si la respuesta es exitosa (código 200)
-                    if (networkResponse && networkResponse.status === 200) {
-                        const clone = networkResponse.clone();
-                        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-                    }
+                    const clone = networkResponse.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
                     return networkResponse;
-                }).catch(() => caches.match(event.request))
-            })
+                });
+            }).catch(() => caches.match(event.request))
         );
     } else {
         // Red Primero para HTML, JS, CSS
         event.respondWith(
             fetch(event.request).then(networkResponse => {
-                // Solo cachear si la respuesta es exitosa y no tiene marca de nocache
-                if (networkResponse && networkResponse.status === 200 && !requestUrl.includes('nocache=')) {
+                if (!requestUrl.includes('nocache=')) {
                     const clone = networkResponse.clone();
                     caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
                 }
                 return networkResponse;
-            }).catch(() => caches.match(event.request)) // Si no hay red, busca en caché
+            }).catch(() => caches.match(event.request))
         );
     }
 });

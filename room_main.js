@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { State, isMobileUA, checkDailyReward, getFreshUrl, disposeThreeJSObject } from './room_state.js';
 import { SceneSetup } from './room_scene.js';
 import { TVManager } from './room_tv.js';
-import { PCManager } from './room_pc.js'; 
+import { PCManager } from './room_pc.js'; // AÑADIDO
 import { LunariSystem } from './room_lunari.js';
 import { WeatherSystem } from './room_clima.js';
 import { UIManager } from './room_ui.js';
@@ -12,11 +12,9 @@ import { UIManager } from './room_ui.js';
 checkDailyReward();
 SceneSetup.init(State.gameSettings, isMobileUA);
 const { scene, clock, camera, renderer, controls, ambient, hemiLight, mainLight } = SceneSetup;
-
 // Variables Globales de Escena
 const loadedSlotMeshes = {};
 let switchMesh = null, focoMesh = null, focoDiaMesh = null, luzFocoDia = null;
-
 const audioPrenderLuz = new Audio('prender_luz.mp3');
 const audioApagarLuz = new Audio('apagar_luz.mp3');
 const audioAbrirPoster = new Audio('abrir_poster.mp3');
@@ -24,7 +22,7 @@ const audioCerrarPoster = new Audio('guardar_poster.mp3');
 
 // Inicializar Módulos
 TVManager.init();
-PCManager.init(); 
+PCManager.init(); // AÑADIDO
 
 function applyCurrentSettings() {
     let pixelRatio = 1;
@@ -35,10 +33,10 @@ function applyCurrentSettings() {
     renderer.shadowMap.enabled = State.gameSettings.sombras > 0;
     renderer.shadowMap.type = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     mainLight.castShadow = State.gameSettings.sombras > 0;
-
+    
     if (State.gameSettings.sombras > 0) {
         let shadowRes = State.gameSettings.sombras === 2 ?
-        (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
+            (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
         if (mainLight.shadow.mapSize.width !== shadowRes) {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
@@ -110,6 +108,7 @@ function checkLoading() {
 if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
 
 const loader = new GLTFLoader();
+
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.dormir = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.dormir = new THREE.AnimationMixer(model); LunariSystem.actions.dormir_base = LunariSystem.mixers.dormir.clipAction(gltf.animations[0]); }
@@ -161,7 +160,6 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     
     loader.load(getFreshUrl(itemFile), (gltf) => {
         const model = gltf.scene; applyMaterialLogic(model, categoryKey);
-        
         if (categoryKey === 'pantalla_tv') {
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
@@ -177,7 +175,7 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
 
-        // Lógica actualizada para la PC: apunta exclusivamente al slot 'pantalla_pc'
+        // Lógica actualizada para apuntar a la categoría 'pantalla_pc'
         if (categoryKey === 'pantalla_pc') {
             PCManager.setScreenMesh(model);
         }
@@ -235,7 +233,8 @@ function handleInteraction(event) {
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
     
-    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
+    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return;
+    }
     
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
@@ -247,7 +246,7 @@ function handleInteraction(event) {
         TVManager.lastTvClickTime = currentTime; return;
     }
 
-    // Interacción con la PC apuntando al slot 'pantalla_pc'
+    // Interacción actualizada con la PC apuntando a 'pantalla_pc'
     const pcMesh = loadedSlotMeshes['pantalla_pc'];
     if (pcMesh && raycaster.intersectObject(pcMesh, true).length > 0) {
         PCManager.openOS();

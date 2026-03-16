@@ -110,17 +110,30 @@
         <div id="pc-environment">
             <div id="pc-desktop">
                 <div class="pc-icon" onclick="PCManager.openApp('browser')">
-                    🌐<span>Navegador</span>
+                    <div class="icon-img">🌐</div>
+                    <span>ArchiBrowser</span>
+                </div>
+                <div class="pc-icon" onclick="alert('Sistema de Archivos en mantenimiento.')">
+                    <div class="icon-img">📁</div>
+                    <span>Archivos</span>
                 </div>
                 <div class="pc-icon" onclick="alert('Pronto habrá más apps!')">
-                    🛒<span>Tienda</span>
+                    <div class="icon-img">🛒</div>
+                    <span>Tienda</span>
                 </div>
             </div>
 
             <div id="pc-window-browser" class="pc-window hidden">
                 <div class="pc-window-header">
-                    <span>ArchiBrowser</span>
-                    <button class="pc-close-btn" onclick="PCManager.closeApp('browser')">✖</button>
+                    <div class="win-title">🌐 ArchiBrowser</div>
+                    <div class="win-controls">
+                        <button class="win-btn win-min" onclick="PCManager.closeApp('browser')">_</button>
+                        <button class="win-btn win-max">□</button>
+                        <button class="win-btn win-close" onclick="PCManager.closeApp('browser')">✖</button>
+                    </div>
+                </div>
+                <div class="pc-window-toolbar">
+                    <input type="text" value="https://es.wikipedia.org" readonly>
                 </div>
                 <div class="pc-window-content">
                     <iframe src="https://es.wikipedia.org" frameborder="0"></iframe>
@@ -129,12 +142,15 @@
 
             <div id="pc-taskbar">
                 <button id="pc-start-btn" onclick="PCManager.togglePower()">⚡ Apagar</button>
+                <div class="pc-taskbar-apps">
+                    </div>
                 <div id="pc-time">12:00 PM</div>
             </div>
             
-            <button id="close-pc-view" onclick="PCManager.closeOS()">Salir de la PC</button>
+            <button id="close-pc-view" onclick="PCManager.closeOS()">Salir de la PC (3D)</button>
         </div>
     </div>
+
     <div id="loading">
         <div class="loading-text">Preparando habitación... <span id="loading-count">0/0</span></div>
         <div id="loading-bar-container"><div id="loading-bar"></div></div>
