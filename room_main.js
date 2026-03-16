@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { State, isMobileUA, checkDailyReward, getFreshUrl, disposeThreeJSObject } from './room_state.js';
 import { SceneSetup } from './room_scene.js';
 import { TVManager } from './room_tv.js';
+import { PCManager } from './room_pc.js'; // AÑADIDO
 import { LunariSystem } from './room_lunari.js';
 import { WeatherSystem } from './room_clima.js';
 import { UIManager } from './room_ui.js';
@@ -23,6 +24,7 @@ const audioCerrarPoster = new Audio('guardar_poster.mp3');
 
 // Inicializar Módulos
 TVManager.init();
+PCManager.init(); // AÑADIDO
 
 function applyCurrentSettings() {
     let pixelRatio = 1;
@@ -172,7 +174,15 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             });
             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
-        if (categoryKey === 'foco') { focoMesh = model; const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); mainLight.position.copy(center); mainLight.position.y -= 0.2; }
+
+        // AÑADIDO: Lógica para cargar la PC (asume que la categoría en inventory-data.txt es 'pc')
+        if (categoryKey === 'pc') {
+            PCManager.setScreenMesh(model);
+        }
+
+        if (categoryKey === 'foco') { focoMesh = model;
+            const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); mainLight.position.copy(center); mainLight.position.y -= 0.2;
+        }
         if (categoryKey === 'interruptor') switchMesh = model;
         
         scene.add(model); loadedSlotMeshes[categoryKey] = model;
@@ -194,7 +204,8 @@ WeatherSystem.setupWeatherVideo(loader, scene, applyMaterialLogic, loadedSlotMes
 
 function updateLighting() {
     if (State.lightOn) {
-        mainLight.visible = true; ambient.intensity = State.gameSettings.calidad === 'baja' ? 0.8 : 0.3; hemiLight.intensity = State.gameSettings.calidad === 'baja' ? 0.8 : 0.4;
+        mainLight.visible = true;
+        ambient.intensity = State.gameSettings.calidad === 'baja' ? 0.8 : 0.3; hemiLight.intensity = State.gameSettings.calidad === 'baja' ? 0.8 : 0.4;
         document.getElementById('light-status').innerText = '💡 Luz encendida';
         if (focoMesh) focoMesh.traverse((n) => { if (n.isMesh && n.material) n.material.emissiveIntensity = 1.5; });
     } else {
@@ -205,8 +216,10 @@ function updateLighting() {
 }
 
 const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2();
+
 function toggleLight() {
-    State.lightOn = !State.lightOn; localStorage.setItem('lightState', State.lightOn ? 'on' : 'off'); updateLighting();
+    State.lightOn = !State.lightOn;
+    localStorage.setItem('lightState', State.lightOn ? 'on' : 'off'); updateLighting();
     if (State.lightOn) { audioPrenderLuz.currentTime = 0; audioPrenderLuz.play().catch(e=>{}); } else { audioApagarLuz.currentTime = 0; audioApagarLuz.play().catch(e=>{}); }
 }
 
@@ -216,7 +229,9 @@ posterViewModal.onclick = (e) => { if (e.target === posterViewModal) { posterVie
 
 function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
-    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
+    
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
     
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
@@ -225,6 +240,13 @@ function handleInteraction(event) {
         if (currentTime - TVManager.lastTvClickTime < 300) { if (TVManager.isTvOn && !TVManager.tvTransitioning) { if (TVManager.tvVideo.paused) TVManager.tvVideo.play().catch(e=>{}); else TVManager.tvVideo.pause(); } } 
         else { if (tvControls.style.display === 'none' || tvControls.style.display === '') tvControls.style.display = 'flex'; else tvControls.style.display = 'none'; }
         TVManager.lastTvClickTime = currentTime; return;
+    }
+
+    // AÑADIDO: Interacción con la PC
+    const pcMesh = loadedSlotMeshes['pc'];
+    if (pcMesh && raycaster.intersectObject(pcMesh, true).length > 0) {
+        PCManager.openOS();
+        return;
     }
 
     const posterCategories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
@@ -245,8 +267,10 @@ renderer.domElement.addEventListener('pointerup', (e) => { if (!isDragging && !d
 
 let then = performance.now(), frames = 0, lastFpsTime = then;
 function animate() {
-    requestAnimationFrame(animate); const now = performance.now(); const elapsed = now - then;
+    requestAnimationFrame(animate);
+    const now = performance.now(); const elapsed = now - then;
     const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
+    
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
         const delta = clock.getDelta(); LunariSystem.update(delta); 
@@ -260,5 +284,4 @@ function animate() {
 }
 
 window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); applyCurrentSettings(); });
-
 applyCurrentSettings(); updateLighting(); animate();

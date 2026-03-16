@@ -106,6 +106,35 @@
         <img id="poster-enlarged-image" src="" alt="Póster">
     </div>
 
+    <div id="pc-os-modal" class="hidden">
+        <div id="pc-environment">
+            <div id="pc-desktop">
+                <div class="pc-icon" onclick="PCManager.openApp('browser')">
+                    🌐<span>Navegador</span>
+                </div>
+                <div class="pc-icon" onclick="alert('Pronto habrá más apps!')">
+                    🛒<span>Tienda</span>
+                </div>
+            </div>
+
+            <div id="pc-window-browser" class="pc-window hidden">
+                <div class="pc-window-header">
+                    <span>ArchiBrowser</span>
+                    <button class="pc-close-btn" onclick="PCManager.closeApp('browser')">✖</button>
+                </div>
+                <div class="pc-window-content">
+                    <iframe src="https://es.wikipedia.org" frameborder="0"></iframe>
+                </div>
+            </div>
+
+            <div id="pc-taskbar">
+                <button id="pc-start-btn" onclick="PCManager.togglePower()">⚡ Apagar</button>
+                <div id="pc-time">12:00 PM</div>
+            </div>
+            
+            <button id="close-pc-view" onclick="PCManager.closeOS()">Salir de la PC</button>
+        </div>
+    </div>
     <div id="loading">
         <div class="loading-text">Preparando habitación... <span id="loading-count">0/0</span></div>
         <div id="loading-bar-container"><div id="loading-bar"></div></div>
