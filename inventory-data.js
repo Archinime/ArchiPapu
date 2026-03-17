@@ -120,6 +120,7 @@ export const defaultInventoryConfig = {
             "base": { 
                 name: "PC Estándar", 
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pc.glb", 
+                baseFile: "pantalla_pc.glb", 
                 price: 0, 
                 owned: true,
                 preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pc_estandar.avif"
@@ -376,7 +377,6 @@ export const defaultInventoryConfig = {
         }
     }
 };
-
 export const inventoryGroups = [
     { id: 'estructura', label: 'Estructura', emoji: '🏠', categories: ['piso', 'paredes', 'techo', 'puerta'] },
     { id: 'iluminacion', label: 'Iluminación', emoji: '💡', categories: ['interruptor', 'foco'] },

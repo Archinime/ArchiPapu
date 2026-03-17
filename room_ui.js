@@ -11,7 +11,6 @@ export const UIManager = {
         this.setupModals();
         this.syncSettingsUI();
         
-        // Exponemos las funciones para los botones del DOM
         window.equipItem = (category, itemId) => this.equipItem(category, itemId);
         window.buyItem = (category, itemId) => this.buyItem(category, itemId);
     },
@@ -31,7 +30,6 @@ export const UIManager = {
                 tab.classList.add('active'); document.getElementById(tab.dataset.target).classList.add('active'); 
             };
         });
-
         document.getElementById('inventory-button').onclick = () => { document.getElementById('inventory-modal').classList.add('visible'); this.renderInventory(); };
         document.getElementById('close-inv').onclick = () => { document.getElementById('inventory-modal').classList.remove('visible'); };
     },
@@ -51,9 +49,9 @@ export const UIManager = {
             b.classList.toggle('active', parseInt(b.dataset.val) === State.gameSettings.fps);
             b.onclick = () => { State.gameSettings.fps = parseInt(b.dataset.val); this.syncSettingsUI(); };
         });
-        
         const volTV = document.getElementById('setting-volumen-tv'); volTV.value = State.gameSettings.volumenTV; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`;
-        volTV.oninput = (e) => { State.gameSettings.volumenTV = e.target.value; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; this.applySettingsCallback(); };
+        volTV.oninput = (e) => { State.gameSettings.volumenTV = e.target.value;
+        document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; this.applySettingsCallback(); };
         
         const volEf = document.getElementById('setting-volumen-efectos'); volEf.value = State.gameSettings.volumenEfectos; document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`;
         volEf.oninput = (e) => { State.gameSettings.volumenEfectos = e.target.value; document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`; this.applySettingsCallback(); };
@@ -63,7 +61,8 @@ export const UIManager = {
     },
 
     renderInventory() {
-        const sidebar = document.getElementById('inv-sidebar'), content = document.getElementById('inv-content'); sidebar.innerHTML = ''; content.innerHTML = '';
+        const sidebar = document.getElementById('inv-sidebar'), content = document.getElementById('inv-content');
+        sidebar.innerHTML = ''; content.innerHTML = '';
         inventoryGroups.forEach(group => {
             const groupDiv = document.createElement('div'); groupDiv.className = 'inv-group';
             const groupBtn = document.createElement('button'); groupBtn.className = 'group-btn';
@@ -74,7 +73,8 @@ export const UIManager = {
             const groupContent = document.createElement('div'); groupContent.className = `group-content ${this.openGroup === group.id ? 'open' : ''}`;
             group.categories.forEach(catKey => {
                 const catData = State.inventoryData[catKey]; if(!catData) return;
-                const btn = document.createElement('button'); btn.className = `cat-btn ${catKey === this.currentCategory ? 'active' : ''}`;
+                const btn = document.createElement('button'); 
+                btn.className = `cat-btn ${catKey === this.currentCategory ? 'active' : ''}`;
                 btn.innerHTML = `<span class="cat-icon-emoji">${catData.emoji}</span> <span>${catData.label}</span>`;
                 btn.onclick = () => { this.currentCategory = catKey; this.renderInventory(); };
                 groupContent.appendChild(btn);
@@ -82,15 +82,17 @@ export const UIManager = {
             groupDiv.appendChild(groupContent); sidebar.appendChild(groupDiv);
         });
 
-        const catData = State.inventoryData[this.currentCategory]; if (!catData) return;
+        const catData = State.inventoryData[this.currentCategory];
+        if (!catData) return;
         for (let itemId in catData.items) {
             const item = catData.items[itemId];
             let isEq = catData.type === 'multiple' ? catData.equipped.includes(itemId) : catData.equipped === itemId;
             const card = document.createElement('div'); card.className = 'item-card';
             const prev = document.createElement('div'); prev.className = 'item-preview';
             if (item.preview) { 
-                const img = document.createElement('img'); img.src = item.preview; img.alt = item.name;
-                img.onerror = () => { prev.innerHTML = `<span>${catData.emoji}</span>`; }; prev.appendChild(img); 
+                const img = document.createElement('img');
+                img.src = item.preview; img.alt = item.name;
+                img.onerror = () => { prev.innerHTML = `<span>${catData.emoji}</span>`; }; prev.appendChild(img);
             } else prev.innerHTML = `<span>${catData.emoji}</span>`;
             
             let btn = item.owned ?
@@ -102,22 +104,25 @@ export const UIManager = {
     equipItem(category, itemId) {
         const catData = State.inventoryData[category];
         if (catData.type === 'multiple') { 
-            const idx = catData.equipped.indexOf(itemId); 
+            const idx = catData.equipped.indexOf(itemId);
             if (idx > -1) catData.equipped.splice(idx, 1); else catData.equipped.push(itemId); 
             TVManager.updatePlaylist();
         } else { 
-            catData.equipped = itemId; const itemData = catData.items[itemId];
+            catData.equipped = itemId;
+            const itemData = catData.items[itemId];
             this.loadItemCallback(category, itemData.file, false);
             if (category === 'foco' && itemData.baseFile) this.loadItemCallback('base_foco', itemData.baseFile, false);
             if (category === 'tele' && itemData.baseFile) this.loadItemCallback('pantalla_tv', itemData.baseFile, false);
+            if (category === 'pc' && itemData.baseFile) this.loadItemCallback('pantalla_pc', itemData.baseFile, false);
         }
-        State.saveGame(); this.renderInventory(); 
+        State.saveGame(); this.renderInventory();
     },
 
     buyItem(category, itemId) {
         let item = State.inventoryData[category].items[itemId];
         if (State.playerCoins >= item.price) { 
-            State.playerCoins -= item.price; item.owned = true; State.saveGame(); this.renderInventory(); 
+            State.playerCoins -= item.price;
+            item.owned = true; State.saveGame(); this.renderInventory(); 
         } else alert("No tienes suficientes monedas.");
     }
 };

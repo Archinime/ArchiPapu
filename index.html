@@ -90,6 +90,21 @@
         <button id="tv-next" title="Canal Siguiente">⏭️</button>
     </div>
 
+    <div id="pc-controls" style="display:none;">
+        <button id="pc-power" title="Encender/Apagar PC" style="color: red; text-shadow: 0 0 5px red;">🔴</button>
+        <button id="pc-open" title="Navegar en PC">💻</button>
+    </div>
+
+    <div id="pc-modal" class="modal-overlay">
+        <div class="pc-modal-content">
+            <div id="pc-header">
+                <h2>🖥️ PC Virtual de Lunari</h2>
+                <button id="close-pc">✖</button>
+            </div>
+            <iframe id="pc-iframe" src="" frameborder="0" allowfullscreen></iframe>
+        </div>
+    </div>
+
     <div id="inventory-modal">
         <div id="inv-header">
             <h2>🎒 Inventario y Tienda</h2>
@@ -104,51 +119,6 @@
     <div id="poster-view-modal">
         <button id="close-poster-view">&times;</button>
         <img id="poster-enlarged-image" src="" alt="Póster">
-    </div>
-
-    <div id="pc-os-modal" class="hidden">
-        <div id="pc-environment">
-            <div id="pc-desktop">
-                <div class="pc-icon" onclick="PCManager.openApp('browser')">
-                    <div class="icon-img">🌐</div>
-                    <span>ArchiBrowser</span>
-                </div>
-                <div class="pc-icon" onclick="alert('Sistema de Archivos en mantenimiento.')">
-                    <div class="icon-img">📁</div>
-                    <span>Archivos</span>
-                </div>
-                <div class="pc-icon" onclick="alert('Pronto habrá más apps!')">
-                    <div class="icon-img">🛒</div>
-                    <span>Tienda</span>
-                </div>
-            </div>
-
-            <div id="pc-window-browser" class="pc-window hidden">
-                <div class="pc-window-header">
-                    <div class="win-title">🌐 ArchiBrowser</div>
-                    <div class="win-controls">
-                        <button class="win-btn win-min" onclick="PCManager.closeApp('browser')">_</button>
-                        <button class="win-btn win-max">□</button>
-                        <button class="win-btn win-close" onclick="PCManager.closeApp('browser')">✖</button>
-                    </div>
-                </div>
-                <div class="pc-window-toolbar">
-                    <input type="text" value="https://es.wikipedia.org" readonly>
-                </div>
-                <div class="pc-window-content">
-                    <iframe src="https://es.wikipedia.org" frameborder="0"></iframe>
-                </div>
-            </div>
-
-            <div id="pc-taskbar">
-                <button id="pc-start-btn" onclick="PCManager.togglePower()">⚡ Apagar</button>
-                <div class="pc-taskbar-apps">
-                    </div>
-                <div id="pc-time">12:00 PM</div>
-            </div>
-            
-            <button id="close-pc-view" onclick="PCManager.closeOS()">Salir de la PC (3D)</button>
-        </div>
     </div>
 
     <div id="loading">
