@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { State } from './room_state.js';
+import { PCManager } from './room_pc.js'; // <-- NUEVO: Importamos PCManager para desbloquear su audio
 
 export const TVManager = {
     isTvOn: false,
@@ -32,7 +33,7 @@ export const TVManager = {
         this.tvEffectVideoOn.crossOrigin = 'anonymous';
         this.tvEffectVideoOn.playsInline = true;
         this.tvEffectVideoOn.setAttribute('playsinline', '');
-        document.body.appendChild(this.tvEffectVideoOn); 
+        document.body.appendChild(this.tvEffectVideoOn);
         this.tvEffectVideoOn.style.display = 'none';
 
         this.tvVideo.playsInline = true;
@@ -49,7 +50,7 @@ export const TVManager = {
         this.tvEffectTextureOff.minFilter = THREE.LinearFilter; 
         this.tvEffectTextureOff.magFilter = THREE.LinearFilter; 
         this.tvEffectTextureOff.format = THREE.RGBAFormat;
-        
+
         this.tvEffectTextureOn = new THREE.VideoTexture(this.tvEffectVideoOn);
         this.tvEffectTextureOn.minFilter = THREE.LinearFilter; 
         this.tvEffectTextureOn.magFilter = THREE.LinearFilter; 
@@ -57,7 +58,7 @@ export const TVManager = {
 
         this.setupControls();
         this.updatePlaylist();
-        
+
         this.tvVideo.addEventListener('ended', () => {
             if (this.isTvOn && !this.tvTransitioning) {
                 this.playNextTv(false);
@@ -68,7 +69,6 @@ export const TVManager = {
         this.setupStartScreen();
     },
 
-    // --- NUEVO: Pantalla de "Iniciar Habitación" Anti-Lag ---
     setupStartScreen() {
         const overlay = document.createElement('div');
         overlay.id = 'start-interaction-overlay';
@@ -85,7 +85,7 @@ export const TVManager = {
         overlay.style.justifyContent = 'center';
         overlay.style.zIndex = '99999';
         overlay.style.transition = 'opacity 0.5s ease';
-        overlay.style.opacity = '0'; // Oculto al principio
+        overlay.style.opacity = '0';
         overlay.style.pointerEvents = 'none';
 
         const btn = document.createElement('button');
@@ -107,33 +107,33 @@ export const TVManager = {
         overlay.appendChild(btn);
         document.body.appendChild(overlay);
 
-        // Esperar inteligentemente a que tu div de "loading" desaparezca
         const checkLoading = setInterval(() => {
             const loadingDiv = document.getElementById('loading');
             if (!loadingDiv || window.getComputedStyle(loadingDiv).display === 'none' || window.getComputedStyle(loadingDiv).opacity === '0') {
                 clearInterval(checkLoading);
-                // Terminó de cargar, mostramos el botón Iniciar
                 overlay.style.opacity = '1';
                 overlay.style.pointerEvents = 'auto';
             }
         }, 500);
 
-        // Acción al presionar el botón
         btn.addEventListener('click', () => {
             this.hasInteracted = true;
             
-            // Truco maestro: Iniciamos y pausamos los medios de inmediato para conseguir permisos permanentes del navegador
+            // Iniciamos y pausamos medios de inmediato para conseguir permisos
             this.tvVideo.play().catch(()=>{});
             this.tvVideo.pause();
+            
             this.audioBotonTV.play().catch(()=>{});
             this.audioBotonTV.pause();
             this.audioBotonTV.currentTime = 0;
 
-            // Desaparecer la pantalla de inicio
+            // <-- NUEVO: Desbloqueamos el video de la PC de Lunari para que tenga sonido
+            PCManager.survVideo.play().catch(()=>{});
+            PCManager.survVideo.pause();
+
             overlay.style.opacity = '0';
             setTimeout(() => overlay.remove(), 500);
 
-            // Si Lunari ya se despertó mientras cargaba y la tele quedó "en espera", la encendemos ahora.
             if (this.pendingAutoTurnOn) {
                 this.turnOnAutomatically();
             }
@@ -157,13 +157,12 @@ export const TVManager = {
         this.tvVideo.volume = State.gameSettings.volumenTV / 100;
         
         if (this.isTvOn && !this.tvTransitioning) {
-            // Como ya le dimos a "Iniciar", esto reproducirá el video limpio y sin lag
             this.tvVideo.play().catch(e => console.warn('Aún necesita interacción', e));
         }
     },
 
     playButtonSound() { 
-        this.audioBotonTV.currentTime = 0; 
+        this.audioBotonTV.currentTime = 0;
         this.audioBotonTV.play().catch(e=>{});
     },
 
@@ -172,15 +171,15 @@ export const TVManager = {
               tvPlayPauseBtn = document.getElementById('tv-play-pause'), 
               tvNextBtn = document.getElementById('tv-next'), 
               tvPowerBtn = document.getElementById('tv-power');
-              
+
         tvPrevBtn.onclick = () => { 
-            this.playButtonSound(); 
+            this.playButtonSound();
             if (!this.isTvOn || this.tvTransitioning) return; 
             this.updatePlaylist(); 
             if(this.tvPlaylist.length===0)return;
             this.currentTvIndex = (this.currentTvIndex - 1 + this.tvPlaylist.length) % this.tvPlaylist.length; 
             this.tvVideo.src = this.tvPlaylist[this.currentTvIndex]; 
-            this.tvVideo.play(); 
+            this.tvVideo.play();
         };
         
         tvPlayPauseBtn.onclick = () => { 
@@ -189,7 +188,7 @@ export const TVManager = {
             if(this.tvVideo.paused) this.tvVideo.play(); 
             else this.tvVideo.pause(); 
         };
-        
+
         tvNextBtn.onclick = () => { 
             this.playButtonSound();
             if (this.isTvOn && !this.tvTransitioning) this.playNextTv(false); 
@@ -203,6 +202,7 @@ export const TVManager = {
                 
                 this.tvTransitioning = true; 
                 this.tvVideo.pause();
+       
                 const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
                 
                 const effectVideo = this.isTvOn ? this.tvEffectVideoOff : this.tvEffectVideoOn; 
@@ -217,11 +217,15 @@ export const TVManager = {
                     mat.needsUpdate = true; 
                 });
                 
-                effectVideo.currentTime = 0; 
+                effectVideo.currentTime = 0;
                 effectVideo.play().catch(e=>{});
 
                 const onEffectEnded = () => {
                     effectVideo.removeEventListener('ended', onEffectEnded);
+                    
+                    // <-- CORREGIDO: Declaramos que la transición terminó AQUÍ para que permita el autoplay
+                    this.tvTransitioning = false; 
+
                     if (this.isTvOn) {
                         this.isTvOn = false;
                         tvPowerBtn.innerText = '🔴'; 
@@ -248,24 +252,20 @@ export const TVManager = {
                             mat.emissiveIntensity = 1.0; 
                             mat.needsUpdate = true; 
                         });
-                        
                         if (this.tvPlaylist.length > 0 && !this.tvVideo.src) {
                             this.playNextTv(true);
                         } else if (this.tvPlaylist.length > 0) {
-                            this.tvVideo.currentTime = 0; 
+                            this.tvVideo.currentTime = 0;
                             this.tvVideo.play().catch(e=>{});
                         }
                     }
-                    this.tvTransitioning = false;
                 };
                 effectVideo.addEventListener('ended', onEffectEnded, { once: true });
             });
         }
     },
 
-    // --- NUEVO Lógica mejorada de encendido ---
     turnOnAutomatically() {
-        // Si Lunari despierta pero el usuario NO ha presionado "Iniciar", ponemos el encendido en cola
         if (!this.hasInteracted) {
             this.pendingAutoTurnOn = true;
             return; 
@@ -275,16 +275,16 @@ export const TVManager = {
         if (this.isTvOn || this.tvTransitioning) return;
         
         this.isTvOn = true;
-        
         const tvPowerBtn = document.getElementById('tv-power');
         if (tvPowerBtn) {
-            tvPowerBtn.innerText = '🟢'; 
+            tvPowerBtn.innerText = '🟢';
             tvPowerBtn.style.color = '#00ff00'; 
             tvPowerBtn.style.textShadow = '0 0 5px #00ff00';
         }
 
         if (this.tvScreenMesh) {
-            const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
+            const mats = Array.isArray(this.tvScreenMesh.material) ?
+            this.tvScreenMesh.material : [this.tvScreenMesh.material];
             mats.forEach(mat => { 
                 mat.map = this.tvTexture; 
                 mat.emissiveMap = this.tvTexture; 

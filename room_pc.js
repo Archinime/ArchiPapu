@@ -11,30 +11,33 @@ export const PCManager = {
     isGamingMode: false,
     survVideo: document.createElement('video'),
     survVideoTexture: null,
-    logoTexture: null, // <-- NUEVA TEXTURA PARA PANTALLA 2
+    logoTexture: null, // Textura para PANTALLA 2
     
     init() {
         // Configuramos el video de surv.mp4 en bucle
         this.survVideo.src = 'surv.mp4';
         this.survVideo.loop = true;
-        this.survVideo.muted = false; // <-- CORREGIDO: Ahora el video sí tiene sonido
+        this.survVideo.muted = false; // Sonido activado
         this.survVideo.playsInline = true;
         this.survVideo.crossOrigin = 'anonymous';
+        
+        // <-- NUEVO: Agregamos el video al DOM (oculto). Esto es VITAL para que los navegadores permitan el audio en texturas 3D.
+        document.body.appendChild(this.survVideo);
+        this.survVideo.style.display = 'none';
         
         this.survVideoTexture = new THREE.VideoTexture(this.survVideo);
         this.survVideoTexture.minFilter = THREE.LinearFilter;
         this.survVideoTexture.magFilter = THREE.LinearFilter;
         this.survVideoTexture.format = THREE.RGBAFormat;
-        // this.survVideoTexture.encoding = THREE.sRGBEncoding;
 
-        // <-- CORREGIDO: Invertimos el video de izquierda a derecha
+        // Invertimos el video de izquierda a derecha
         this.survVideoTexture.wrapS = THREE.RepeatWrapping;
         this.survVideoTexture.repeat.x = -1;
 
-        // <-- NUEVO: Cargamos la imagen logo.avif
+        // Cargamos la imagen logo.avif
         const textureLoader = new THREE.TextureLoader();
         this.logoTexture = textureLoader.load('logo.avif');
-        this.logoTexture.flipY = false; // Para que no salga de cabeza en el modelo GLTF
+        this.logoTexture.flipY = false;
 
         this.setupControls();
     },
@@ -78,7 +81,7 @@ export const PCManager = {
                             mat.emissive.setHex(0xffffff);
                             mat.emissiveIntensity = 1.0;
                         } else {
-                            // <-- NUEVO: Pantalla secundaria (pantalla_pc2) muestra logo.avif
+                            // Pantalla secundaria (pantalla_pc2) muestra logo.avif
                             mat.map = this.logoTexture;
                             mat.emissiveMap = this.logoTexture;
                             mat.color.setHex(0xffffff);
@@ -123,7 +126,6 @@ export const PCManager = {
                 pcPowerBtn.style.color = this.isPcOn ? '#00ff00' : 'red';
                 pcPowerBtn.style.textShadow = this.isPcOn ? '0 0 5px #00ff00' : '0 0 5px red';
                 
-                // Usamos la nueva función centralizada para pintar colores
                 this.updateScreens();
 
                 if (!this.isPcOn && pcModal.classList.contains('visible')) {
@@ -157,6 +159,6 @@ export const PCManager = {
 
     setVolume(volEf) {
         this.audioBotonPC.volume = volEf / 100;
-        this.survVideo.volume = volEf / 100; // <-- NUEVO: Enlazamos el volumen del video de juego a las configuraciones
+        this.survVideo.volume = volEf / 100; // Enlazamos el volumen del video de juego
     }
 };

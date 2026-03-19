@@ -99,12 +99,10 @@ for (let cat in State.inventoryData) {
         if (cat === 'pc' && it.baseFile) {
             totalModelsToLoad++;
             totalModelsToLoad++;
-            // Para pantalla_pc2.glb
         }
     }
 }
 totalModelsToLoad += 6;
-// Se aumentó para reflejar el nuevo modelo (lunari_jugando.glb)
 
 function checkLoading() {
     modelsLoaded++;
@@ -120,6 +118,7 @@ function checkLoading() {
 if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
 
 const loader = new GLTFLoader();
+
 // LUNARI: DORMIR
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.dormir = model;
@@ -178,7 +177,6 @@ setInterval(() => {
 
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
-    // Si ya existe el modelo, lo eliminamos y limpiamos las referencias del Array
     if (loadedSlotMeshes[categoryKey]) { 
         const oldModel = loadedSlotMeshes[categoryKey];
         scene.remove(oldModel); 
@@ -212,12 +210,11 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
         
-        // PANTALLAS DE PC (Actualizado para el Video de Juego)
+        // PANTALLAS DE PC
         if (categoryKey === 'pantalla_pc' || categoryKey === 'pantalla_pc2') { 
             if (!PCManager.pcScreenMeshes) PCManager.pcScreenMeshes = [];
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
-                    // Marcamos de forma especial pantalla_pc porque será la del video
                     if (categoryKey === 'pantalla_pc') node.userData.isMainVideoScreen = true;
 
                     if (!PCManager.pcScreenMeshes.includes(node)) 
@@ -226,7 +223,6 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                     }
                 }
             });
-            // Aplicamos la lógica correcta llamando al gestor directamente
             PCManager.updateScreens();
         }
         
@@ -288,7 +284,7 @@ function handleInteraction(event) {
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return;
     }
     
-    // --- TV ---
+    // --- TV (Mantiene doble clic para dar play o abrir interfaz) ---
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
         const tvControls = document.getElementById('tv-controls'), currentTime = Date.now();
@@ -306,42 +302,36 @@ function handleInteraction(event) {
         TVManager.lastTvClickTime = currentTime; return;
     }
 
-    // --- PC PRINCIPAL (pantalla_pc2 -> Abre Enlace Archinime) ---
+    // <-- NUEVO: PC PRINCIPAL (pantalla_pc2) CON UN SOLO CLIC -->
     const pcScreenMesh = loadedSlotMeshes['pantalla_pc2'];
     if (pcScreenMesh && raycaster.intersectObject(pcScreenMesh, true).length > 0) {
         const pcControls = document.getElementById('pc-controls');
-        const currentTime = Date.now();
-        document.getElementById('tv-controls').style.display = 'none'; // Exclusividad
+        document.getElementById('tv-controls').style.display = 'none'; 
         
-        if (currentTime - PCManager.lastPcClickTime < 300) { 
-            if (PCManager.isPcOn) {
-                // <-- CORREGIDO: Redirige directamente al link en vez del modal
-                window.open('https://archinime.github.io/-Archinime-', '_blank');
-                pcControls.style.display = 'none';
-            } 
+        if (PCManager.isPcOn) {
+            window.open('https://archinime.github.io/-Archinime-', '_blank');
+            pcControls.style.display = 'none';
         } else { 
             if (pcControls.style.display === 'none' || pcControls.style.display === '') pcControls.style.display = 'flex';
             else pcControls.style.display = 'none'; 
         }
-        PCManager.lastPcClickTime = currentTime; 
         return;
     }
 
-    // --- SEGUNDA PANTALLA (pantalla_pc -> Video / Enlace Externo) ---
+    // <-- NUEVO: SEGUNDA PANTALLA (pantalla_pc) CON UN SOLO CLIC -->
     const pc2ScreenMesh = loadedSlotMeshes['pantalla_pc'];
     if (pc2ScreenMesh && raycaster.intersectObject(pc2ScreenMesh, true).length > 0) {
+        document.getElementById('tv-controls').style.display = 'none';
+        const pcControls = document.getElementById('pc-controls');
+
         if (PCManager.isPcOn) {
-            // Lógica inteligente: Si está en modo juego la mandamos a Survev, si no al enlace normal
             if (LunariSystem.currentState === 'jugar') {
                 window.open('https://survev.io', '_blank');
             } else {
                 window.open('https://archinime.github.io/-Archinime-', '_blank');
             }
+            pcControls.style.display = 'none';
         } else {
-            // Si está apagada abre menú de control
-            document.getElementById('tv-controls').style.display = 'none';
-            // Exclusividad
-            const pcControls = document.getElementById('pc-controls');
             if (pcControls.style.display === 'none' || pcControls.style.display === '') pcControls.style.display = 'flex';
             else pcControls.style.display = 'none';
         }
