@@ -302,7 +302,7 @@ function handleInteraction(event) {
         TVManager.lastTvClickTime = currentTime; return;
     }
 
-    // <-- NUEVO: PC PRINCIPAL (pantalla_pc2) CON UN SOLO CLIC -->
+    // --- PC PRINCIPAL (pantalla_pc2) CON UN SOLO CLIC ---
     const pcScreenMesh = loadedSlotMeshes['pantalla_pc2'];
     if (pcScreenMesh && raycaster.intersectObject(pcScreenMesh, true).length > 0) {
         const pcControls = document.getElementById('pc-controls');
@@ -318,7 +318,7 @@ function handleInteraction(event) {
         return;
     }
 
-    // <-- NUEVO: SEGUNDA PANTALLA (pantalla_pc) CON UN SOLO CLIC -->
+    // --- SEGUNDA PANTALLA (pantalla_pc) CON UN SOLO CLIC ---
     const pc2ScreenMesh = loadedSlotMeshes['pantalla_pc'];
     if (pc2ScreenMesh && raycaster.intersectObject(pc2ScreenMesh, true).length > 0) {
         document.getElementById('tv-controls').style.display = 'none';

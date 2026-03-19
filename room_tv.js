@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { State } from './room_state.js';
-import { PCManager } from './room_pc.js'; // <-- NUEVO: Importamos PCManager para desbloquear su audio
+import { PCManager } from './room_pc.js'; // Importamos PCManager para desbloquear su audio
 
 export const TVManager = {
     isTvOn: false,
@@ -121,15 +121,20 @@ export const TVManager = {
             
             // Iniciamos y pausamos medios de inmediato para conseguir permisos
             this.tvVideo.play().catch(()=>{});
-            this.tvVideo.pause();
+            if (!this.isTvOn || this.tvTransitioning) {
+                this.tvVideo.pause();
+            }
             
             this.audioBotonTV.play().catch(()=>{});
             this.audioBotonTV.pause();
             this.audioBotonTV.currentTime = 0;
 
-            // <-- NUEVO: Desbloqueamos el video de la PC de Lunari para que tenga sonido
+            // <-- CORREGIDO: Desbloqueamos el video de la PC
             PCManager.survVideo.play().catch(()=>{});
-            PCManager.survVideo.pause();
+            // ¡OJO! Solo lo pausamos si Lunari NO está jugando. Si está jugando, lo dejamos correr.
+            if (!PCManager.isGamingMode) {
+                PCManager.survVideo.pause();
+            }
 
             overlay.style.opacity = '0';
             setTimeout(() => overlay.remove(), 500);
@@ -222,8 +227,6 @@ export const TVManager = {
 
                 const onEffectEnded = () => {
                     effectVideo.removeEventListener('ended', onEffectEnded);
-                    
-                    // <-- CORREGIDO: Declaramos que la transición terminó AQUÍ para que permita el autoplay
                     this.tvTransitioning = false; 
 
                     if (this.isTvOn) {

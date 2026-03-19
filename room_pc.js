@@ -21,7 +21,7 @@ export const PCManager = {
         this.survVideo.playsInline = true;
         this.survVideo.crossOrigin = 'anonymous';
         
-        // <-- NUEVO: Agregamos el video al DOM (oculto). Esto es VITAL para que los navegadores permitan el audio en texturas 3D.
+        // Agregamos el video al DOM (oculto). Esto es VITAL para que los navegadores permitan el audio.
         document.body.appendChild(this.survVideo);
         this.survVideo.style.display = 'none';
         
@@ -126,6 +126,15 @@ export const PCManager = {
                 pcPowerBtn.style.color = this.isPcOn ? '#00ff00' : 'red';
                 pcPowerBtn.style.textShadow = this.isPcOn ? '0 0 5px #00ff00' : '0 0 5px red';
                 
+                // <-- NUEVO: Controlar el video si el usuario apaga la PC manualmente mientras Lunari juega
+                if (this.isGamingMode) {
+                    if (this.isPcOn) {
+                        this.survVideo.play().catch(()=>{});
+                    } else {
+                        this.survVideo.pause();
+                    }
+                }
+
                 this.updateScreens();
 
                 if (!this.isPcOn && pcModal.classList.contains('visible')) {
