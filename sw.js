@@ -16,7 +16,9 @@ const urlsToCache = [
     'abrir_poster.mp3',
     'guardar_poster.mp3',
     'sonido_boton.mp3',
-    'lunari_esta_despierta.glb' // <-- NUEVO ARCHIVO AÑADIDO
+    'lunari_esta_despierta.glb', 
+    'lunari_jugando.glb', // <-- NUEVO ARCHIVO AÑADIDO
+    'surv.mp4'            // <-- NUEVO VIDEO DE JUEGO AÑADIDO
 ];
 
 self.addEventListener('install', event => {
