@@ -26,7 +26,10 @@ export const SceneSetup = {
         this.renderer.outputEncoding = THREE.sRGBEncoding; 
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping; 
         this.renderer.toneMappingExposure = 1.0;
+        
+        // Habilitamos sombras difuminadas y optimizadas
         this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // <--- Suaviza las sombras brutalmente
         
         document.body.appendChild(this.renderer.domElement);
 
@@ -45,11 +48,16 @@ export const SceneSetup = {
         this.hemiLight.position.set(0, 20, 0);
         this.scene.add(this.hemiLight);
 
-        this.mainLight = new THREE.SpotLight(0xffeedd, 6); 
-        this.mainLight.position.set(2, 22, 2); 
-        this.mainLight.angle = Math.PI / 3;
-        this.mainLight.penumbra = 0.8;
+        this.mainLight = new THREE.DirectionalLight(0xffffff, 0.5); // Ajustamos intensidad base
+        this.mainLight.position.set(5, 10, 7);
         this.mainLight.castShadow = true;
+        
+        // OPTIMIZACIÓN Y FIX DE LÍNEAS NEGRAS (Shadow Acne):
+        this.mainLight.shadow.bias = -0.001; 
+        this.mainLight.shadow.normalBias = 0.02; 
+        this.mainLight.shadow.mapSize.width = gameSettings.calidad === 'alta' ? 2048 : 1024;
+        this.mainLight.shadow.mapSize.height = gameSettings.calidad === 'alta' ? 2048 : 1024;
+        
         this.scene.add(this.mainLight);
     }
 };

@@ -28,7 +28,7 @@ export const TVManager = {
         document.body.appendChild(this.tvEffectVideoOff); 
         this.tvEffectVideoOff.style.display = 'none';
 
-        this.tvEffectVideoOn.src = 'efecto_tele - Invertido.mp4'; 
+        this.tvEffectVideoOn.src = 'efecto_tele - Invertido.mp4';
         this.tvEffectVideoOn.crossOrigin = 'anonymous';
         this.tvEffectVideoOn.playsInline = true;
         this.tvEffectVideoOn.setAttribute('playsinline', '');
@@ -38,21 +38,21 @@ export const TVManager = {
         this.tvVideo.playsInline = true;
         this.tvVideo.setAttribute('playsinline', '');
         this.tvVideo.setAttribute('webkit-playsinline', '');
-
+        
         this.tvTexture = new THREE.VideoTexture(this.tvVideo); 
         this.tvTexture.minFilter = THREE.LinearFilter; 
         this.tvTexture.magFilter = THREE.LinearFilter;
         this.tvTexture.format = THREE.RGBAFormat;
         this.tvTexture.encoding = THREE.sRGBEncoding;
 
-        this.tvEffectTextureOff = new THREE.VideoTexture(this.tvEffectVideoOff); 
+        this.tvEffectTextureOff = new THREE.VideoTexture(this.tvEffectVideoOff);
         this.tvEffectTextureOff.minFilter = THREE.LinearFilter; 
         this.tvEffectTextureOff.magFilter = THREE.LinearFilter; 
         this.tvEffectTextureOff.format = THREE.RGBAFormat;
 
         this.tvEffectTextureOn = new THREE.VideoTexture(this.tvEffectVideoOn);
         this.tvEffectTextureOn.minFilter = THREE.LinearFilter; 
-        this.tvEffectTextureOn.magFilter = THREE.LinearFilter; 
+        this.tvEffectTextureOn.magFilter = THREE.LinearFilter;
         this.tvEffectTextureOn.format = THREE.RGBAFormat;
 
         this.setupControls();
@@ -117,7 +117,6 @@ export const TVManager = {
         btn.addEventListener('click', () => {
             this.hasInteracted = true;
             
-            // Forzar permisos de audio de la TV
             this.tvVideo.muted = false;
             this.tvVideo.play().catch(()=>{});
             if (!this.isTvOn || this.tvTransitioning) {
@@ -128,19 +127,13 @@ export const TVManager = {
             this.audioBotonTV.pause();
             this.audioBotonTV.currentTime = 0;
 
-            // --- ¡MAGIA DEL AUDIO DE LA PC AQUÍ! ---
-            // Forzamos el desmuteo en el momento exacto del clic del usuario
-            PCManager.survVideo.muted = false; 
-            PCManager.survVideo.volume = (State.gameSettings.volumenEfectos !== undefined ? State.gameSettings.volumenEfectos : 50) / 100;
+            // --- LIBERAMOS EL AUDIO DE LA PC AQUÍ ---
+            PCManager.canPlayAudio = true; 
             
-            const playSurvPromise = PCManager.survVideo.play();
-            if (playSurvPromise !== undefined) {
-                playSurvPromise.then(() => {
-                    // Si Lunari no está jugando o la PC está apagada, pausamos de nuevo pero YA TENEMOS PERMISOS
-                    if (!PCManager.isGamingMode || !PCManager.isPcOn) {
-                        PCManager.survVideo.pause();
-                    }
-                }).catch(e => console.warn("Permisos de audio PC denegados:", e));
+            if (PCManager.isGamingMode && PCManager.isPcOn) {
+                PCManager.survVideo.muted = false;
+                PCManager.survVideo.volume = (State.gameSettings.volumenEfectos !== undefined ? State.gameSettings.volumenEfectos : 50) / 100;
+                PCManager.survVideo.play().catch(()=>{});
             }
 
             overlay.style.opacity = '0';
@@ -241,6 +234,7 @@ export const TVManager = {
                         tvPowerBtn.innerText = '🔴'; 
                         tvPowerBtn.style.color = 'red'; 
                         tvPowerBtn.style.textShadow = '0 0 5px red';
+                        
                         mats.forEach(mat => { 
                             mat.map = null; 
                             mat.emissiveMap = null; 
@@ -254,6 +248,7 @@ export const TVManager = {
                         tvPowerBtn.innerText = '🟢'; 
                         tvPowerBtn.style.color = '#00ff00'; 
                         tvPowerBtn.style.textShadow = '0 0 5px #00ff00';
+                        
                         mats.forEach(mat => { 
                             mat.map = this.tvTexture; 
                             mat.emissiveMap = this.tvTexture; 
@@ -262,6 +257,7 @@ export const TVManager = {
                             mat.emissiveIntensity = 1.0; 
                             mat.needsUpdate = true; 
                         });
+                        
                         if (this.tvPlaylist.length > 0 && !this.tvVideo.src) {
                             this.playNextTv(true);
                         } else if (this.tvPlaylist.length > 0) {
@@ -270,6 +266,7 @@ export const TVManager = {
                         }
                     }
                 };
+                
                 effectVideo.addEventListener('ended', onEffectEnded, { once: true });
             });
         }
@@ -285,6 +282,7 @@ export const TVManager = {
         if (this.isTvOn || this.tvTransitioning) return;
         
         this.isTvOn = true;
+        
         const tvPowerBtn = document.getElementById('tv-power');
         if (tvPowerBtn) {
             tvPowerBtn.innerText = '🟢';
@@ -293,8 +291,7 @@ export const TVManager = {
         }
 
         if (this.tvScreenMesh) {
-            const mats = Array.isArray(this.tvScreenMesh.material) ?
-            this.tvScreenMesh.material : [this.tvScreenMesh.material];
+            const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
             mats.forEach(mat => { 
                 mat.map = this.tvTexture; 
                 mat.emissiveMap = this.tvTexture; 

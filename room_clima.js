@@ -13,51 +13,66 @@ export const WeatherSystem = {
         else { colorHex = 0x5566aa; lightInt = 0.25; emInt = 0.25; dist = 25; }
 
         if (luzFocoDia) { 
-            luzFocoDia.color.setHex(colorHex); luzFocoDia.intensity = lightInt; luzFocoDia.distance = dist; 
+            luzFocoDia.color.setHex(colorHex); 
+            luzFocoDia.intensity = lightInt; 
+            luzFocoDia.distance = dist; 
             luzFocoDia.castShadow = State.gameSettings.sombras > 0;
-            if (State.gameSettings.sombras > 0) {
-                let diaShadowRes = State.gameSettings.sombras === 2 ? (isMobileUA ? 2048 : 4096) : 1024;
-                if (luzFocoDia.shadow.mapSize.width !== diaShadowRes) {
-                    luzFocoDia.shadow.mapSize.set(diaShadowRes, diaShadowRes);
-                    if (luzFocoDia.shadow.map) { luzFocoDia.shadow.map.dispose(); luzFocoDia.shadow.map = null; }
-                }
-            }
+            
+            // OPTIMIZACIÓN Y FIX DE LÍNEAS NEGRAS (Shadow Acne):
+            luzFocoDia.shadow.bias = -0.001; // Desfase microscópico para que la sombra no choque
+            luzFocoDia.shadow.normalBias = 0.02; // Suaviza bordes en modelos curvos
+            luzFocoDia.shadow.mapSize.width = State.gameSettings.calidad === 'alta' ? 2048 : 1024;
+            luzFocoDia.shadow.mapSize.height = State.gameSettings.calidad === 'alta' ? 2048 : 1024;
         }
-        if (focoDiaMesh) {
-            focoDiaMesh.traverse((n) => {
-                if (n.isMesh && n.material) { n.material.emissive.setHex(colorHex); n.material.emissiveIntensity = emInt; n.material.needsUpdate = true; }
-            });
+        
+        if (focoDiaMesh) { 
+            const mat = focoDiaMesh.material; 
+            mat.emissive.setHex(colorHex); 
+            mat.emissiveIntensity = emInt; 
+            mat.needsUpdate = true; 
         }
-        if(lunariRef) lunariRef.updateLunariText(this.esDeDiaLocal, this.lastWeatherCode);
+
+        const isDay = hora >= 6 && hora < 19;
+        this.esDeDiaLocal = isDay;
+
+        if (lunariRef && typeof lunariRef.evaluateState === 'function') {
+            lunariRef.evaluateState(isDay, this.lastWeatherCode);
+        }
     },
 
-    async setupWeatherVideo(loader, scene, materialLogicCallback, loadedMeshesObj, checkLoadingCallback) {
-        const video = document.createElement('video'); video.loop = true; video.muted = true; video.playsInline = true; video.crossOrigin = 'anonymous';
-        let videoFile = 'dia_soleado.mp4', weatherEmoji = "☀️", weatherName = "Clima estándar", temperature = "--";
+    actualizarClima(loader, materialLogicCallback, lunariRef) {
+        if (!navigator.onLine) return;
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => this.fetchWeather(position.coords.latitude, position.coords.longitude, loader, materialLogicCallback, lunariRef),
+                () => this.fetchWeather(-12.0464, -77.0428, loader, materialLogicCallback, lunariRef)
+            );
+        } else {
+            this.fetchWeather(-12.0464, -77.0428, loader, materialLogicCallback, lunariRef);
+        }
+    },
+
+    async fetchWeather(lat, lon, loader, materialLogicCallback, lunariRef) {
         const statusBox = document.getElementById('weather-status');
+        let weatherCode = 0; let temperature = "--";
+        try {
+            const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`);
+            const data = await response.json();
+            weatherCode = data.current_weather.weathercode;
+            temperature = data.current_weather.temperature;
+            this.lastWeatherCode = weatherCode;
+        } catch (error) { console.error('Error del clima', error); }
+
+        let videoFile = 'soleado.mp4', weatherEmoji = "☀️", weatherName = "Soleado";
+        const video = document.createElement('video'); video.loop = true; video.muted = true; video.crossOrigin = 'anonymous'; video.playsInline = true;
 
         try {
-            let lat, lon;
-            try { 
-                const ipResponse = await fetch('https://ipapi.co/json/'); 
-                const ipData = await ipResponse.json(); 
-                if(ipData.latitude && ipData.longitude) { lat = ipData.latitude; lon = ipData.longitude; } 
-                else throw new Error(); 
-            } 
-            catch(e) { lat = -12.0464; lon = -77.0428; } 
-
-            const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-            const data = await response.json();
-            const code = data.current_weather.weathercode, isDay = data.current_weather.is_day;
-            this.esDeDiaLocal = (isDay === 1);
-            this.lastWeatherCode = code; temperature = data.current_weather.temperature;
-            
-            if (code === 0) { weatherName = isDay ? "Despejado" : "Noche despejada"; weatherEmoji = isDay ? "☀️" : "🌙"; videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4'; } 
-            else if ([1, 2, 3].includes(code)) { weatherName = isDay ? "Nublado" : "Noche nublada"; weatherEmoji = "☁️"; videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4'; }
-            else if (code === 45 || code === 48) { weatherName = "Niebla"; weatherEmoji = "🌫️"; videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4'; }
-            else if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) { weatherName = "Lluvia"; weatherEmoji = "🌧️"; videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4'; }
-            else if ([71, 73, 75, 77, 85, 86].includes(code)) { weatherName = "Nieve"; weatherEmoji = "❄️"; videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4'; }
-            else if ([95, 96, 99].includes(code)) { weatherName = "Tormenta"; weatherEmoji = "⛈️"; videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4'; }
+            if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)) { weatherEmoji = "🌧️"; weatherName = "Lluvioso"; videoFile = 'lluvia.mp4'; } 
+            else if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) { weatherEmoji = "❄️"; weatherName = "Nevado"; videoFile = 'nieve.mp4'; } 
+            else if ([95, 96, 99].includes(weatherCode)) { weatherEmoji = "⛈️"; weatherName = "Tormenta"; videoFile = 'tormenta.mp4'; } 
+            else if (!this.esDeDiaLocal) { weatherEmoji = "🌙"; weatherName = "Despejado"; videoFile = 'noche.mp4'; } 
+            else if ([1, 2, 3, 45, 48].includes(weatherCode)) { weatherEmoji = "☁️"; weatherName = "Nublado"; videoFile = 'dia_nublado.mp4'; }
+            else { videoFile = 'dia.mp4'; }
         } catch (error) { weatherEmoji = "❌"; weatherName = "Clima offline"; }
 
         statusBox.innerHTML = temperature !== "--" ? `${weatherEmoji} ${weatherName} | ${temperature}°C` : `${weatherEmoji} ${weatherName}`;
@@ -73,7 +88,11 @@ export const WeatherSystem = {
                     else { node.material.map = videoTexture; node.material.emissive = new THREE.Color(0xffffff); node.material.emissiveMap = videoTexture; node.material.emissiveIntensity = 1.0; node.material.needsUpdate = true; }
                 }
             });
-            materialLogicCallback(cuadroModel, 'cuadro'); scene.add(cuadroModel); loadedMeshesObj['cuadro'] = cuadroModel; checkLoadingCallback();
-        }, undefined, () => checkLoadingCallback());
+            materialLogicCallback(cuadroModel, 'cuadro');
+        });
+
+        if (lunariRef && typeof lunariRef.evaluateState === 'function') {
+            lunariRef.evaluateState(this.esDeDiaLocal, this.lastWeatherCode);
+        }
     }
 };

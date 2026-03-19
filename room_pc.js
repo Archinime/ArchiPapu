@@ -8,6 +8,7 @@ export const PCManager = {
     audioBotonPC: new Audio('sonido_boton.mp3'),
     
     isGamingMode: false,
+    canPlayAudio: false, // <-- NUEVA BANDERA: Bloquea el sonido hasta el botón de Iniciar
     survVideo: document.createElement('video'),
     survVideoTexture: null,
     logoTexture: null, 
@@ -15,11 +16,9 @@ export const PCManager = {
     init() {
         this.survVideo.src = 'surv.mp4';
         this.survVideo.loop = true;
-        // CRÍTICO: Debe iniciar en TRUE para que el navegador no bloquee el media element. 
-        // Lo desmutearemos luego con el clic del usuario.
-        this.survVideo.muted = true; 
+        this.survVideo.muted = true; // Inicia 100% mudo para la carga en segundo plano
         this.survVideo.playsInline = true;
-        this.survVideo.setAttribute('playsinline', ''); // Crítico para navegadores móviles
+        this.survVideo.setAttribute('playsinline', ''); 
         this.survVideo.setAttribute('webkit-playsinline', '');
         this.survVideo.crossOrigin = 'anonymous';
         
@@ -50,7 +49,14 @@ export const PCManager = {
         this.isGamingMode = active;
         if (active) {
             this.isPcOn = true;
-            this.survVideo.muted = false; // Forzamos desmuteo siempre que se activa
+            
+            // Solo desmuteamos si el usuario ya le dio al botón de "Iniciar Habitación"
+            if (this.canPlayAudio) {
+                this.survVideo.muted = false;
+            } else {
+                this.survVideo.muted = true;
+            }
+            
             this.survVideo.play().catch(e=>{});
             const pcPowerBtn = document.getElementById('pc-power');
             if (pcPowerBtn) {
@@ -121,7 +127,7 @@ export const PCManager = {
                 
                 if (this.isGamingMode) {
                     if (this.isPcOn) {
-                        this.survVideo.muted = false; // Desmuteo al prender manual
+                        this.survVideo.muted = false; 
                         this.survVideo.play().catch(()=>{});
                     } else {
                         this.survVideo.pause();
