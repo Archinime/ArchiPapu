@@ -38,7 +38,7 @@ function applyCurrentSettings() {
 
     if (State.gameSettings.sombras > 0) {
         let shadowRes = State.gameSettings.sombras === 2 ?
-            (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
+        (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
         if (mainLight.shadow.mapSize.width !== shadowRes) {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
@@ -52,7 +52,6 @@ function applyCurrentSettings() {
     
     TVManager.setVolumes(State.gameSettings.volumenTV, State.gameSettings.volumenEfectos);
     PCManager.setVolume(State.gameSettings.volumenEfectos);
-
     let volEf = State.gameSettings.volumenEfectos / 100;
     audioPrenderLuz.volume = volEf; audioApagarLuz.volume = volEf;
     audioAbrirPoster.volume = volEf; audioCerrarPoster.volume = volEf;
@@ -71,17 +70,20 @@ function applyMaterialLogic(model, categoryKey) {
             if (isFoco || isFocoDia) {
                 node.castShadow = false; node.receiveShadow = false;
                 if (node.material) {
+                   
                     if (isFoco) { node.material.emissive = new THREE.Color(0xffeedd); node.material.emissiveIntensity = State.lightOn ? 1.5 : 0; }
                     if (isFocoDia) node.material.emissive = new THREE.Color(0xffffff);
                 }
             } else {
                 node.castShadow = allowShadows; node.receiveShadow = allowShadows;
+         
                 if(node.material) {
                     node.material.shadowSide = THREE.FrontSide;
                     if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo')) node.material.shadowSide = THREE.BackSide;
                     node.material.side = THREE.DoubleSide; node.material.needsUpdate = true;
                 }
-            }
+  
+           }
         }
     });
 }
@@ -117,7 +119,6 @@ function checkLoading() {
 if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
 
 const loader = new GLTFLoader();
-
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.dormir = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.dormir = new THREE.AnimationMixer(model); LunariSystem.actions.dormir_base = LunariSystem.mixers.dormir.clipAction(gltf.animations[0]); }
@@ -153,11 +154,13 @@ setInterval(() => {
         if (dormir_base && dormir_random && LunariSystem.activeAction !== dormir_random) {
             dormir_base.fadeOut(0.5); dormir_random.reset().fadeIn(0.5).play(); LunariSystem.activeAction = dormir_random;
             const onFinished = (event) => {
-                 if (event.action === dormir_random) { 
+       
+                if (event.action === dormir_random) { 
                     dormir_random.fadeOut(0.5); dormir_base.reset().fadeIn(0.5).play(); 
                     LunariSystem.activeAction = dormir_base; LunariSystem.mixers.dormir.removeEventListener('finished', onFinished); 
                 }
             };
+          
             LunariSystem.mixers.dormir.addEventListener('finished', onFinished);
         }
     }
@@ -165,29 +168,37 @@ setInterval(() => {
 
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
-    if (loadedSlotMeshes[categoryKey]) { scene.remove(loadedSlotMeshes[categoryKey]); disposeThreeJSObject(loadedSlotMeshes[categoryKey]); }
+    if (loadedSlotMeshes[categoryKey]) { scene.remove(loadedSlotMeshes[categoryKey]); disposeThreeJSObject(loadedSlotMeshes[categoryKey]);
+    }
     
     loader.load(getFreshUrl(itemFile), (gltf) => {
         const model = gltf.scene; applyMaterialLogic(model, categoryKey);
+        
         if (categoryKey === 'pantalla_tv') {
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
                     TVManager.tvScreenMesh = node; 
+       
                     let mats = Array.isArray(node.material) ? node.material : [node.material];
                     mats.forEach(mat => { 
                         if (!TVManager.isTvOn) { mat.map = null; mat.emissiveMap = null; mat.color = new THREE.Color(0x000000); mat.emissive = new THREE.Color(0x000000); mat.emissiveIntensity = 0; } 
+            
                         else { mat.map = TVManager.tvTexture; mat.emissiveMap = TVManager.tvTexture; mat.color = new THREE.Color(0xffffff); mat.emissive = new THREE.Color(0xffffff); mat.emissiveIntensity = 1.0; }
                         mat.needsUpdate = true;
                     });
                 }
-            });
+       
+             });
             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
-        if (categoryKey === 'pantalla_pc') {
+        
+        // ¡LÓGICA INTERCAMBIADA! Ahora pantalla_pc2 tiene la funcionalidad visual (material emisivo) de encendido/apagado
+        if (categoryKey === 'pantalla_pc2') { 
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
                     PCManager.pcScreenMesh = node; 
                     let mats = Array.isArray(node.material) ? node.material : [node.material];
+    
                     mats.forEach(mat => { 
                         if (!PCManager.isPcOn) { 
                             mat.color = new THREE.Color(0x000000); 
@@ -203,6 +214,7 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                 }
             });
         }
+        
         if (categoryKey === 'foco') { focoMesh = model;
             const box = new THREE.Box3().setFromObject(model); const center = new THREE.Vector3(); box.getCenter(center); mainLight.position.copy(center); mainLight.position.y -= 0.2;
         }
@@ -259,20 +271,19 @@ function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
-
-    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
+    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return;
+    }
     
     // --- TV ---
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
         const tvControls = document.getElementById('tv-controls'), currentTime = Date.now();
-        
         // Exclusividad: Si abres TV, cierra PC
         document.getElementById('pc-controls').style.display = 'none';
-
         if (currentTime - TVManager.lastTvClickTime < 300) { 
             if (TVManager.isTvOn && !TVManager.tvTransitioning) { 
-                if (TVManager.tvVideo.paused) TVManager.tvVideo.play().catch(e=>{}); else TVManager.tvVideo.pause();
+                if (TVManager.tvVideo.paused) TVManager.tvVideo.play().catch(e=>{});
+                else TVManager.tvVideo.pause();
             } 
         } else { 
             if (tvControls.style.display === 'none' || tvControls.style.display === '') tvControls.style.display = 'flex';
@@ -281,15 +292,14 @@ function handleInteraction(event) {
         TVManager.lastTvClickTime = currentTime; return;
     }
 
-    // --- PC PRINCIPAL ---
-    const pcScreenMesh = loadedSlotMeshes['pantalla_pc'];
+    // --- PC PRINCIPAL (LÓGICA INTERCAMBIADA: Ahora detecta clicks en pantalla_pc2) ---
+    const pcScreenMesh = loadedSlotMeshes['pantalla_pc2']; 
     if (pcScreenMesh && raycaster.intersectObject(pcScreenMesh, true).length > 0) {
         const pcControls = document.getElementById('pc-controls');
         const currentTime = Date.now();
         
         // Exclusividad: Si abres PC, cierra TV
         document.getElementById('tv-controls').style.display = 'none';
-
         if (currentTime - PCManager.lastPcClickTime < 300) { 
             if (PCManager.isPcOn) {
                 document.getElementById('pc-iframe').src = 'https://archinime.github.io/Room/';
@@ -304,8 +314,8 @@ function handleInteraction(event) {
         return;
     }
 
-    // --- SEGUNDA PANTALLA (NUEVA) ---
-    const pc2ScreenMesh = loadedSlotMeshes['pantalla_pc2'];
+    // --- SEGUNDA PANTALLA (NUEVA) (LÓGICA INTERCAMBIADA: Ahora detecta clicks en pantalla_pc) ---
+    const pc2ScreenMesh = loadedSlotMeshes['pantalla_pc']; 
     if (pc2ScreenMesh && raycaster.intersectObject(pc2ScreenMesh, true).length > 0) {
         window.open('https://archinime.github.io/-Archinime-', '_blank');
         return;
@@ -317,7 +327,8 @@ function handleInteraction(event) {
         const pMesh = loadedSlotMeshes[cat];
         if (pMesh && raycaster.intersectObject(pMesh, true).length > 0) {
             const itemData = State.inventoryData[cat].items[State.inventoryData[cat].equipped];
-            if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); audioAbrirPoster.currentTime = 0; audioAbrirPoster.play().catch(e=>{}); }
+            if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); audioAbrirPoster.currentTime = 0; audioAbrirPoster.play().catch(e=>{});
+            }
             break;
         }
     }
@@ -332,7 +343,8 @@ let then = performance.now(), frames = 0, lastFpsTime = then;
 function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
-    const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
+    const fpsInterval = State.gameSettings.fps > 0 ?
+    1000 / State.gameSettings.fps : 0;
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
         const delta = clock.getDelta(); LunariSystem.update(delta); 
@@ -340,7 +352,8 @@ function animate() {
         
         if (State.gameSettings.mostrarFps) { 
             frames++;
-            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now; } 
+            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now;
+            } 
         }
     }
 }
