@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'room-cache-v10'; // Sube la versión a v10
+const CACHE_NAME = 'room-cache-v11'; // <-- Subimos a v11 por el nuevo archivo
 const urlsToCache = [
     './',
     './index.html',
@@ -17,8 +17,9 @@ const urlsToCache = [
     'guardar_poster.mp3',
     'sonido_boton.mp3',
     'lunari_esta_despierta.glb', 
-    'lunari_jugando.glb', // <-- NUEVO ARCHIVO AÑADIDO
-    'surv.mp4'            // <-- NUEVO VIDEO DE JUEGO AÑADIDO
+    'lunari_jugando.glb', 
+    'surv.mp4',
+    'logo.avif' // <-- NUEVA IMAGEN CACHEADA
 ];
 
 self.addEventListener('install', event => {
@@ -42,14 +43,15 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
     const requestUrl = event.request.url;
-    const isMedia = requestUrl.endsWith('.mp4') || requestUrl.endsWith('.glb') || requestUrl.endsWith('.mp3');
+    const isMedia = requestUrl.endsWith('.mp4') || requestUrl.endsWith('.glb') || requestUrl.endsWith('.mp3') || requestUrl.endsWith('.avif');
 
     // Caché Primero para multimedia (no cambian y pesan mucho)
     if (isMedia) {
         event.respondWith(
             caches.match(event.request).then(cachedResponse => {
                 if (cachedResponse) return cachedResponse;
-                return fetch(event.request).then(networkResponse => {
+                return fetch(event.request).then(networkResponse => 
+                {
                     const clone = networkResponse.clone();
                     caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
                     return networkResponse;

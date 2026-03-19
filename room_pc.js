@@ -11,12 +11,13 @@ export const PCManager = {
     isGamingMode: false,
     survVideo: document.createElement('video'),
     survVideoTexture: null,
+    logoTexture: null, // <-- NUEVA TEXTURA PARA PANTALLA 2
     
     init() {
         // Configuramos el video de surv.mp4 en bucle
         this.survVideo.src = 'surv.mp4';
         this.survVideo.loop = true;
-        this.survVideo.muted = true;
+        this.survVideo.muted = false; // <-- CORREGIDO: Ahora el video sí tiene sonido
         this.survVideo.playsInline = true;
         this.survVideo.crossOrigin = 'anonymous';
         
@@ -24,7 +25,16 @@ export const PCManager = {
         this.survVideoTexture.minFilter = THREE.LinearFilter;
         this.survVideoTexture.magFilter = THREE.LinearFilter;
         this.survVideoTexture.format = THREE.RGBAFormat;
-        this.survVideoTexture.encoding = THREE.sRGBEncoding;
+        // this.survVideoTexture.encoding = THREE.sRGBEncoding;
+
+        // <-- CORREGIDO: Invertimos el video de izquierda a derecha
+        this.survVideoTexture.wrapS = THREE.RepeatWrapping;
+        this.survVideoTexture.repeat.x = -1;
+
+        // <-- NUEVO: Cargamos la imagen logo.avif
+        const textureLoader = new THREE.TextureLoader();
+        this.logoTexture = textureLoader.load('logo.avif');
+        this.logoTexture.flipY = false; // Para que no salga de cabeza en el modelo GLTF
 
         this.setupControls();
     },
@@ -58,15 +68,25 @@ export const PCManager = {
             const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
             mats.forEach(mat => {
                 if (this.isPcOn) {
-                    // Si está en modo Gaming y es la pantalla_pc (la principal del video)
-                    if (this.isGamingMode && mesh.userData && mesh.userData.isMainVideoScreen) {
-                        mat.map = this.survVideoTexture;
-                        mat.emissiveMap = this.survVideoTexture;
-                        mat.color.setHex(0xffffff);
-                        mat.emissive.setHex(0xffffff);
-                        mat.emissiveIntensity = 1.0;
+                    // Si está en modo Gaming
+                    if (this.isGamingMode) {
+                        if (mesh.userData && mesh.userData.isMainVideoScreen) {
+                            // Pantalla principal del video (pantalla_pc)
+                            mat.map = this.survVideoTexture;
+                            mat.emissiveMap = this.survVideoTexture;
+                            mat.color.setHex(0xffffff);
+                            mat.emissive.setHex(0xffffff);
+                            mat.emissiveIntensity = 1.0;
+                        } else {
+                            // <-- NUEVO: Pantalla secundaria (pantalla_pc2) muestra logo.avif
+                            mat.map = this.logoTexture;
+                            mat.emissiveMap = this.logoTexture;
+                            mat.color.setHex(0xffffff);
+                            mat.emissive.setHex(0xffffff);
+                            mat.emissiveIntensity = 1.0;
+                        }
                     } else {
-                        // Color Azul clásico o si es la otra pantalla (pantalla_pc2)
+                        // Color Azul clásico normal
                         mat.map = null;
                         mat.emissiveMap = null;
                         mat.color.setHex(0x2196f3);
@@ -137,5 +157,6 @@ export const PCManager = {
 
     setVolume(volEf) {
         this.audioBotonPC.volume = volEf / 100;
+        this.survVideo.volume = volEf / 100; // <-- NUEVO: Enlazamos el volumen del video de juego a las configuraciones
     }
 };
