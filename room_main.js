@@ -32,6 +32,7 @@ function applyCurrentSettings() {
     renderer.shadowMap.enabled = State.gameSettings.sombras > 0;
     renderer.shadowMap.type = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     mainLight.castShadow = State.gameSettings.sombras > 0;
+    
     if (State.gameSettings.sombras > 0) {
         let shadowRes = State.gameSettings.sombras === 2 ?
         (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
@@ -65,7 +66,7 @@ function applyMaterialLogic(model, categoryKey) {
             if (isFoco || isFocoDia) {
                 node.castShadow = false; node.receiveShadow = false;
                 if (node.material) {
-                 if (isFoco) { node.material.emissive = new THREE.Color(0xffeedd); node.material.emissiveIntensity = State.lightOn ? 1.5 : 0; }
+                    if (isFoco) { node.material.emissive = new THREE.Color(0xffeedd); node.material.emissiveIntensity = State.lightOn ? 1.5 : 0; }
                     if (isFocoDia) node.material.emissive = new THREE.Color(0xffffff);
                 }
             } else {
@@ -82,7 +83,8 @@ function applyMaterialLogic(model, categoryKey) {
 
 let totalModelsToLoad = 0, modelsLoaded = 0;
 for (let cat in State.inventoryData) {
-    if (State.inventoryData[cat].type === 'multiple') continue; let eqId = State.inventoryData[cat].equipped;
+    if (State.inventoryData[cat].type === 'multiple') continue;
+    let eqId = State.inventoryData[cat].equipped;
     if (State.inventoryData[cat].items && State.inventoryData[cat].items[eqId]) {
         let it = State.inventoryData[cat].items[eqId];
         if (it.file) totalModelsToLoad++;
@@ -103,10 +105,21 @@ function checkLoading() {
         loadCount.innerText = `${modelsLoaded}/${totalModelsToLoad}`;
         const percent = Math.min((modelsLoaded / totalModelsToLoad) * 100, 100);
         loadBar.style.width = `${percent}%`;
-        if (modelsLoaded >= totalModelsToLoad) { setTimeout(() => { if(loadingEl) loadingEl.style.opacity = '0'; setTimeout(()=>loadingEl.style.display='none', 500); }, 500);
+        if (modelsLoaded >= totalModelsToLoad) { 
+            setTimeout(() => { if(loadingEl) loadingEl.style.opacity = '0'; setTimeout(()=>loadingEl.style.display='none', 500); }, 500);
         }
     }
 }
+
+// SEGURO ANTI-TRABAS: Forzar el cierre de la pantalla de carga después de 12 segundos si hay lentitud extrema de internet
+setTimeout(() => {
+    const loadingEl = document.getElementById('loading');
+    if(loadingEl && loadingEl.style.display !== 'none') {
+        loadingEl.style.opacity = '0'; 
+        setTimeout(() => loadingEl.style.display = 'none', 500);
+    }
+}, 12000);
+
 if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
 
 const loader = new GLTFLoader();
@@ -151,12 +164,12 @@ setInterval(() => {
         if (dormir_base && dormir_random && LunariSystem.activeAction !== dormir_random) {
             dormir_base.fadeOut(0.5); dormir_random.reset().fadeIn(0.5).play(); LunariSystem.activeAction = dormir_random;
             const onFinished = (event) => {
-                 if (event.action === dormir_random) { 
+                if (event.action === dormir_random) { 
                     dormir_random.fadeOut(0.5); dormir_base.reset().fadeIn(0.5).play(); 
                     LunariSystem.activeAction = dormir_base; LunariSystem.mixers.dormir.removeEventListener('finished', onFinished); 
                 }
             };
-             LunariSystem.mixers.dormir.addEventListener('finished', onFinished);
+            LunariSystem.mixers.dormir.addEventListener('finished', onFinished);
         }
     }
 }, 60000);
@@ -188,9 +201,9 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                         else { mat.map = TVManager.tvTexture; mat.emissiveMap = TVManager.tvTexture; mat.color = new THREE.Color(0xffffff); mat.emissive = new THREE.Color(0xffffff); mat.emissiveIntensity = 1.0; }
                         mat.needsUpdate = true;
                     });
-                 }
+                }
              });
-            if (!TVManager.isTvOn) TVManager.tvVideo.pause();
+             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
         
         if (categoryKey === 'pantalla_pc' || categoryKey === 'pantalla_pc2') { 
@@ -231,6 +244,7 @@ for (let cat in State.inventoryData) {
 }
 
 WeatherSystem.setupWeatherVideo(loader, scene, applyMaterialLogic, loadedSlotMeshes, checkLoading);
+
 function updateLighting() {
     if (State.lightOn) {
         mainLight.visible = true;
@@ -261,7 +275,8 @@ function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
-    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
+    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return;
+    }
     
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {

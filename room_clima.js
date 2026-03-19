@@ -17,12 +17,9 @@ export const WeatherSystem = {
             luzFocoDia.intensity = lightInt; 
             luzFocoDia.distance = dist; 
             luzFocoDia.castShadow = State.gameSettings.sombras > 0;
-            
-            // OPTIMIZACIÓN Y FIX DE LÍNEAS NEGRAS (Shadow Acne):
-            luzFocoDia.shadow.bias = -0.001; // Desfase microscópico para que la sombra no choque
-            luzFocoDia.shadow.normalBias = 0.02; // Suaviza bordes en modelos curvos
-            luzFocoDia.shadow.mapSize.width = State.gameSettings.calidad === 'alta' ? 2048 : 1024;
-            luzFocoDia.shadow.mapSize.height = State.gameSettings.calidad === 'alta' ? 2048 : 1024;
+            // FIX OPTIMIZACIÓN Y RAYAS NEGRAS:
+            luzFocoDia.shadow.bias = -0.0005; 
+            luzFocoDia.shadow.normalBias = 0.05; 
         }
         
         if (focoDiaMesh) { 
@@ -40,19 +37,28 @@ export const WeatherSystem = {
         }
     },
 
-    actualizarClima(loader, materialLogicCallback, lunariRef) {
-        if (!navigator.onLine) return;
+    setupWeatherVideo(loader, scene, applyMaterialLogic, loadedSlotMeshes, checkLoading) {
+        // Garantizamos que checkLoading se llame SÍ O SÍ para que el contador no se trabe
+        const safeCheckLoading = () => {
+            if (typeof checkLoading === 'function') checkLoading();
+        };
+
+        if (!navigator.onLine) {
+            this.loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, 'dia.mp4');
+            return;
+        }
+
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                (position) => this.fetchWeather(position.coords.latitude, position.coords.longitude, loader, materialLogicCallback, lunariRef),
-                () => this.fetchWeather(-12.0464, -77.0428, loader, materialLogicCallback, lunariRef)
+                (position) => this.fetchWeather(position.coords.latitude, position.coords.longitude, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading),
+                () => this.fetchWeather(-12.0464, -77.0428, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading)
             );
         } else {
-            this.fetchWeather(-12.0464, -77.0428, loader, materialLogicCallback, lunariRef);
+            this.fetchWeather(-12.0464, -77.0428, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
         }
     },
 
-    async fetchWeather(lat, lon, loader, materialLogicCallback, lunariRef) {
+    async fetchWeather(lat, lon, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading) {
         const statusBox = document.getElementById('weather-status');
         let weatherCode = 0; let temperature = "--";
         try {
@@ -64,8 +70,6 @@ export const WeatherSystem = {
         } catch (error) { console.error('Error del clima', error); }
 
         let videoFile = 'soleado.mp4', weatherEmoji = "☀️", weatherName = "Soleado";
-        const video = document.createElement('video'); video.loop = true; video.muted = true; video.crossOrigin = 'anonymous'; video.playsInline = true;
-
         try {
             if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)) { weatherEmoji = "🌧️"; weatherName = "Lluvioso"; videoFile = 'lluvia.mp4'; } 
             else if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) { weatherEmoji = "❄️"; weatherName = "Nevado"; videoFile = 'nieve.mp4'; } 
@@ -75,8 +79,15 @@ export const WeatherSystem = {
             else { videoFile = 'dia.mp4'; }
         } catch (error) { weatherEmoji = "❌"; weatherName = "Clima offline"; }
 
-        statusBox.innerHTML = temperature !== "--" ? `${weatherEmoji} ${weatherName} | ${temperature}°C` : `${weatherEmoji} ${weatherName}`;
-        video.src = videoFile; video.play().catch(e => console.log('Autoplay blocked'));
+        if (statusBox) statusBox.innerHTML = temperature !== "--" ? `${weatherEmoji} ${weatherName} | ${temperature}°C` : `${weatherEmoji} ${weatherName}`;
+        
+        this.loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, videoFile);
+    },
+
+    loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, videoFile) {
+        const video = document.createElement('video'); video.loop = true; video.muted = true; video.crossOrigin = 'anonymous'; video.playsInline = true;
+        video.src = videoFile; 
+        video.play().catch(e => console.log('Autoplay blocked'));
 
         const videoTexture = new THREE.VideoTexture(video); videoTexture.minFilter = THREE.LinearFilter; videoTexture.magFilter = THREE.LinearFilter; videoTexture.format = THREE.RGBAFormat; videoTexture.encoding = THREE.sRGBEncoding;
         
@@ -88,11 +99,12 @@ export const WeatherSystem = {
                     else { node.material.map = videoTexture; node.material.emissive = new THREE.Color(0xffffff); node.material.emissiveMap = videoTexture; node.material.emissiveIntensity = 1.0; node.material.needsUpdate = true; }
                 }
             });
-            materialLogicCallback(cuadroModel, 'cuadro');
+            applyMaterialLogic(cuadroModel, 'cuadro');
+            loadedSlotMeshes['cuadro'] = cuadroModel;
+            scene.add(cuadroModel);
+            safeCheckLoading(); // Avisar que terminó correctamente
+        }, undefined, () => {
+            safeCheckLoading(); // Avisar INCLUSO si hay error para no trabar la carga
         });
-
-        if (lunariRef && typeof lunariRef.evaluateState === 'function') {
-            lunariRef.evaluateState(this.esDeDiaLocal, this.lastWeatherCode);
-        }
     }
 };
