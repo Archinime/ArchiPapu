@@ -168,7 +168,18 @@ setInterval(() => {
 
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
-    if (loadedSlotMeshes[categoryKey]) { scene.remove(loadedSlotMeshes[categoryKey]); disposeThreeJSObject(loadedSlotMeshes[categoryKey]);
+    
+    // Si ya existe el modelo, lo eliminamos y limpiamos las referencias del Array
+    if (loadedSlotMeshes[categoryKey]) { 
+        const oldModel = loadedSlotMeshes[categoryKey];
+        scene.remove(oldModel); 
+        disposeThreeJSObject(oldModel);
+        if (PCManager.pcScreenMeshes) {
+            oldModel.traverse((node) => {
+                const idx = PCManager.pcScreenMeshes.indexOf(node);
+                if (idx > -1) PCManager.pcScreenMeshes.splice(idx, 1);
+            });
+        }
     }
     
     loader.load(getFreshUrl(itemFile), (gltf) => {
@@ -187,16 +198,19 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                         mat.needsUpdate = true;
                     });
                 }
-       
              });
             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
         
-        // ¡LÓGICA INTERCAMBIADA! Ahora pantalla_pc2 tiene la funcionalidad visual (material emisivo) de encendido/apagado
-        if (categoryKey === 'pantalla_pc2') { 
+        // AMBAS PANTALLAS SE AGREGAN AL PC MANAGER AHORA
+        if (categoryKey === 'pantalla_pc' || categoryKey === 'pantalla_pc2') { 
+            if (!PCManager.pcScreenMeshes) PCManager.pcScreenMeshes = [];
+            
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
-                    PCManager.pcScreenMesh = node; 
+                    if (!PCManager.pcScreenMeshes.includes(node)) {
+                        PCManager.pcScreenMeshes.push(node);
+                    }
                     let mats = Array.isArray(node.material) ? node.material : [node.material];
     
                     mats.forEach(mat => { 
@@ -292,7 +306,7 @@ function handleInteraction(event) {
         TVManager.lastTvClickTime = currentTime; return;
     }
 
-    // --- PC PRINCIPAL (LÓGICA INTERCAMBIADA: Ahora detecta clicks en pantalla_pc2) ---
+    // --- PC PRINCIPAL (pantalla_pc2 -> Abre el Modal Virtual) ---
     const pcScreenMesh = loadedSlotMeshes['pantalla_pc2']; 
     if (pcScreenMesh && raycaster.intersectObject(pcScreenMesh, true).length > 0) {
         const pcControls = document.getElementById('pc-controls');
@@ -314,10 +328,17 @@ function handleInteraction(event) {
         return;
     }
 
-    // --- SEGUNDA PANTALLA (NUEVA) (LÓGICA INTERCAMBIADA: Ahora detecta clicks en pantalla_pc) ---
+    // --- SEGUNDA PANTALLA (pantalla_pc -> Abre el Enlace Externo) ---
     const pc2ScreenMesh = loadedSlotMeshes['pantalla_pc']; 
     if (pc2ScreenMesh && raycaster.intersectObject(pc2ScreenMesh, true).length > 0) {
-        window.open('https://archinime.github.io/-Archinime-', '_blank');
+        if (PCManager.isPcOn) {
+            window.open('https://archinime.github.io/-Archinime-', '_blank');
+        } else {
+            // Si la PC está apagada, mostramos los controles para que pueda encenderla
+            const pcControls = document.getElementById('pc-controls');
+            if (pcControls.style.display === 'none' || pcControls.style.display === '') pcControls.style.display = 'flex';
+            else pcControls.style.display = 'none';
+        }
         return;
     }
 
