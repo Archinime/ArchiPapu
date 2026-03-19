@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { State } from './room_state.js';
-import { PCManager } from './room_pc.js'; // Importamos PCManager para desbloquear su audio
+import { PCManager } from './room_pc.js';
 
 export const TVManager = {
     isTvOn: false,
@@ -17,7 +17,6 @@ export const TVManager = {
     currentTvIndex: -1,
     audioBotonTV: new Audio('sonido_boton.mp3'),
     
-    // Variables para controlar el nuevo sistema de inicio
     hasInteracted: false, 
     pendingAutoTurnOn: false, 
 
@@ -65,7 +64,6 @@ export const TVManager = {
             }
         });
 
-        // Llamamos a la pantalla de inicio
         this.setupStartScreen();
     },
 
@@ -119,7 +117,8 @@ export const TVManager = {
         btn.addEventListener('click', () => {
             this.hasInteracted = true;
             
-            // Iniciamos y pausamos medios de inmediato para conseguir permisos
+            // Forzar permisos de audio de la TV
+            this.tvVideo.muted = false;
             this.tvVideo.play().catch(()=>{});
             if (!this.isTvOn || this.tvTransitioning) {
                 this.tvVideo.pause();
@@ -129,11 +128,19 @@ export const TVManager = {
             this.audioBotonTV.pause();
             this.audioBotonTV.currentTime = 0;
 
-            // <-- CORREGIDO: Desbloqueamos el video de la PC
-            PCManager.survVideo.play().catch(()=>{});
-            // ¡OJO! Solo lo pausamos si Lunari NO está jugando. Si está jugando, lo dejamos correr.
-            if (!PCManager.isGamingMode) {
-                PCManager.survVideo.pause();
+            // --- ¡MAGIA DEL AUDIO DE LA PC AQUÍ! ---
+            // Forzamos el desmuteo en el momento exacto del clic del usuario
+            PCManager.survVideo.muted = false; 
+            PCManager.survVideo.volume = (State.gameSettings.volumenEfectos !== undefined ? State.gameSettings.volumenEfectos : 50) / 100;
+            
+            const playSurvPromise = PCManager.survVideo.play();
+            if (playSurvPromise !== undefined) {
+                playSurvPromise.then(() => {
+                    // Si Lunari no está jugando o la PC está apagada, pausamos de nuevo pero YA TENEMOS PERMISOS
+                    if (!PCManager.isGamingMode || !PCManager.isPcOn) {
+                        PCManager.survVideo.pause();
+                    }
+                }).catch(e => console.warn("Permisos de audio PC denegados:", e));
             }
 
             overlay.style.opacity = '0';

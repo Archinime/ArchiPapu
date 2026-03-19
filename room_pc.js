@@ -4,24 +4,23 @@ export const PCManager = {
     isPcOn: false,
     pcTransitioning: false,
     lastPcClickTime: 0,
-    pcScreenMeshes: [], // ARRAY PARA SOPORTAR MÚLTIPLES PANTALLAS
+    pcScreenMeshes: [], 
     audioBotonPC: new Audio('sonido_boton.mp3'),
     
-    // NUEVAS PROPIEDADES GAMER
     isGamingMode: false,
     survVideo: document.createElement('video'),
     survVideoTexture: null,
-    logoTexture: null, // Textura para PANTALLA 2
+    logoTexture: null, 
     
     init() {
-        // Configuramos el video de surv.mp4 en bucle
         this.survVideo.src = 'surv.mp4';
         this.survVideo.loop = true;
-        this.survVideo.muted = false; // Sonido activado
+        this.survVideo.muted = false; // Mantenemos el sonido activo por defecto
         this.survVideo.playsInline = true;
+        this.survVideo.setAttribute('playsinline', ''); // Crítico para navegadores móviles
+        this.survVideo.setAttribute('webkit-playsinline', '');
         this.survVideo.crossOrigin = 'anonymous';
         
-        // Agregamos el video al DOM (oculto). Esto es VITAL para que los navegadores permitan el audio.
         document.body.appendChild(this.survVideo);
         this.survVideo.style.display = 'none';
         
@@ -30,11 +29,9 @@ export const PCManager = {
         this.survVideoTexture.magFilter = THREE.LinearFilter;
         this.survVideoTexture.format = THREE.RGBAFormat;
 
-        // Invertimos el video de izquierda a derecha
         this.survVideoTexture.wrapS = THREE.RepeatWrapping;
         this.survVideoTexture.repeat.x = -1;
 
-        // Cargamos la imagen logo.avif
         const textureLoader = new THREE.TextureLoader();
         this.logoTexture = textureLoader.load('logo.avif');
         this.logoTexture.flipY = false;
@@ -47,11 +44,11 @@ export const PCManager = {
         this.audioBotonPC.play().catch(e=>{});
     },
     
-    // Método que LunariSystem manda a llamar
     setGamingMode(active) {
         this.isGamingMode = active;
         if (active) {
             this.isPcOn = true;
+            this.survVideo.muted = false; // Forzamos desmuteo siempre que se activa
             this.survVideo.play().catch(e=>{});
             const pcPowerBtn = document.getElementById('pc-power');
             if (pcPowerBtn) {
@@ -62,26 +59,22 @@ export const PCManager = {
         } else {
             this.survVideo.pause();
         }
-        this.updateScreens(); // Refrescamos pantallas
+        this.updateScreens(); 
     },
 
-    // Lógica maestra de materiales para todas las pantallas
     updateScreens() {
         this.pcScreenMeshes.forEach(mesh => {
             const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
             mats.forEach(mat => {
                 if (this.isPcOn) {
-                    // Si está en modo Gaming
                     if (this.isGamingMode) {
                         if (mesh.userData && mesh.userData.isMainVideoScreen) {
-                            // Pantalla principal del video (pantalla_pc)
                             mat.map = this.survVideoTexture;
                             mat.emissiveMap = this.survVideoTexture;
                             mat.color.setHex(0xffffff);
                             mat.emissive.setHex(0xffffff);
                             mat.emissiveIntensity = 1.0;
                         } else {
-                            // Pantalla secundaria (pantalla_pc2) muestra logo.avif
                             mat.map = this.logoTexture;
                             mat.emissiveMap = this.logoTexture;
                             mat.color.setHex(0xffffff);
@@ -89,7 +82,6 @@ export const PCManager = {
                             mat.emissiveIntensity = 1.0;
                         }
                     } else {
-                        // Color Azul clásico normal
                         mat.map = null;
                         mat.emissiveMap = null;
                         mat.color.setHex(0x2196f3);
@@ -97,7 +89,6 @@ export const PCManager = {
                         mat.emissiveIntensity = 1.0;
                     }
                 } else {
-                    // Apagado
                     mat.map = null;
                     mat.emissiveMap = null;
                     mat.color.setHex(0x000000);
@@ -126,9 +117,9 @@ export const PCManager = {
                 pcPowerBtn.style.color = this.isPcOn ? '#00ff00' : 'red';
                 pcPowerBtn.style.textShadow = this.isPcOn ? '0 0 5px #00ff00' : '0 0 5px red';
                 
-                // <-- NUEVO: Controlar el video si el usuario apaga la PC manualmente mientras Lunari juega
                 if (this.isGamingMode) {
                     if (this.isPcOn) {
+                        this.survVideo.muted = false; // Desmuteo al prender manual
                         this.survVideo.play().catch(()=>{});
                     } else {
                         this.survVideo.pause();
@@ -168,6 +159,6 @@ export const PCManager = {
 
     setVolume(volEf) {
         this.audioBotonPC.volume = volEf / 100;
-        this.survVideo.volume = volEf / 100; // Enlazamos el volumen del video de juego
+        this.survVideo.volume = volEf / 100; 
     }
 };
