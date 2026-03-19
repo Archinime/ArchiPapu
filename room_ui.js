@@ -50,8 +50,7 @@ export const UIManager = {
             b.onclick = () => { State.gameSettings.fps = parseInt(b.dataset.val); this.syncSettingsUI(); };
         });
         const volTV = document.getElementById('setting-volumen-tv'); volTV.value = State.gameSettings.volumenTV; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`;
-        volTV.oninput = (e) => { State.gameSettings.volumenTV = e.target.value;
-        document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; this.applySettingsCallback(); };
+        volTV.oninput = (e) => { State.gameSettings.volumenTV = e.target.value; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; this.applySettingsCallback(); };
         
         const volEf = document.getElementById('setting-volumen-efectos'); volEf.value = State.gameSettings.volumenEfectos; document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`;
         volEf.oninput = (e) => { State.gameSettings.volumenEfectos = e.target.value; document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`; this.applySettingsCallback(); };
@@ -113,7 +112,10 @@ export const UIManager = {
             this.loadItemCallback(category, itemData.file, false);
             if (category === 'foco' && itemData.baseFile) this.loadItemCallback('base_foco', itemData.baseFile, false);
             if (category === 'tele' && itemData.baseFile) this.loadItemCallback('pantalla_tv', itemData.baseFile, false);
-            if (category === 'pc' && itemData.baseFile) this.loadItemCallback('pantalla_pc', itemData.baseFile, false);
+            if (category === 'pc') {
+                if (itemData.baseFile) this.loadItemCallback('pantalla_pc', itemData.baseFile, false);
+                this.loadItemCallback('pantalla_pc2', 'pantalla_pc2.glb', false); // Cargar la segunda pantalla
+            }
         }
         State.saveGame(); this.renderInventory();
     },
