@@ -32,9 +32,9 @@ function applyCurrentSettings() {
     renderer.shadowMap.enabled = State.gameSettings.sombras > 0;
     renderer.shadowMap.type = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     mainLight.castShadow = State.gameSettings.sombras > 0;
+
     if (State.gameSettings.sombras > 0) {
-        let shadowRes = State.gameSettings.sombras === 2 ?
-        (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
+        let shadowRes = State.gameSettings.sombras === 2 ? (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
         if (mainLight.shadow.mapSize.width !== shadowRes) {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
@@ -122,25 +122,30 @@ setTimeout(() => {
 if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
 
 const loader = new GLTFLoader();
+
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.dormir = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.dormir = new THREE.AnimationMixer(model); LunariSystem.actions.dormir_base = LunariSystem.mixers.dormir.clipAction(gltf.animations[0]); }
     LunariSystem.currentState = null; LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0 && LunariSystem.mixers.dormir) { LunariSystem.actions.dormir_random = LunariSystem.mixers.dormir.clipAction(gltf.animations[0]); LunariSystem.actions.dormir_random.loop = THREE.LoopOnce; LunariSystem.actions.dormir_random.clampWhenFinished = true; }
     checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.despertar = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.despertar = new THREE.AnimationMixer(model); LunariSystem.actions.despertar_base = LunariSystem.mixers.despertar.clipAction(gltf.animations[0]); }
     LunariSystem.currentState = null; LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('lunari_jugando.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.jugar = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.jugar = new THREE.AnimationMixer(model); LunariSystem.actions.jugar_base = LunariSystem.mixers.jugar.clipAction(gltf.animations[0]); }
     LunariSystem.currentState = null; LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
     focoDiaMesh = gltf.scene; applyMaterialLogic(focoDiaMesh, 'foco_dia'); luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
     const box = new THREE.Box3().setFromObject(focoDiaMesh); const center = new THREE.Vector3(); box.getCenter(center);
@@ -148,6 +153,7 @@ loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/fo
     scene.add(luzFocoDia); scene.add(focoDiaMesh); focoDiaMesh.visible = false; luzFocoDia.visible = true; 
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem); checkLoading();
 }, undefined, () => checkLoading());
+
 setInterval(() => {
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem);
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode);
@@ -169,10 +175,12 @@ setInterval(() => {
 
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
+
     if (loadedSlotMeshes[categoryKey]) { 
         const oldModel = loadedSlotMeshes[categoryKey];
         scene.remove(oldModel); 
         disposeThreeJSObject(oldModel);
+
         if (PCManager.pcScreenMeshes) {
             oldModel.traverse((node) => {
                 const idx = PCManager.pcScreenMeshes.indexOf(node);
@@ -196,12 +204,13 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                     });
                 }
              });
-             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
+            if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
         
         // CAPTURAMOS LAS TEXTURAS ORIGINALES DE LA PC AQUI
         if (categoryKey === 'pantalla_pc' || categoryKey === 'pantalla_pc2') { 
             if (!PCManager.pcScreenMeshes) PCManager.pcScreenMeshes = [];
+
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
                     if (categoryKey === 'pantalla_pc') node.userData.isMainVideoScreen = true;
@@ -244,6 +253,7 @@ for (let cat in State.inventoryData) {
 }
 
 WeatherSystem.setupWeatherVideo(loader, scene, applyMaterialLogic, loadedSlotMeshes, checkLoading);
+
 function updateLighting() {
     if (State.lightOn) {
         mainLight.visible = true;
@@ -274,8 +284,9 @@ function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
-    
-    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
+
+    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return;
+    }
     
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
@@ -294,14 +305,19 @@ function handleInteraction(event) {
         TVManager.lastTvClickTime = currentTime; return;
     }
 
-    // LÓGICA CORREGIDA PARA PANTALLA SECUNDARIA PC (Controles)
+    // LÓGICA CORREGIDA PARA PANTALLA SECUNDARIA PC (Controles / Link Archinime)
     const pcScreenMesh = loadedSlotMeshes['pantalla_pc2'];
     if (pcScreenMesh && raycaster.intersectObject(pcScreenMesh, true).length > 0) {
-        const pcControls = document.getElementById('pc-controls');
-        document.getElementById('tv-controls').style.display = 'none'; 
-        
-        if (pcControls.style.display === 'none' || pcControls.style.display === '') pcControls.style.display = 'flex';
-        else pcControls.style.display = 'none'; 
+        // SI ESTÁ JUGANDO, ABRIR LINK. SI NO, MOSTRAR CONTROLES.
+        if (LunariSystem.currentState === 'jugar') {
+            window.open('https://archinime.github.io/-Archinime-', '_blank');
+        } else {
+            const pcControls = document.getElementById('pc-controls');
+            document.getElementById('tv-controls').style.display = 'none'; 
+            
+            if (pcControls.style.display === 'none' || pcControls.style.display === '') pcControls.style.display = 'flex';
+            else pcControls.style.display = 'none'; 
+        }
         return;
     }
 
@@ -340,8 +356,10 @@ renderer.domElement.addEventListener('pointerup', (e) => { if (!isDragging && !d
 let then = performance.now(), frames = 0, lastFpsTime = then;
 function animate() {
     requestAnimationFrame(animate);
+
     const now = performance.now(); const elapsed = now - then;
     const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
+    
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
         const delta = clock.getDelta(); LunariSystem.update(delta); 
@@ -349,7 +367,8 @@ function animate() {
         
         if (State.gameSettings.mostrarFps) { 
             frames++;
-            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now; } 
+            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now;
+            } 
         }
     }
 }

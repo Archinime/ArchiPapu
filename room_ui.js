@@ -30,6 +30,7 @@ export const UIManager = {
                 tab.classList.add('active'); document.getElementById(tab.dataset.target).classList.add('active'); 
             };
         });
+
         document.getElementById('inventory-button').onclick = () => { document.getElementById('inventory-modal').classList.add('visible'); this.renderInventory(); };
         document.getElementById('close-inv').onclick = () => { document.getElementById('inventory-modal').classList.remove('visible'); };
     },
@@ -42,35 +43,61 @@ export const UIManager = {
                 if(State.gameSettings.calidad === 'baja') { State.gameSettings.sombras = 0; State.gameSettings.fps = 30; } 
                 else if(State.gameSettings.calidad === 'media') { State.gameSettings.sombras = 1; State.gameSettings.fps = 60; } 
                 else if(State.gameSettings.calidad === 'alta') { State.gameSettings.sombras = 2; State.gameSettings.fps = 60; } 
+                
+                localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); // Guardado Inmediato
                 this.syncSettingsUI(); this.applySettingsCallback(); 
             };
         });
+
         document.querySelectorAll('#setting-fps button').forEach(b => {
             b.classList.toggle('active', parseInt(b.dataset.val) === State.gameSettings.fps);
-            b.onclick = () => { State.gameSettings.fps = parseInt(b.dataset.val); this.syncSettingsUI(); };
+            b.onclick = () => { 
+                State.gameSettings.fps = parseInt(b.dataset.val); 
+                localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); // Guardado Inmediato
+                this.syncSettingsUI(); 
+            };
         });
-        
+
         const volTV = document.getElementById('setting-volumen-tv'); volTV.value = State.gameSettings.volumenTV; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`;
-        volTV.oninput = (e) => { State.gameSettings.volumenTV = e.target.value;
-        document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; this.applySettingsCallback(); };
+        volTV.oninput = (e) => { 
+            State.gameSettings.volumenTV = parseInt(e.target.value);
+            document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; 
+            localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); // Guardado Inmediato
+            this.applySettingsCallback(); 
+        };
         
         // NUEVO SLIDER PC
         const volPC = document.getElementById('setting-volumen-pc');
         if(volPC) {
             volPC.value = State.gameSettings.volumenPC; document.getElementById('vol-pc-val').innerText = `${State.gameSettings.volumenPC}%`;
-            volPC.oninput = (e) => { State.gameSettings.volumenPC = e.target.value; document.getElementById('vol-pc-val').innerText = `${State.gameSettings.volumenPC}%`; this.applySettingsCallback(); };
+            volPC.oninput = (e) => { 
+                State.gameSettings.volumenPC = parseInt(e.target.value); 
+                document.getElementById('vol-pc-val').innerText = `${State.gameSettings.volumenPC}%`; 
+                localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); // Guardado Inmediato
+                this.applySettingsCallback(); 
+            };
         }
 
         const volEf = document.getElementById('setting-volumen-efectos'); volEf.value = State.gameSettings.volumenEfectos; document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`;
-        volEf.oninput = (e) => { State.gameSettings.volumenEfectos = e.target.value; document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`; this.applySettingsCallback(); };
+        volEf.oninput = (e) => { 
+            State.gameSettings.volumenEfectos = parseInt(e.target.value); 
+            document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`; 
+            localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); // Guardado Inmediato
+            this.applySettingsCallback(); 
+        };
 
         const fpsCheck = document.getElementById('setting-showfps'); fpsCheck.checked = State.gameSettings.mostrarFps;
-        fpsCheck.onchange = (e) => { State.gameSettings.mostrarFps = e.target.checked; this.applySettingsCallback(); };
+        fpsCheck.onchange = (e) => { 
+            State.gameSettings.mostrarFps = e.target.checked; 
+            localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); // Guardado Inmediato
+            this.applySettingsCallback(); 
+        };
     },
 
     renderInventory() {
         const sidebar = document.getElementById('inv-sidebar'), content = document.getElementById('inv-content');
         sidebar.innerHTML = ''; content.innerHTML = '';
+        
         inventoryGroups.forEach(group => {
             const groupDiv = document.createElement('div'); groupDiv.className = 'inv-group';
             const groupBtn = document.createElement('button'); groupBtn.className = 'group-btn';
@@ -82,6 +109,7 @@ export const UIManager = {
             group.categories.forEach(catKey => {
                 const catData = State.inventoryData[catKey]; if(!catData) return;
                 const btn = document.createElement('button'); 
+
                 btn.className = `cat-btn ${catKey === this.currentCategory ? 'active' : ''}`;
                 btn.innerHTML = `<span class="cat-icon-emoji">${catData.emoji}</span> <span>${catData.label}</span>`;
                 btn.onclick = () => { this.currentCategory = catKey; this.renderInventory(); };
@@ -92,10 +120,12 @@ export const UIManager = {
 
         const catData = State.inventoryData[this.currentCategory];
         if (!catData) return;
+
         for (let itemId in catData.items) {
             const item = catData.items[itemId];
             let isEq = catData.type === 'multiple' ? catData.equipped.includes(itemId) : catData.equipped === itemId;
             const card = document.createElement('div'); card.className = 'item-card';
+            
             const prev = document.createElement('div'); prev.className = 'item-preview';
             if (item.preview) { 
                 const img = document.createElement('img');
@@ -104,7 +134,7 @@ export const UIManager = {
             } else prev.innerHTML = `<span>${catData.emoji}</span>`;
             
             let btn = item.owned ?
-            (isEq ? `<button class="item-btn btn-equipped" onclick="window.equipItem('${this.currentCategory}', '${itemId}')">${catData.type === 'multiple' ? 'Quitar ✓' : 'Equipado ✓'}</button>` : `<button class="item-btn btn-equip" onclick="window.equipItem('${this.currentCategory}', '${itemId}')">Equipar</button>`) : `<button class="item-btn btn-buy" onclick="window.buyItem('${this.currentCategory}', '${itemId}')">Comprar 🪙${item.price}</button>`;
+                (isEq ? `<button class="item-btn btn-equipped" onclick="window.equipItem('${this.currentCategory}', '${itemId}')">${catData.type === 'multiple' ? 'Quitar ✓' : 'Equipado ✓'}</button>` : `<button class="item-btn btn-equip" onclick="window.equipItem('${this.currentCategory}', '${itemId}')">Equipar</button>`) : `<button class="item-btn btn-buy" onclick="window.buyItem('${this.currentCategory}', '${itemId}')">Comprar 🪙${item.price}</button>`;
             card.innerHTML = `<div>${prev.outerHTML}<h4>${item.name}</h4><div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div></div>${btn}`; content.appendChild(card);
         }
     },
