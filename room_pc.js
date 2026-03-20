@@ -71,35 +71,46 @@ export const PCManager = {
     updateScreens() {
         this.pcScreenMeshes.forEach(mesh => {
             const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-            mats.forEach(mat => {
-                if (this.isPcOn) {
-                    if (this.isGamingMode) {
-                        if (mesh.userData && mesh.userData.isMainVideoScreen) {
-                            mat.map = this.survVideoTexture;
-                            mat.emissiveMap = this.survVideoTexture;
-                            mat.color.setHex(0xffffff);
-                            mat.emissive.setHex(0xffffff);
-                            mat.emissiveIntensity = 1.0;
-                        } else {
-                            mat.map = this.logoTexture;
-                            mat.emissiveMap = this.logoTexture;
-                            mat.color.setHex(0xffffff);
-                            mat.emissive.setHex(0xffffff);
-                            mat.emissiveIntensity = 1.0;
-                        }
+            mats.forEach((mat, index) => {
+                
+                // Extraemos las texturas que guardamos de forma segura como respaldo
+                const orig = (mesh.userData.originalMats && mesh.userData.originalMats[index]) ? mesh.userData.originalMats[index] : null;
+
+                if (this.isGamingMode) {
+                    if (mesh.userData && mesh.userData.isMainVideoScreen) {
+                        mat.map = this.survVideoTexture;
+                        mat.emissiveMap = this.survVideoTexture;
+                        mat.color.setHex(0xffffff);
+                        mat.emissive.setHex(0xffffff);
+                        mat.emissiveIntensity = 1.0;
                     } else {
-                        mat.map = null;
-                        mat.emissiveMap = null;
-                        mat.color.setHex(0x2196f3);
-                        mat.emissive.setHex(0x2196f3);
+                        mat.map = this.logoTexture;
+                        mat.emissiveMap = this.logoTexture;
+                        mat.color.setHex(0xffffff);
+                        mat.emissive.setHex(0xffffff);
                         mat.emissiveIntensity = 1.0;
                     }
                 } else {
-                    mat.map = null;
-                    mat.emissiveMap = null;
-                    mat.color.setHex(0x000000);
-                    mat.emissive.setHex(0x000000);
-                    mat.emissiveIntensity = 0;
+                    // Si no está jugando, restauramos toda su apariencia normal del GLB
+                    if (orig) {
+                        mat.map = orig.map;
+                        mat.emissiveMap = orig.emissiveMap;
+                        mat.color.copy(orig.color);
+                        mat.emissive.copy(orig.emissive);
+                        
+                        // Si la PC está encendida en modo espera le damos su intensidad nativa. Si no, cortamos el brillo.
+                        if (this.isPcOn) {
+                            mat.emissiveIntensity = orig.emissiveIntensity;
+                        } else {
+                            mat.emissiveIntensity = 0;
+                        }
+                    } else {
+                        // Respaldo de seguridad extremo por si el objeto carece de texturas
+                        mat.map = null;
+                        mat.emissiveMap = null;
+                        mat.color.setHex(this.isPcOn ? 0xffffff : 0x000000);
+                        mat.emissiveIntensity = 0;
+                    }
                 }
                 mat.needsUpdate = true;
             });
@@ -164,6 +175,6 @@ export const PCManager = {
 
     setVolumes(volPc, volEf) {
         this.audioBotonPC.volume = volEf / 100;
-        this.survVideo.volume = volPc / 100; // Usa solo el volumen de la PC
+        this.survVideo.volume = volPc / 100;
     }
 };

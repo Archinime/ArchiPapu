@@ -46,7 +46,7 @@ function applyCurrentSettings() {
     document.getElementById('fps-counter').style.display = State.gameSettings.mostrarFps ? 'block' : 'none';
     
     TVManager.setVolumes(State.gameSettings.volumenTV, State.gameSettings.volumenEfectos);
-    PCManager.setVolumes(State.gameSettings.volumenPC, State.gameSettings.volumenEfectos); // <-- PASANDO EL NUEVO VOLUMEN
+    PCManager.setVolumes(State.gameSettings.volumenPC, State.gameSettings.volumenEfectos);
     
     let volEf = State.gameSettings.volumenEfectos / 100;
     audioPrenderLuz.volume = volEf; audioApagarLuz.volume = volEf;
@@ -209,6 +209,17 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
                     if (categoryKey === 'pantalla_pc') node.userData.isMainVideoScreen = true;
+                    
+                    // ¡AQUI! Guardamos los materiales originales (textura, brillo y color natural) en memoria
+                    const mats = Array.isArray(node.material) ? node.material : [node.material];
+                    node.userData.originalMats = mats.map(m => ({
+                        map: m.map,
+                        emissiveMap: m.emissiveMap,
+                        color: m.color ? m.color.clone() : new THREE.Color(0xffffff),
+                        emissive: m.emissive ? m.emissive.clone() : new THREE.Color(0x000000),
+                        emissiveIntensity: m.emissiveIntensity !== undefined ? m.emissiveIntensity : 1.0
+                    }));
+
                     if (!PCManager.pcScreenMeshes.includes(node)) {
                         PCManager.pcScreenMeshes.push(node);
                     }

@@ -42,13 +42,16 @@ export const WeatherSystem = {
             if (typeof checkLoading === 'function') checkLoading();
         };
 
+        // Verificamos la hora exacta desde el inicio
+        const hora = new Date().getHours();
+        this.esDeDiaLocal = hora >= 6 && hora < 19;
+
         if (!navigator.onLine) {
-            this.loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, 'dia.mp4');
+            this.loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, this.esDeDiaLocal ? 'dia.mp4' : 'noche.mp4');
             return;
         }
 
         try {
-            // Obtenemos el clima usando la IP automáticamente, sin pedir permisos molestos
             const ipRes = await fetch('https://ipapi.co/json/');
             const ipData = await ipRes.json();
             
@@ -66,6 +69,11 @@ export const WeatherSystem = {
     async fetchWeather(lat, lon, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading) {
         const statusBox = document.getElementById('weather-status');
         let weatherCode = 0; let temperature = "--";
+        
+        // Volvemos a asegurar la hora actual
+        const hora = new Date().getHours();
+        this.esDeDiaLocal = hora >= 6 && hora < 19;
+
         try {
             const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`);
             const data = await response.json();
@@ -76,12 +84,25 @@ export const WeatherSystem = {
 
         let videoFile = 'soleado.mp4', weatherEmoji = "☀️", weatherName = "Soleado";
         try {
-            if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)) { weatherEmoji = "🌧️"; weatherName = "Lluvioso"; videoFile = 'lluvia.mp4'; } 
-            else if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) { weatherEmoji = "❄️"; weatherName = "Nevado"; videoFile = 'nieve.mp4'; } 
-            else if ([95, 96, 99].includes(weatherCode)) { weatherEmoji = "⛈️"; weatherName = "Tormenta"; videoFile = 'tormenta.mp4'; } 
-            else if (!this.esDeDiaLocal) { weatherEmoji = "🌙"; weatherName = "Despejado"; videoFile = 'noche.mp4'; } 
-            else if ([1, 2, 3, 45, 48].includes(weatherCode)) { weatherEmoji = "☁️"; weatherName = "Nublado"; videoFile = 'dia_nublado.mp4'; }
-            else { videoFile = 'dia.mp4'; }
+            // Si es de noche (!this.esDeDiaLocal), forzamos SIEMPRE a mostrar noche.mp4, pero mantenemos el emoji correcto
+            if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)) { 
+                weatherEmoji = "🌧️"; weatherName = "Lluvioso"; videoFile = this.esDeDiaLocal ? 'lluvia.mp4' : 'noche.mp4'; 
+            } 
+            else if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) { 
+                weatherEmoji = "❄️"; weatherName = "Nevado"; videoFile = this.esDeDiaLocal ? 'nieve.mp4' : 'noche.mp4'; 
+            } 
+            else if ([95, 96, 99].includes(weatherCode)) { 
+                weatherEmoji = "⛈️"; weatherName = "Tormenta"; videoFile = this.esDeDiaLocal ? 'tormenta.mp4' : 'noche.mp4'; 
+            } 
+            else if (!this.esDeDiaLocal) { 
+                weatherEmoji = "🌙"; weatherName = "Despejado"; videoFile = 'noche.mp4'; 
+            } 
+            else if ([1, 2, 3, 45, 48].includes(weatherCode)) { 
+                weatherEmoji = "☁️"; weatherName = "Nublado"; videoFile = 'dia_nublado.mp4'; 
+            }
+            else { 
+                videoFile = this.esDeDiaLocal ? 'dia.mp4' : 'noche.mp4'; 
+            }
         } catch (error) { weatherEmoji = "❌"; weatherName = "Clima offline"; }
 
         if (statusBox) statusBox.innerHTML = temperature !== "--" ? `${weatherEmoji} ${weatherName} | ${temperature}°C` : `${weatherEmoji} ${weatherName}`;
