@@ -32,10 +32,8 @@ function applyCurrentSettings() {
     renderer.shadowMap.enabled = State.gameSettings.sombras > 0;
     renderer.shadowMap.type = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     mainLight.castShadow = State.gameSettings.sombras > 0;
-    
     if (State.gameSettings.sombras > 0) {
-        let shadowRes = State.gameSettings.sombras === 2 ?
-        (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
+        let shadowRes = State.gameSettings.sombras === 2 ? (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
         if (mainLight.shadow.mapSize.width !== shadowRes) {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
@@ -48,7 +46,8 @@ function applyCurrentSettings() {
     document.getElementById('fps-counter').style.display = State.gameSettings.mostrarFps ? 'block' : 'none';
     
     TVManager.setVolumes(State.gameSettings.volumenTV, State.gameSettings.volumenEfectos);
-    PCManager.setVolume(State.gameSettings.volumenEfectos);
+    PCManager.setVolumes(State.gameSettings.volumenPC, State.gameSettings.volumenEfectos); // <-- PASANDO EL NUEVO VOLUMEN
+    
     let volEf = State.gameSettings.volumenEfectos / 100;
     audioPrenderLuz.volume = volEf; audioApagarLuz.volume = volEf;
     audioAbrirPoster.volume = volEf; audioCerrarPoster.volume = volEf;
@@ -111,7 +110,6 @@ function checkLoading() {
     }
 }
 
-// SEGURO ANTI-TRABAS: Forzar el cierre de la pantalla de carga después de 12 segundos si hay lentitud extrema de internet
 setTimeout(() => {
     const loadingEl = document.getElementById('loading');
     if(loadingEl && loadingEl.style.display !== 'none') {
@@ -203,7 +201,7 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                     });
                 }
              });
-             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
+            if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
         
         if (categoryKey === 'pantalla_pc' || categoryKey === 'pantalla_pc2') { 
@@ -275,8 +273,8 @@ function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
-    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return;
-    }
+
+    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
     
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
@@ -345,12 +343,12 @@ let pointerDownPos = { x: 0, y: 0 }; let isDragging = false;
 renderer.domElement.addEventListener('pointerdown', (e) => { pointerDownPos.x = e.clientX; pointerDownPos.y = e.clientY; isDragging = false; });
 renderer.domElement.addEventListener('pointermove', (e) => { const dx = e.clientX - pointerDownPos.x; const dy = e.clientY - pointerDownPos.y; if (Math.sqrt(dx * dx + dy * dy) > 5) isDragging = true; });
 renderer.domElement.addEventListener('pointerup', (e) => { if (!isDragging && !document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active') && !document.getElementById('pc-modal').classList.contains('visible')) handleInteraction(e); isDragging = false; });
+
 let then = performance.now(), frames = 0, lastFpsTime = then;
 function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
-    const fpsInterval = State.gameSettings.fps > 0 ?
-    1000 / State.gameSettings.fps : 0;
+    const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
         const delta = clock.getDelta(); LunariSystem.update(delta); 
@@ -358,11 +356,11 @@ function animate() {
         
         if (State.gameSettings.mostrarFps) { 
             frames++;
-            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now;
-            } 
+            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now; } 
         }
     }
 }
 
 window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); applyCurrentSettings(); });
+
 applyCurrentSettings(); updateLighting(); animate();

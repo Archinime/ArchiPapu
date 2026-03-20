@@ -38,7 +38,6 @@ export const TVManager = {
         this.tvVideo.playsInline = true;
         this.tvVideo.setAttribute('playsinline', '');
         this.tvVideo.setAttribute('webkit-playsinline', '');
-        
         this.tvTexture = new THREE.VideoTexture(this.tvVideo); 
         this.tvTexture.minFilter = THREE.LinearFilter; 
         this.tvTexture.magFilter = THREE.LinearFilter;
@@ -63,7 +62,6 @@ export const TVManager = {
                 this.playNextTv(false);
             }
         });
-
         this.setupStartScreen();
     },
 
@@ -122,7 +120,7 @@ export const TVManager = {
             if (!this.isTvOn || this.tvTransitioning) {
                 this.tvVideo.pause();
             }
-            
+ 
             this.audioBotonTV.play().catch(()=>{});
             this.audioBotonTV.pause();
             this.audioBotonTV.currentTime = 0;
@@ -132,7 +130,8 @@ export const TVManager = {
             
             if (PCManager.isGamingMode && PCManager.isPcOn) {
                 PCManager.survVideo.muted = false;
-                PCManager.survVideo.volume = (State.gameSettings.volumenEfectos !== undefined ? State.gameSettings.volumenEfectos : 50) / 100;
+                // Extraer el volumen específico de la PC
+                PCManager.survVideo.volume = (State.gameSettings.volumenPC !== undefined ? State.gameSettings.volumenPC : 50) / 100;
                 PCManager.survVideo.play().catch(()=>{});
             }
 
@@ -157,7 +156,6 @@ export const TVManager = {
         this.currentTvIndex = random 
             ? Math.floor(Math.random() * this.tvPlaylist.length) 
             : (this.currentTvIndex + 1) % this.tvPlaylist.length;
-            
         this.tvVideo.src = this.tvPlaylist[this.currentTvIndex];
         this.tvVideo.volume = State.gameSettings.volumenTV / 100;
         
@@ -234,7 +232,6 @@ export const TVManager = {
                         tvPowerBtn.innerText = '🔴'; 
                         tvPowerBtn.style.color = 'red'; 
                         tvPowerBtn.style.textShadow = '0 0 5px red';
-                        
                         mats.forEach(mat => { 
                             mat.map = null; 
                             mat.emissiveMap = null; 
@@ -248,7 +245,6 @@ export const TVManager = {
                         tvPowerBtn.innerText = '🟢'; 
                         tvPowerBtn.style.color = '#00ff00'; 
                         tvPowerBtn.style.textShadow = '0 0 5px #00ff00';
-                        
                         mats.forEach(mat => { 
                             mat.map = this.tvTexture; 
                             mat.emissiveMap = this.tvTexture; 
@@ -257,7 +253,6 @@ export const TVManager = {
                             mat.emissiveIntensity = 1.0; 
                             mat.needsUpdate = true; 
                         });
-                        
                         if (this.tvPlaylist.length > 0 && !this.tvVideo.src) {
                             this.playNextTv(true);
                         } else if (this.tvPlaylist.length > 0) {
@@ -266,7 +261,6 @@ export const TVManager = {
                         }
                     }
                 };
-                
                 effectVideo.addEventListener('ended', onEffectEnded, { once: true });
             });
         }
@@ -282,7 +276,6 @@ export const TVManager = {
         if (this.isTvOn || this.tvTransitioning) return;
         
         this.isTvOn = true;
-        
         const tvPowerBtn = document.getElementById('tv-power');
         if (tvPowerBtn) {
             tvPowerBtn.innerText = '🟢';

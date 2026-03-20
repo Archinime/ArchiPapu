@@ -44,7 +44,6 @@ const ua = navigator.userAgent;
 export const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 const deviceMemory = navigator.deviceMemory || 4;
 const cpuCores = navigator.hardwareConcurrency || 4;
-
 let baseTier = 'alta';
 if (isMobileUA || deviceMemory <= 4 || cpuCores <= 4) baseTier = 'media';
 if (isMobileUA && (deviceMemory <= 2 || cpuCores <= 2)) baseTier = 'baja';
@@ -54,6 +53,7 @@ State.gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
     sombras: baseTier === 'baja' ? 0 : (baseTier === 'media' ? 1 : 2),
     fps: baseTier === 'baja' ? 30 : 60,
     volumenTV: 50,
+    volumenPC: 50, // <-- NUEVA VARIABLE
     volumenEfectos: 50,
     mostrarFps: false
 };
@@ -62,8 +62,12 @@ State.gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
 if(State.gameSettings.volumen) { 
     State.gameSettings.volumenTV = State.gameSettings.volumen; 
     State.gameSettings.volumenEfectos = State.gameSettings.volumen; 
-    delete State.gameSettings.volumen; 
+    State.gameSettings.volumenPC = State.gameSettings.volumen; 
+    delete State.gameSettings.volumen;
 }
+
+// Seguro por si el usuario tiene datos viejos sin volumenPC
+if (State.gameSettings.volumenPC === undefined) State.gameSettings.volumenPC = 50;
 
 export function checkDailyReward() {
     let lastLogin = localStorage.getItem('room_last_login');

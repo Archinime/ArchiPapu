@@ -8,7 +8,7 @@ export const PCManager = {
     audioBotonPC: new Audio('sonido_boton.mp3'),
     
     isGamingMode: false,
-    canPlayAudio: false, // <-- NUEVA BANDERA: Bloquea el sonido hasta el botón de Iniciar
+    canPlayAudio: false, 
     survVideo: document.createElement('video'),
     survVideoTexture: null,
     logoTexture: null, 
@@ -16,7 +16,7 @@ export const PCManager = {
     init() {
         this.survVideo.src = 'surv.mp4';
         this.survVideo.loop = true;
-        this.survVideo.muted = true; // Inicia 100% mudo para la carga en segundo plano
+        this.survVideo.muted = true; 
         this.survVideo.playsInline = true;
         this.survVideo.setAttribute('playsinline', ''); 
         this.survVideo.setAttribute('webkit-playsinline', '');
@@ -49,8 +49,6 @@ export const PCManager = {
         this.isGamingMode = active;
         if (active) {
             this.isPcOn = true;
-            
-            // Solo desmuteamos si el usuario ya le dio al botón de "Iniciar Habitación"
             if (this.canPlayAudio) {
                 this.survVideo.muted = false;
             } else {
@@ -124,10 +122,10 @@ export const PCManager = {
                 pcPowerBtn.innerText = this.isPcOn ? '🟢' : '🔴';
                 pcPowerBtn.style.color = this.isPcOn ? '#00ff00' : 'red';
                 pcPowerBtn.style.textShadow = this.isPcOn ? '0 0 5px #00ff00' : '0 0 5px red';
-                
+
                 if (this.isGamingMode) {
                     if (this.isPcOn) {
-                        this.survVideo.muted = false; 
+                        this.survVideo.muted = false;
                         this.survVideo.play().catch(()=>{});
                     } else {
                         this.survVideo.pause();
@@ -164,8 +162,8 @@ export const PCManager = {
         }
     },
 
-    setVolume(volEf) {
+    setVolumes(volPc, volEf) {
         this.audioBotonPC.volume = volEf / 100;
-        this.survVideo.volume = volEf / 100; 
+        this.survVideo.volume = volPc / 100; // Usa solo el volumen de la PC
     }
 };
