@@ -49,23 +49,9 @@ export const UIManager = {
             b.classList.toggle('active', parseInt(b.dataset.val) === State.gameSettings.fps);
             b.onclick = () => { State.gameSettings.fps = parseInt(b.dataset.val); this.syncSettingsUI(); };
         });
-        
         const volTV = document.getElementById('setting-volumen-tv'); volTV.value = State.gameSettings.volumenTV; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`;
         volTV.oninput = (e) => { State.gameSettings.volumenTV = e.target.value; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; this.applySettingsCallback(); };
         
-        // --- NUEVO: VOLUMEN PC ---
-        if (State.gameSettings.volumenPC === undefined) State.gameSettings.volumenPC = 50; // Valor por defecto
-        const volPC = document.getElementById('setting-volumen-pc'); 
-        if (volPC) {
-            volPC.value = State.gameSettings.volumenPC; 
-            document.getElementById('vol-pc-val').innerText = `${State.gameSettings.volumenPC}%`;
-            volPC.oninput = (e) => { 
-                State.gameSettings.volumenPC = e.target.value; 
-                document.getElementById('vol-pc-val').innerText = `${State.gameSettings.volumenPC}%`; 
-                this.applySettingsCallback(); 
-            };
-        }
-
         const volEf = document.getElementById('setting-volumen-efectos'); volEf.value = State.gameSettings.volumenEfectos; document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`;
         volEf.oninput = (e) => { State.gameSettings.volumenEfectos = e.target.value; document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`; this.applySettingsCallback(); };
 
@@ -128,11 +114,10 @@ export const UIManager = {
             if (category === 'tele' && itemData.baseFile) this.loadItemCallback('pantalla_tv', itemData.baseFile, false);
             if (category === 'pc') {
                 if (itemData.baseFile) this.loadItemCallback('pantalla_pc', itemData.baseFile, false);
-                this.loadItemCallback('pantalla_pc2', 'pantalla_pc2.glb', false);
+                this.loadItemCallback('pantalla_pc2', 'pantalla_pc2.glb', false); // Cargar la segunda pantalla
             }
         }
-        State.saveGame();
-        this.renderInventory();
+        State.saveGame(); this.renderInventory();
     },
 
     buyItem(category, itemId) {
