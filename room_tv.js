@@ -63,7 +63,7 @@ export const TVManager = {
                 this.playNextTv(false);
             }
         });
-        
+
         this.setupStartScreen();
     },
 
@@ -85,7 +85,7 @@ export const TVManager = {
         overlay.style.transition = 'opacity 0.5s ease';
         overlay.style.opacity = '0';
         overlay.style.pointerEvents = 'none';
-        
+
         const btn = document.createElement('button');
         btn.innerHTML = '▶ INICIAR HABITACIÓN';
         btn.style.background = 'linear-gradient(90deg, #80cbc4, #4db6ac)';
@@ -113,11 +113,10 @@ export const TVManager = {
                 overlay.style.pointerEvents = 'auto';
             }
         }, 500);
-        
+
         btn.addEventListener('click', () => {
             this.hasInteracted = true;
             
-            // Forzar permisos de reproducción multimedia en navegadores
             this.tvVideo.muted = false;
             this.tvVideo.play().catch(()=>{});
             if (!this.isTvOn || this.tvTransitioning) {
@@ -128,18 +127,14 @@ export const TVManager = {
             this.audioBotonTV.pause();
             this.audioBotonTV.currentTime = 0;
 
-            // --- LIBERAMOS Y FORZAMOS EL AUDIO/VIDEO DE LA PC AQUÍ ---
+            // --- LIBERAMOS EL AUDIO DE LA PC AQUÍ ---
             PCManager.canPlayAudio = true; 
-            PCManager.survVideo.muted = false;
-            PCManager.survVideo.volume = (State.gameSettings.volumenPC !== undefined ? State.gameSettings.volumenPC : 50) / 100;
             
-            // Iniciamos la reproducción y pausamos de inmediato si Lunari no está jugando.
-            // Esto le avisa al navegador que el usuario autorizó el video y no será bloqueado luego.
-            PCManager.survVideo.play().then(() => {
-                if (!PCManager.isGamingMode || !PCManager.isPcOn) {
-                    PCManager.survVideo.pause();
-                }
-            }).catch(()=>{});
+            if (PCManager.isGamingMode && PCManager.isPcOn) {
+                PCManager.survVideo.muted = false;
+                PCManager.survVideo.volume = (State.gameSettings.volumenEfectos !== undefined ? State.gameSettings.volumenEfectos : 50) / 100;
+                PCManager.survVideo.play().catch(()=>{});
+            }
 
             overlay.style.opacity = '0';
             setTimeout(() => overlay.remove(), 500);
@@ -181,7 +176,7 @@ export const TVManager = {
               tvPlayPauseBtn = document.getElementById('tv-play-pause'), 
               tvNextBtn = document.getElementById('tv-next'), 
               tvPowerBtn = document.getElementById('tv-power');
-              
+
         tvPrevBtn.onclick = () => { 
             this.playButtonSound();
             if (!this.isTvOn || this.tvTransitioning) return; 
@@ -198,7 +193,7 @@ export const TVManager = {
             if(this.tvVideo.paused) this.tvVideo.play(); 
             else this.tvVideo.pause(); 
         };
-        
+
         tvNextBtn.onclick = () => { 
             this.playButtonSound();
             if (this.isTvOn && !this.tvTransitioning) this.playNextTv(false); 
@@ -247,7 +242,7 @@ export const TVManager = {
                             mat.emissive.setHex(0x000000); 
                             mat.emissiveIntensity = 0; 
                             mat.needsUpdate = true; 
-                         });
+                        });
                     } else {
                         this.isTvOn = true;
                         tvPowerBtn.innerText = '🟢'; 
@@ -261,8 +256,8 @@ export const TVManager = {
                             mat.emissive.setHex(0xffffff); 
                             mat.emissiveIntensity = 1.0; 
                             mat.needsUpdate = true; 
-                         });
-                         
+                        });
+                        
                         if (this.tvPlaylist.length > 0 && !this.tvVideo.src) {
                             this.playNextTv(true);
                         } else if (this.tvPlaylist.length > 0) {
@@ -271,6 +266,7 @@ export const TVManager = {
                         }
                     }
                 };
+                
                 effectVideo.addEventListener('ended', onEffectEnded, { once: true });
             });
         }
@@ -286,6 +282,7 @@ export const TVManager = {
         if (this.isTvOn || this.tvTransitioning) return;
         
         this.isTvOn = true;
+        
         const tvPowerBtn = document.getElementById('tv-power');
         if (tvPowerBtn) {
             tvPowerBtn.innerText = '🟢';

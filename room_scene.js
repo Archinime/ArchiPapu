@@ -1,106 +1,65 @@
-import { defaultInventoryConfig } from './inventory-data.js';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-export const State = {
-    playerCoins: parseInt(localStorage.getItem('room_coins')) || 1000,
-    inventoryData: JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig,
-    gameSettings: null,
-    lightOn: localStorage.getItem('lightState') !== 'off',
-    saveGame() {
-        localStorage.setItem('room_coins', this.playerCoins);
-        localStorage.setItem('room_inventory', JSON.stringify(this.inventoryData));
-        const coinAmount = document.getElementById('coin-amount');
-        if (coinAmount) coinAmount.innerText = this.playerCoins;
+export const SceneSetup = {
+    scene: new THREE.Scene(),
+    clock: new THREE.Clock(),
+    camera: null,
+    renderer: null,
+    controls: null,
+    ambient: null,
+    hemiLight: null,
+    mainLight: null,
+
+    init(gameSettings, isMobileUA) {
+        this.scene.background = new THREE.Color(0x050508);
+        this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 200);
+        
+        let camPosY = 6, camPosZ = 14, targetY = 6;
+        if (window.innerWidth < 768 || isMobileUA) { 
+            camPosY = 6; camPosZ = 12; targetY = 5; 
+        }
+        this.camera.position.set(0, camPosY, camPosZ);
+        this.renderer = new THREE.WebGLRenderer({ antialias: gameSettings.calidad !== 'baja', powerPreference: "high-performance" });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.outputEncoding = THREE.sRGBEncoding; 
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.0;
+        
+        // SOMBRAS SUAVIZADAS PARA OPTIMIZACIÓN Y FLUIDEZ
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+        
+        document.body.appendChild(this.renderer.domElement);
+
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true; 
+        this.controls.target.set(0, targetY, 0);
+        this.controls.maxPolarAngle = Math.PI / 2 - 0.05;
+        this.controls.minDistance = 2.5; 
+        this.controls.maxDistance = 16;
+        this.controls.enablePan = false;
+        
+        this.ambient = new THREE.AmbientLight(0xffffff, 0.3); 
+        this.scene.add(this.ambient);
+        
+        this.hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); 
+        this.hemiLight.position.set(0, 20, 0);
+        this.scene.add(this.hemiLight);
+        
+        this.mainLight = new THREE.SpotLight(0xffeedd, 6); 
+        this.mainLight.position.set(2, 22, 2); 
+        this.mainLight.angle = Math.PI / 3;
+        this.mainLight.penumbra = 0.8;
+        this.mainLight.castShadow = true;
+        
+        // ELIMINA LAS LÍNEAS NEGRAS / SOMBRAS RAYADAS (Shadow Acne)
+        this.mainLight.shadow.bias = -0.0005;
+        this.mainLight.shadow.normalBias = 0.05;
+        // Ajustamos la resolución según la calidad
+        this.mainLight.shadow.mapSize.width = gameSettings.calidad === 'alta' ? 2048 : 1024;
+        this.mainLight.shadow.mapSize.height = gameSettings.calidad === 'alta' ? 2048 : 1024;
+
+        this.scene.add(this.mainLight);
     }
 };
-
-// Limpieza de datos obsoletos
-if (State.inventoryData.base_foco) delete State.inventoryData.base_foco;
-
-// Sincronizar datos por defecto con los guardados
-for (let cat in defaultInventoryConfig) {
-    if(!State.inventoryData[cat]) State.inventoryData[cat] = defaultInventoryConfig[cat];
-    State.inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
-    State.inventoryData[cat].label = defaultInventoryConfig[cat].label;
-    State.inventoryData[cat].type = defaultInventoryConfig[cat].type || 'single';
-    
-    if (State.inventoryData[cat].type === 'multiple') {
-        if (!Array.isArray(State.inventoryData[cat].equipped)) State.inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
-    } else {
-        if (!State.inventoryData[cat].items[State.inventoryData[cat].equipped]) State.inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
-    }
-    for(let item in defaultInventoryConfig[cat].items) {
-        if(!State.inventoryData[cat].items[item]) State.inventoryData[cat].items[item] = defaultInventoryConfig[cat].items[item];
-        else {
-            State.inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file;
-            State.inventoryData[cat].items[item].name = defaultInventoryConfig[cat].items[item].name;
-            if(defaultInventoryConfig[cat].items[item].baseFile) State.inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile;
-            if(defaultInventoryConfig[cat].items[item].preview) State.inventoryData[cat].items[item].preview = defaultInventoryConfig[cat].items[item].preview;
-        }
-    }
-}
-
-// Detección de Hardware para gráficos base
-const ua = navigator.userAgent;
-export const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-const deviceMemory = navigator.deviceMemory || 4;
-const cpuCores = navigator.hardwareConcurrency || 4;
-
-let baseTier = 'alta';
-if (isMobileUA || deviceMemory <= 4 || cpuCores <= 4) baseTier = 'media';
-if (isMobileUA && (deviceMemory <= 2 || cpuCores <= 2)) baseTier = 'baja';
-
-State.gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
-    calidad: baseTier, 
-    sombras: baseTier === 'baja' ? 0 : (baseTier === 'media' ? 1 : 2),
-    fps: baseTier === 'baja' ? 30 : 60,
-    volumenTV: 50,
-    volumenEfectos: 50,
-    volumenPC: 50, // NUEVO: Volumen independiente para la PC
-    mostrarFps: false
-};
-
-// Compatibilidad con versión anterior de volumen
-if(State.gameSettings.volumen !== undefined) { 
-    State.gameSettings.volumenTV = State.gameSettings.volumen; 
-    State.gameSettings.volumenEfectos = State.gameSettings.volumen; 
-    State.gameSettings.volumenPC = State.gameSettings.volumen; 
-    delete State.gameSettings.volumen;
-}
-if(State.gameSettings.volumenPC === undefined) {
-    State.gameSettings.volumenPC = 50; 
-}
-
-export function checkDailyReward() {
-    let lastLogin = localStorage.getItem('room_last_login');
-    let today = new Date().toDateString();
-    if (lastLogin !== today) {
-        State.playerCoins += 100;
-        localStorage.setItem('room_last_login', today);
-        const toast = document.getElementById('daily-reward-toast');
-        if (toast) {
-            toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 4000);
-        }
-    }
-    const coinAmt = document.getElementById('coin-amount');
-    if (coinAmt) coinAmt.innerText = State.playerCoins;
-}
-
-export function getFreshUrl(url) {
-    if (!url) return url;
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}nocache=${Date.now()}`;
-}
-
-export function disposeThreeJSObject(node) {
-    if (!node) return;
-    if (node.geometry) node.geometry.dispose();
-    if (node.material) {
-        if (Array.isArray(node.material)) {
-            node.material.forEach(mat => { if(mat.map) mat.map.dispose(); mat.dispose(); });
-        } else {
-            if(node.material.map) node.material.map.dispose(); node.material.dispose();
-        }
-    }
-    if (node.children) node.children.forEach(child => disposeThreeJSObject(child));
-}

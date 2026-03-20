@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'room-cache-v13'; // <-- Subimos a v13 para forzar una actualización profunda
+const CACHE_NAME = 'room-cache-v11'; // <-- Subimos a v11 por el nuevo archivo
 const urlsToCache = [
     './',
     './index.html',
@@ -19,20 +19,18 @@ const urlsToCache = [
     'lunari_esta_despierta.glb', 
     'lunari_jugando.glb', 
     'surv.mp4',
-    'logo.avif'
+    'logo.avif' // <-- NUEVA IMAGEN CACHEADA
 ];
 
 self.addEventListener('install', event => {
-    // Forzamos al nuevo Service Worker a instalarse inmediatamente
-    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => cache.addAll(urlsToCache))
+            .then(() => self.skipWaiting())
     );
 });
 
 self.addEventListener('activate', event => {
-    // Tomamos el control inmediatamente y borramos TODO el caché viejo
     event.waitUntil(
         caches.keys().then(cacheNames => {
             return Promise.all(
@@ -52,7 +50,8 @@ self.addEventListener('fetch', event => {
         event.respondWith(
             caches.match(event.request).then(cachedResponse => {
                 if (cachedResponse) return cachedResponse;
-                return fetch(event.request).then(networkResponse => {
+                return fetch(event.request).then(networkResponse => 
+                {
                     const clone = networkResponse.clone();
                     caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
                     return networkResponse;
@@ -62,7 +61,7 @@ self.addEventListener('fetch', event => {
     } else {
         // Red Primero para HTML, JS, CSS
         event.respondWith(
-            fetch(event.request, { cache: 'no-store' }).then(networkResponse => {
+            fetch(event.request).then(networkResponse => {
                 if (!requestUrl.includes('nocache=')) {
                     const clone = networkResponse.clone();
                     caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));

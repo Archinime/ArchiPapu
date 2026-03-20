@@ -1,117 +1,143 @@
-import * as THREE from 'three';
-import { State, getFreshUrl } from './room_state.js';
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Habitación 3D - Inventario y Lunari</title>
+    <link rel="stylesheet" href="room_style.css">
+</head>
+<body>
+    <video id="tv-video" style="display:none;" crossorigin="anonymous" playsinline></video>
 
-export const WeatherSystem = {
-    esDeDiaLocal: true,
-    lastWeatherCode: 0,
+    <div id="fps-counter" style="display: none;">FPS: <span>60</span></div>
+    <div id="coin-display" title="Tus Monedas">🪙 <span id="coin-amount">0</span></div>
+    <div id="weather-status">🌍 Detectando clima...</div>
     
-    actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, lunariRef) {
-        const hora = new Date().getHours();
-        let colorHex, lightInt, emInt, dist;
-        if (hora >= 6 && hora < 9) { colorHex = 0xffe4b5; lightInt = 0.8; emInt = 0.8; dist = 35; }
-        else if (hora >= 9 && hora < 17) { colorHex = 0xffffff; lightInt = 1.5; emInt = 1.5; dist = 50; }
-        else if (hora >= 17 && hora < 19) { colorHex = 0xff8c00; lightInt = 0.7; emInt = 0.7; dist = 40; }
-        else { colorHex = 0x5566aa; lightInt = 0.25; emInt = 0.25; dist = 25; }
+    <div id="inventory-button" class="top-btn" title="Inventario y Tienda">🎒</div>
+    <div id="settings-button" class="top-btn" title="Ajustes">⚙️</div>
 
-        if (luzFocoDia) { 
-            luzFocoDia.color.setHex(colorHex);
-            luzFocoDia.intensity = lightInt; 
-            luzFocoDia.distance = dist; 
-            luzFocoDia.castShadow = State.gameSettings.sombras > 0;
-            luzFocoDia.shadow.bias = -0.0005;
-            luzFocoDia.shadow.normalBias = 0.05; 
-        }
-        
-        if (focoDiaMesh) { 
-            const mat = focoDiaMesh.material;
-            mat.emissive.setHex(colorHex); 
-            mat.emissiveIntensity = emInt; 
-            mat.needsUpdate = true; 
-        }
+    <div id="ff-settings-modal">
+        <div class="ff-modal-content">
+            <div class="ff-header">
+                <h2>Ajustes del Cuarto</h2>
+                <button id="close-ff-settings">✖</button>
+            </div>
+            <div class="ff-body">
+                <div class="ff-sidebar">
+                    <button class="ff-tab active" data-target="tab-graficos">Gráficos</button>
+                    <button class="ff-tab" data-target="tab-sonido">Sonido</button>
+                    <button class="ff-tab" data-target="tab-sistema">Sistema</button>
+                </div>
+                
+                <div class="ff-content">
+                    <div id="tab-graficos" class="ff-tab-pane active">
+                        <div class="ff-setting-group">
+                            <label>Calidad Visual</label>
+                            <div class="ff-radio-group" id="setting-calidad">
+                                <button data-val="baja">Suave</button>
+                                <button data-val="media">Estándar</button>
+                                <button data-val="alta">Ultra</button>
+                            </div>
+                        </div>
+                        <div class="ff-setting-group">
+                            <label>Fluidez (FPS)</label>
+                            <div class="ff-radio-group" id="setting-fps">
+                                <button data-val="30">Normal (30)</button>
+                                <button data-val="60">Alto (60)</button>
+                            </div>
+                        </div>
+                    </div>
 
-        const isDay = hora >= 6 && hora < 19;
-        this.esDeDiaLocal = isDay;
+                    <div id="tab-sonido" class="ff-tab-pane">
+                        <div class="ff-setting-group">
+                            <label>Volumen TV - <span id="vol-tv-val">50%</span></label>
+                            <input type="range" id="setting-volumen-tv" min="0" max="100" value="50" class="ff-slider">
+                        </div>
+                        <div class="ff-setting-group">
+                            <label>Efectos y Entorno - <span id="vol-efectos-val">50%</span></label>
+                            <input type="range" id="setting-volumen-efectos" min="0" max="100" value="50" class="ff-slider">
+                        </div>
+                    </div>
 
-        if (lunariRef && typeof lunariRef.evaluateState === 'function') {
-            lunariRef.evaluateState(isDay, this.lastWeatherCode);
-        }
-    },
+                    <div id="tab-sistema" class="ff-tab-pane">
+                        <div class="ff-setting-group">
+                            <label>Mostrar FPS en pantalla</label>
+                            <label class="ff-switch">
+                                <input type="checkbox" id="setting-showfps">
+                                <span class="ff-slider-round"></span>
+                            </label>
+                        </div>
+                        <div class="ff-setting-group" style="margin-top: 20px; color: #a5d6a7; font-size: 12px;">
+                            <i>*Los cambios gráficos se ajustan automáticamente según tu dispositivo para evitar sobrecalentamiento.</i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    async setupWeatherVideo(loader, scene, applyMaterialLogic, loadedSlotMeshes, checkLoading) {
-        const safeCheckLoading = () => {
-            if (typeof checkLoading === 'function') checkLoading();
-        };
+    <div id="character-layer">
+        <div id="dialogue-box">
+            <h3 class="char-name">Lunari</h3>
+            <p id="dialogue-text">¡Hola!<br>Bienvenido de nuevo a casa.<br>¿Vemos un anime hoy?</p>
+        </div>
+    </div>
 
-        if (!navigator.onLine) {
-            this.loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, 'dia.mp4');
-            return;
-        }
+    <div id="tv-controls" style="display:none;">
+        <button id="tv-power" title="Encender/Apagar" style="color: red; text-shadow: 0 0 5px red;">🔴</button>
+        <button id="tv-prev" title="Canal Anterior">⏮️</button>
+        <button id="tv-play-pause" title="Pausar/Reproducir">⏯️</button>
+        <button id="tv-next" title="Canal Siguiente">⏭️</button>
+    </div>
 
-        try {
-            // NUEVO: Geolocalización automática basada en IP usando geojs (API gratuita)
-            const response = await fetch('https://get.geojs.io/v1/ip/geo.json');
-            if (response.ok) {
-                const data = await response.json();
-                if (data.latitude && data.longitude) {
-                    this.fetchWeather(parseFloat(data.latitude), parseFloat(data.longitude), loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
-                    return;
-                }
+    <div id="pc-controls" style="display:none;">
+        <button id="pc-power" title="Encender/Apagar PC" style="color: red; text-shadow: 0 0 5px red;">🔴</button>
+        <button id="pc-open" title="Navegar en PC">💻</button>
+    </div>
+
+    <div id="pc-modal" class="modal-overlay">
+        <div class="pc-modal-content">
+            <div id="pc-header">
+                <h2>🖥️ PC Virtual de Lunari</h2>
+                <button id="close-pc">✖</button>
+            </div>
+            <iframe id="pc-iframe" src="" frameborder="0" allowfullscreen></iframe>
+        </div>
+    </div>
+
+    <div id="inventory-modal">
+        <div id="inv-header">
+            <h2>🎒 Inventario y Tienda</h2>
+            <button id="close-inv">✖</button>
+        </div>
+        <div id="inv-body">
+            <div id="inv-sidebar"></div>
+            <div id="inv-content"></div>
+        </div>
+    </div>
+
+    <div id="poster-view-modal">
+        <button id="close-poster-view">&times;</button>
+        <img id="poster-enlarged-image" src="" alt="Póster">
+    </div>
+
+    <div id="loading">
+        <div class="loading-text">Preparando habitación... <span id="loading-count">0/0</span></div>
+        <div id="loading-bar-container"><div id="loading-bar"></div></div>
+    </div>
+    
+    <div id="light-status">💡 Luz encendida</div>
+    
+    <div id="daily-reward-toast" style="display:none;">¡Has ganado 100🪙 por entrar hoy!</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
             }
-        } catch (error) {
-            console.warn('Fallo la detección automática de clima por IP', error);
         }
-
-        // Si falla todo, usar coordenadas por defecto (Ej: Lima)
-        this.fetchWeather(-12.0464, -77.0428, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
-    },
-
-    async fetchWeather(lat, lon, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading) {
-        const statusBox = document.getElementById('weather-status');
-        let weatherCode = 0; let temperature = "--";
-        try {
-            const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`);
-            const data = await response.json();
-            weatherCode = data.current_weather.weathercode;
-            temperature = data.current_weather.temperature;
-            this.lastWeatherCode = weatherCode;
-        } catch (error) { console.error('Error del clima', error); }
-
-        let videoFile = 'soleado.mp4', weatherEmoji = "☀️", weatherName = "Soleado";
-        try {
-            if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)) { weatherEmoji = "🌧️"; weatherName = "Lluvioso"; videoFile = 'lluvia.mp4'; } 
-            else if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) { weatherEmoji = "❄️"; weatherName = "Nevado"; videoFile = 'nieve.mp4'; } 
-            else if ([95, 96, 99].includes(weatherCode)) { weatherEmoji = "⛈️"; weatherName = "Tormenta"; videoFile = 'tormenta.mp4'; } 
-            else if (!this.esDeDiaLocal) { weatherEmoji = "🌙"; weatherName = "Despejado"; videoFile = 'noche.mp4'; } 
-            else if ([1, 2, 3, 45, 48].includes(weatherCode)) { weatherEmoji = "☁️"; weatherName = "Nublado"; videoFile = 'dia_nublado.mp4'; }
-            else { videoFile = 'dia.mp4'; }
-        } catch (error) { weatherEmoji = "❌"; weatherName = "Clima offline"; }
-
-        if (statusBox) statusBox.innerHTML = temperature !== "--" ? `${weatherEmoji} ${weatherName} | ${temperature}°C` : `${weatherEmoji} ${weatherName}`;
-        
-        this.loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, videoFile);
-    },
-
-    loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, videoFile) {
-        const video = document.createElement('video');
-        video.loop = true; video.muted = true; video.crossOrigin = 'anonymous'; video.playsInline = true;
-        video.src = videoFile; 
-        video.play().catch(e => console.log('Autoplay blocked'));
-        const videoTexture = new THREE.VideoTexture(video); videoTexture.minFilter = THREE.LinearFilter; videoTexture.magFilter = THREE.LinearFilter; videoTexture.format = THREE.RGBAFormat; videoTexture.encoding = THREE.sRGBEncoding;
-        
-        loader.load(getFreshUrl('cuadro.glb'), (gltf) => {
-            const cuadroModel = gltf.scene;
-            cuadroModel.traverse((node) => {
-                if (node.isMesh && node.material) {
-                    if (Array.isArray(node.material)) { node.material.forEach(mat => { mat.map = videoTexture; mat.emissive = new THREE.Color(0xffffff); mat.emissiveMap = videoTexture; mat.emissiveIntensity = 1.0; mat.needsUpdate = true; }); } 
-                    else { node.material.map = videoTexture; node.material.emissive = new THREE.Color(0xffffff); node.material.emissiveMap = videoTexture; node.material.emissiveIntensity = 1.0; node.material.needsUpdate = true; }
-                }
-            });
-            applyMaterialLogic(cuadroModel, 'cuadro');
-            loadedSlotMeshes['cuadro'] = cuadroModel;
-            scene.add(cuadroModel);
-            safeCheckLoading(); 
-        }, undefined, () => {
-            safeCheckLoading(); 
-        });
-    }
-};
+    </script>
+    <script type="module" src="room_main.js"></script>
+</body>
+</html>
