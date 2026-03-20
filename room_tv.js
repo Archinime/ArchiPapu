@@ -63,7 +63,7 @@ export const TVManager = {
                 this.playNextTv(false);
             }
         });
-
+        
         this.setupStartScreen();
     },
 
@@ -85,7 +85,7 @@ export const TVManager = {
         overlay.style.transition = 'opacity 0.5s ease';
         overlay.style.opacity = '0';
         overlay.style.pointerEvents = 'none';
-
+        
         const btn = document.createElement('button');
         btn.innerHTML = '▶ INICIAR HABITACIÓN';
         btn.style.background = 'linear-gradient(90deg, #80cbc4, #4db6ac)';
@@ -122,17 +122,18 @@ export const TVManager = {
             if (!this.isTvOn || this.tvTransitioning) {
                 this.tvVideo.pause();
             }
-            
+ 
             this.audioBotonTV.play().catch(()=>{});
             this.audioBotonTV.pause();
             this.audioBotonTV.currentTime = 0;
 
-            // --- LIBERAMOS EL AUDIO DE LA PC AQUÍ ---
+            // --- LIBERAMOS EL AUDIO Y VIDEO DE LA PC AQUÍ ---
             PCManager.canPlayAudio = true; 
             
             if (PCManager.isGamingMode && PCManager.isPcOn) {
                 PCManager.survVideo.muted = false;
-                PCManager.survVideo.volume = (State.gameSettings.volumenEfectos !== undefined ? State.gameSettings.volumenEfectos : 50) / 100;
+                // ASIGNAMOS SU VOLUMEN PROPIO DE PC AL DARLE A INICIAR
+                PCManager.survVideo.volume = (State.gameSettings.volumenPC !== undefined ? State.gameSettings.volumenPC : 50) / 100;
                 PCManager.survVideo.play().catch(()=>{});
             }
 
@@ -176,7 +177,7 @@ export const TVManager = {
               tvPlayPauseBtn = document.getElementById('tv-play-pause'), 
               tvNextBtn = document.getElementById('tv-next'), 
               tvPowerBtn = document.getElementById('tv-power');
-
+              
         tvPrevBtn.onclick = () => { 
             this.playButtonSound();
             if (!this.isTvOn || this.tvTransitioning) return; 
@@ -193,7 +194,7 @@ export const TVManager = {
             if(this.tvVideo.paused) this.tvVideo.play(); 
             else this.tvVideo.pause(); 
         };
-
+        
         tvNextBtn.onclick = () => { 
             this.playButtonSound();
             if (this.isTvOn && !this.tvTransitioning) this.playNextTv(false); 
@@ -266,7 +267,6 @@ export const TVManager = {
                         }
                     }
                 };
-                
                 effectVideo.addEventListener('ended', onEffectEnded, { once: true });
             });
         }
@@ -282,7 +282,6 @@ export const TVManager = {
         if (this.isTvOn || this.tvTransitioning) return;
         
         this.isTvOn = true;
-        
         const tvPowerBtn = document.getElementById('tv-power');
         if (tvPowerBtn) {
             tvPowerBtn.innerText = '🟢';

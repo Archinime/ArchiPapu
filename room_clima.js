@@ -6,24 +6,25 @@ export const WeatherSystem = {
     lastWeatherCode: 0,
     
     actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, lunariRef) {
-        const hora = new Date().getHours(); let colorHex, lightInt, emInt, dist;
+        const hora = new Date().getHours();
+        let colorHex, lightInt, emInt, dist;
         if (hora >= 6 && hora < 9) { colorHex = 0xffe4b5; lightInt = 0.8; emInt = 0.8; dist = 35; }
         else if (hora >= 9 && hora < 17) { colorHex = 0xffffff; lightInt = 1.5; emInt = 1.5; dist = 50; }
         else if (hora >= 17 && hora < 19) { colorHex = 0xff8c00; lightInt = 0.7; emInt = 0.7; dist = 40; }
         else { colorHex = 0x5566aa; lightInt = 0.25; emInt = 0.25; dist = 25; }
 
         if (luzFocoDia) { 
-            luzFocoDia.color.setHex(colorHex); 
+            luzFocoDia.color.setHex(colorHex);
             luzFocoDia.intensity = lightInt; 
             luzFocoDia.distance = dist; 
             luzFocoDia.castShadow = State.gameSettings.sombras > 0;
             // FIX OPTIMIZACIÓN Y RAYAS NEGRAS:
-            luzFocoDia.shadow.bias = -0.0005; 
+            luzFocoDia.shadow.bias = -0.0005;
             luzFocoDia.shadow.normalBias = 0.05; 
         }
         
         if (focoDiaMesh) { 
-            const mat = focoDiaMesh.material; 
+            const mat = focoDiaMesh.material;
             mat.emissive.setHex(colorHex); 
             mat.emissiveIntensity = emInt; 
             mat.needsUpdate = true; 
@@ -37,7 +38,7 @@ export const WeatherSystem = {
         }
     },
 
-    setupWeatherVideo(loader, scene, applyMaterialLogic, loadedSlotMeshes, checkLoading) {
+    async setupWeatherVideo(loader, scene, applyMaterialLogic, loadedSlotMeshes, checkLoading) {
         // Garantizamos que checkLoading se llame SÍ O SÍ para que el contador no se trabe
         const safeCheckLoading = () => {
             if (typeof checkLoading === 'function') checkLoading();
@@ -48,14 +49,22 @@ export const WeatherSystem = {
             return;
         }
 
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => this.fetchWeather(position.coords.latitude, position.coords.longitude, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading),
-                () => this.fetchWeather(-12.0464, -77.0428, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading)
-            );
-        } else {
-            this.fetchWeather(-12.0464, -77.0428, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
+        // --- SISTEMA CORREGIDO: Usando detección de IP automática (sin pedir permisos) ---
+        try {
+            const ipResponse = await fetch('https://get.geojs.io/v1/ip/geo.json');
+            if (ipResponse.ok) {
+                const geoData = await ipResponse.json();
+                if (geoData.latitude && geoData.longitude) {
+                    this.fetchWeather(parseFloat(geoData.latitude), parseFloat(geoData.longitude), loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
+                    return;
+                }
+            }
+        } catch (error) {
+            console.warn('Fallo la localización automática por IP, usando coords por defecto.', error);
         }
+
+        // Fallback en caso de que todo falle (Coordenadas de Lima, Perú por defecto)
+        this.fetchWeather(-12.0464, -77.0428, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
     },
 
     async fetchWeather(lat, lon, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading) {
@@ -85,10 +94,11 @@ export const WeatherSystem = {
     },
 
     loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, videoFile) {
-        const video = document.createElement('video'); video.loop = true; video.muted = true; video.crossOrigin = 'anonymous'; video.playsInline = true;
+        const video = document.createElement('video');
+        video.loop = true; video.muted = true; video.crossOrigin = 'anonymous'; video.playsInline = true;
         video.src = videoFile; 
         video.play().catch(e => console.log('Autoplay blocked'));
-
+        
         const videoTexture = new THREE.VideoTexture(video); videoTexture.minFilter = THREE.LinearFilter; videoTexture.magFilter = THREE.LinearFilter; videoTexture.format = THREE.RGBAFormat; videoTexture.encoding = THREE.sRGBEncoding;
         
         loader.load(getFreshUrl('cuadro.glb'), (gltf) => {
@@ -102,9 +112,9 @@ export const WeatherSystem = {
             applyMaterialLogic(cuadroModel, 'cuadro');
             loadedSlotMeshes['cuadro'] = cuadroModel;
             scene.add(cuadroModel);
-            safeCheckLoading(); // Avisar que terminó correctamente
+            safeCheckLoading(); 
         }, undefined, () => {
-            safeCheckLoading(); // Avisar INCLUSO si hay error para no trabar la carga
+            safeCheckLoading(); 
         });
     }
 };

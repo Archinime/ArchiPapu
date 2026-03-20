@@ -1,6 +1,7 @@
 import { State } from './room_state.js';
 import { inventoryGroups } from './inventory-data.js';
 import { TVManager } from './room_tv.js';
+import { PCManager } from './room_pc.js'; // <-- Importamos PCManager para el volumen
 
 export const UIManager = {
     currentCategory: 'cama', openGroup: 'muebles', applySettingsCallback: null, loadItemCallback: null,
@@ -49,11 +50,27 @@ export const UIManager = {
             b.classList.toggle('active', parseInt(b.dataset.val) === State.gameSettings.fps);
             b.onclick = () => { State.gameSettings.fps = parseInt(b.dataset.val); this.syncSettingsUI(); };
         });
+        
         const volTV = document.getElementById('setting-volumen-tv'); volTV.value = State.gameSettings.volumenTV; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`;
         volTV.oninput = (e) => { State.gameSettings.volumenTV = e.target.value; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; this.applySettingsCallback(); };
         
         const volEf = document.getElementById('setting-volumen-efectos'); volEf.value = State.gameSettings.volumenEfectos; document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`;
         volEf.oninput = (e) => { State.gameSettings.volumenEfectos = e.target.value; document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`; this.applySettingsCallback(); };
+
+        // --- NUEVO: Sincronización del slider de Volumen de la PC ---
+        const volPc = document.getElementById('setting-volumen-pc'); 
+        const volPcVal = document.getElementById('vol-pc-val');
+        if(volPc && volPcVal) {
+            volPc.value = State.gameSettings.volumenPC; 
+            volPcVal.innerText = `${State.gameSettings.volumenPC}%`;
+            volPc.oninput = (e) => { 
+                State.gameSettings.volumenPC = e.target.value; 
+                volPcVal.innerText = `${State.gameSettings.volumenPC}%`; 
+                // Guardamos el estado y lo aplicamos a la PC directamente
+                localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings));
+                PCManager.setVolume(State.gameSettings.volumenPC, State.gameSettings.volumenEfectos);
+            };
+        }
 
         const fpsCheck = document.getElementById('setting-showfps'); fpsCheck.checked = State.gameSettings.mostrarFps;
         fpsCheck.onchange = (e) => { State.gameSettings.mostrarFps = e.target.checked; this.applySettingsCallback(); };
@@ -117,7 +134,8 @@ export const UIManager = {
                 this.loadItemCallback('pantalla_pc2', 'pantalla_pc2.glb', false); // Cargar la segunda pantalla
             }
         }
-        State.saveGame(); this.renderInventory();
+        State.saveGame();
+        this.renderInventory();
     },
 
     buyItem(category, itemId) {
