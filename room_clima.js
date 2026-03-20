@@ -18,7 +18,6 @@ export const WeatherSystem = {
             luzFocoDia.intensity = lightInt; 
             luzFocoDia.distance = dist; 
             luzFocoDia.castShadow = State.gameSettings.sombras > 0;
-            // FIX OPTIMIZACIÓN Y RAYAS NEGRAS:
             luzFocoDia.shadow.bias = -0.0005;
             luzFocoDia.shadow.normalBias = 0.05; 
         }
@@ -39,7 +38,6 @@ export const WeatherSystem = {
     },
 
     async setupWeatherVideo(loader, scene, applyMaterialLogic, loadedSlotMeshes, checkLoading) {
-        // Garantizamos que checkLoading se llame SÍ O SÍ para que el contador no se trabe
         const safeCheckLoading = () => {
             if (typeof checkLoading === 'function') checkLoading();
         };
@@ -49,21 +47,21 @@ export const WeatherSystem = {
             return;
         }
 
-        // --- SISTEMA CORREGIDO: Usando detección de IP automática (sin pedir permisos) ---
         try {
-            const ipResponse = await fetch('https://get.geojs.io/v1/ip/geo.json');
-            if (ipResponse.ok) {
-                const geoData = await ipResponse.json();
-                if (geoData.latitude && geoData.longitude) {
-                    this.fetchWeather(parseFloat(geoData.latitude), parseFloat(geoData.longitude), loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
+            // NUEVO: Geolocalización automática basada en IP usando geojs (API gratuita)
+            const response = await fetch('https://get.geojs.io/v1/ip/geo.json');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.latitude && data.longitude) {
+                    this.fetchWeather(parseFloat(data.latitude), parseFloat(data.longitude), loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
                     return;
                 }
             }
         } catch (error) {
-            console.warn('Fallo la localización automática por IP, usando coords por defecto.', error);
+            console.warn('Fallo la detección automática de clima por IP', error);
         }
 
-        // Fallback en caso de que todo falle (Coordenadas de Lima, Perú por defecto)
+        // Si falla todo, usar coordenadas por defecto (Ej: Lima)
         this.fetchWeather(-12.0464, -77.0428, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
     },
 
@@ -98,7 +96,6 @@ export const WeatherSystem = {
         video.loop = true; video.muted = true; video.crossOrigin = 'anonymous'; video.playsInline = true;
         video.src = videoFile; 
         video.play().catch(e => console.log('Autoplay blocked'));
-        
         const videoTexture = new THREE.VideoTexture(video); videoTexture.minFilter = THREE.LinearFilter; videoTexture.magFilter = THREE.LinearFilter; videoTexture.format = THREE.RGBAFormat; videoTexture.encoding = THREE.sRGBEncoding;
         
         loader.load(getFreshUrl('cuadro.glb'), (gltf) => {

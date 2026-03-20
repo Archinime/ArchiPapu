@@ -113,29 +113,33 @@ export const TVManager = {
                 overlay.style.pointerEvents = 'auto';
             }
         }, 500);
-
+        
         btn.addEventListener('click', () => {
             this.hasInteracted = true;
             
+            // Forzar permisos de reproducción multimedia en navegadores
             this.tvVideo.muted = false;
             this.tvVideo.play().catch(()=>{});
             if (!this.isTvOn || this.tvTransitioning) {
                 this.tvVideo.pause();
             }
- 
+            
             this.audioBotonTV.play().catch(()=>{});
             this.audioBotonTV.pause();
             this.audioBotonTV.currentTime = 0;
 
-            // --- LIBERAMOS EL AUDIO Y VIDEO DE LA PC AQUÍ ---
+            // --- LIBERAMOS Y FORZAMOS EL AUDIO/VIDEO DE LA PC AQUÍ ---
             PCManager.canPlayAudio = true; 
+            PCManager.survVideo.muted = false;
+            PCManager.survVideo.volume = (State.gameSettings.volumenPC !== undefined ? State.gameSettings.volumenPC : 50) / 100;
             
-            if (PCManager.isGamingMode && PCManager.isPcOn) {
-                PCManager.survVideo.muted = false;
-                // ASIGNAMOS SU VOLUMEN PROPIO DE PC AL DARLE A INICIAR
-                PCManager.survVideo.volume = (State.gameSettings.volumenPC !== undefined ? State.gameSettings.volumenPC : 50) / 100;
-                PCManager.survVideo.play().catch(()=>{});
-            }
+            // Iniciamos la reproducción y pausamos de inmediato si Lunari no está jugando.
+            // Esto le avisa al navegador que el usuario autorizó el video y no será bloqueado luego.
+            PCManager.survVideo.play().then(() => {
+                if (!PCManager.isGamingMode || !PCManager.isPcOn) {
+                    PCManager.survVideo.pause();
+                }
+            }).catch(()=>{});
 
             overlay.style.opacity = '0';
             setTimeout(() => overlay.remove(), 500);
@@ -243,7 +247,7 @@ export const TVManager = {
                             mat.emissive.setHex(0x000000); 
                             mat.emissiveIntensity = 0; 
                             mat.needsUpdate = true; 
-                        });
+                         });
                     } else {
                         this.isTvOn = true;
                         tvPowerBtn.innerText = '🟢'; 
@@ -257,8 +261,8 @@ export const TVManager = {
                             mat.emissive.setHex(0xffffff); 
                             mat.emissiveIntensity = 1.0; 
                             mat.needsUpdate = true; 
-                        });
-                        
+                         });
+                         
                         if (this.tvPlaylist.length > 0 && !this.tvVideo.src) {
                             this.playNextTv(true);
                         } else if (this.tvPlaylist.length > 0) {

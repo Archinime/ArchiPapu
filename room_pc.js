@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { State } from './room_state.js';
 
 export const PCManager = {
     isPcOn: false,
@@ -9,7 +8,7 @@ export const PCManager = {
     audioBotonPC: new Audio('sonido_boton.mp3'),
     
     isGamingMode: false,
-    canPlayAudio: false, 
+    canPlayAudio: false,
     survVideo: document.createElement('video'),
     survVideoTexture: null,
     logoTexture: null, 
@@ -17,7 +16,7 @@ export const PCManager = {
     init() {
         this.survVideo.src = 'surv.mp4';
         this.survVideo.loop = true;
-        this.survVideo.muted = true; // Inicia 100% mudo
+        this.survVideo.muted = true;
         this.survVideo.playsInline = true;
         this.survVideo.setAttribute('playsinline', ''); 
         this.survVideo.setAttribute('webkit-playsinline', '');
@@ -50,15 +49,13 @@ export const PCManager = {
         this.isGamingMode = active;
         if (active) {
             this.isPcOn = true;
-            // Solo reproducimos y desmuteamos si el usuario ya le dio al botón de "Iniciar Habitación"
             if (this.canPlayAudio) {
                 this.survVideo.muted = false;
-                this.survVideo.play().catch(e=>{});
             } else {
                 this.survVideo.muted = true;
-                // LO PAUSAMOS PARA QUE NO REPRODUZCA AÚN
-                this.survVideo.pause(); 
             }
+            
+            this.survVideo.play().catch(e=>{});
             
             const pcPowerBtn = document.getElementById('pc-power');
             if (pcPowerBtn) {
@@ -116,7 +113,7 @@ export const PCManager = {
         const pcModal = document.getElementById('pc-modal');
         const closePcBtn = document.getElementById('close-pc');
         const pcIframe = document.getElementById('pc-iframe');
-
+        
         if (pcPowerBtn) {
             pcPowerBtn.onclick = () => {
                 this.playButtonSound();
@@ -126,9 +123,9 @@ export const PCManager = {
                 pcPowerBtn.innerText = this.isPcOn ? '🟢' : '🔴';
                 pcPowerBtn.style.color = this.isPcOn ? '#00ff00' : 'red';
                 pcPowerBtn.style.textShadow = this.isPcOn ? '0 0 5px #00ff00' : '0 0 5px red';
-
+                
                 if (this.isGamingMode) {
-                    if (this.isPcOn && this.canPlayAudio) {
+                    if (this.isPcOn) {
                         this.survVideo.muted = false;
                         this.survVideo.play().catch(()=>{});
                     } else {
@@ -166,10 +163,8 @@ export const PCManager = {
         }
     },
 
-    setVolume(volPc, volEfectos) {
-        // El botón usa el volumen de efectos como de costumbre
-        this.audioBotonPC.volume = (volEfectos || 50) / 100;
-        // El video ahora OBEDECE al volumen especifico de la PC
-        this.survVideo.volume = volPc / 100; 
+    setVolume(volPc, volEf) {
+        this.audioBotonPC.volume = volEf / 100;
+        this.survVideo.volume = volPc / 100; // SEPARADO: Se usa la variable nueva para el volumen de la PC
     }
 };

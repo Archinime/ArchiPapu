@@ -48,8 +48,9 @@ function applyCurrentSettings() {
     
     TVManager.setVolumes(State.gameSettings.volumenTV, State.gameSettings.volumenEfectos);
     
-    // AQUÍ PASAMOS EL VOLUMEN DE LA PC INDEPENDIENTE
-    PCManager.setVolume(State.gameSettings.volumenPC, State.gameSettings.volumenEfectos);
+    // NUEVO: Pasa el volumen específico de la PC como primer parámetro
+    let pcVol = State.gameSettings.volumenPC !== undefined ? State.gameSettings.volumenPC : 50;
+    PCManager.setVolume(pcVol, State.gameSettings.volumenEfectos);
     
     let volEf = State.gameSettings.volumenEfectos / 100;
     audioPrenderLuz.volume = volEf; audioApagarLuz.volume = volEf;
@@ -113,7 +114,6 @@ function checkLoading() {
     }
 }
 
-// SEGURO ANTI-TRABAS: Forzar el cierre de la pantalla de carga después de 12 segundos si hay lentitud extrema de internet
 setTimeout(() => {
     const loadingEl = document.getElementById('loading');
     if(loadingEl && loadingEl.style.display !== 'none') {
@@ -178,7 +178,6 @@ setInterval(() => {
 
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
-    
     if (loadedSlotMeshes[categoryKey]) { 
         const oldModel = loadedSlotMeshes[categoryKey];
         scene.remove(oldModel); 
@@ -278,7 +277,6 @@ function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
-    
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
     
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
@@ -337,8 +335,7 @@ function handleInteraction(event) {
         const pMesh = loadedSlotMeshes[cat];
         if (pMesh && raycaster.intersectObject(pMesh, true).length > 0) {
             const itemData = State.inventoryData[cat].items[State.inventoryData[cat].equipped];
-            if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); audioAbrirPoster.currentTime = 0; audioAbrirPoster.play().catch(e=>{});
-            }
+            if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); audioAbrirPoster.currentTime = 0; audioAbrirPoster.play().catch(e=>{}); }
             break;
         }
     }
@@ -362,11 +359,11 @@ function animate() {
         
         if (State.gameSettings.mostrarFps) { 
             frames++;
-            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now;
-            } 
+            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now; } 
         }
     }
 }
 
 window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); applyCurrentSettings(); });
+
 applyCurrentSettings(); updateLighting(); animate();
