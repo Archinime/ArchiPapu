@@ -6,7 +6,6 @@ export const WeatherSystem = {
     lastWeatherCode: 0,
     
     actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, lunariRef) {
-        // Usa la hora precisa del dispositivo local para definir Día/Noche
         const hora = new Date().getHours();
         let colorHex, lightInt, emInt, dist;
         if (hora >= 6 && hora < 9) { colorHex = 0xffe4b5; lightInt = 0.8; emInt = 0.8; dist = 35; }
@@ -43,30 +42,45 @@ export const WeatherSystem = {
             if (typeof checkLoading === 'function') checkLoading();
         };
 
+        // Forzamos la actualización de la hora antes de cualquier petición
+        const hora = new Date().getHours();
+        this.esDeDiaLocal = hora >= 6 && hora < 19;
+
         if (!navigator.onLine) {
             this.loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, this.esDeDiaLocal ? 'dia_soleado.mp4' : 'noche_despejada.mp4');
             return;
         }
 
-        // Intenta Geolocalización, si falla o la bloquean, usa detección por IP
+        let isResolved = false;
+        const useIPFallback = () => {
+            if(isResolved) return;
+            isResolved = true;
+            this.fetchWeatherByIP(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
+        };
+
+        // Pedimos GPS, pero con un límite de 5 segundos. Si falla o tarda, usa IP.
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                (position) => this.fetchWeather(position.coords.latitude, position.coords.longitude, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading),
-                () => this.fetchWeatherByIP(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading)
+                (position) => {
+                    if(isResolved) return;
+                    isResolved = true;
+                    this.fetchWeather(position.coords.latitude, position.coords.longitude, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
+                },
+                useIPFallback,
+                { timeout: 5000 } // <-- Clave para que no se quede congelado esperando permisos
             );
         } else {
-            this.fetchWeatherByIP(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
+            useIPFallback();
         }
     },
 
     async fetchWeatherByIP(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading) {
         try {
-            // Usa una API de IP como alternativa para obtener coordenadas exactas sin pedir permisos
             const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
             const data = await res.json();
             this.fetchWeather(data.latitude, data.longitude, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
         } catch(e) {
-            // Último recurso de emergencia
+            // Coordenadas por defecto (Lima) si hasta la IP falla
             this.fetchWeather(-12.0464, -77.0428, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
         }
     },
@@ -82,7 +96,11 @@ export const WeatherSystem = {
             this.lastWeatherCode = weatherCode;
         } catch (error) { console.error('Error del clima', error); }
 
-        const isDay = this.esDeDiaLocal;
+        // RE-CALCULAMOS LA HORA EXACTA JUSTO ANTES DE ELEGIR EL VIDEO
+        const hora = new Date().getHours();
+        const isDay = hora >= 6 && hora < 19;
+        this.esDeDiaLocal = isDay;
+
         let videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4';
         let weatherEmoji = isDay ? "☀️" : "🌙";
         let weatherName = isDay ? "Soleado" : "Despejado";
