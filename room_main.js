@@ -33,7 +33,8 @@ function applyCurrentSettings() {
     renderer.shadowMap.type = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     mainLight.castShadow = State.gameSettings.sombras > 0;
     if (State.gameSettings.sombras > 0) {
-        let shadowRes = State.gameSettings.sombras === 2 ? (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
+        let shadowRes = State.gameSettings.sombras === 2 ?
+        (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
         if (mainLight.shadow.mapSize.width !== shadowRes) {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
@@ -46,8 +47,7 @@ function applyCurrentSettings() {
     document.getElementById('fps-counter').style.display = State.gameSettings.mostrarFps ? 'block' : 'none';
     
     TVManager.setVolumes(State.gameSettings.volumenTV, State.gameSettings.volumenEfectos);
-    PCManager.setVolumes(State.gameSettings.volumenPC, State.gameSettings.volumenEfectos);
-    
+    PCManager.setVolume(State.gameSettings.volumenEfectos, State.gameSettings.volumenPC);
     let volEf = State.gameSettings.volumenEfectos / 100;
     audioPrenderLuz.volume = volEf; audioApagarLuz.volume = volEf;
     audioAbrirPoster.volume = volEf; audioCerrarPoster.volume = volEf;
@@ -210,15 +210,17 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                 if (node.isMesh && node.material) {
                     if (categoryKey === 'pantalla_pc') node.userData.isMainVideoScreen = true;
                     
-                    // ¡AQUI! Guardamos los materiales originales (textura, brillo y color natural) en memoria
-                    const mats = Array.isArray(node.material) ? node.material : [node.material];
-                    node.userData.originalMats = mats.map(m => ({
-                        map: m.map,
-                        emissiveMap: m.emissiveMap,
-                        color: m.color ? m.color.clone() : new THREE.Color(0xffffff),
-                        emissive: m.emissive ? m.emissive.clone() : new THREE.Color(0x000000),
-                        emissiveIntensity: m.emissiveIntensity !== undefined ? m.emissiveIntensity : 1.0
-                    }));
+                    // GUARDAR PROPIEDADES ORIGINALES PARA CUANDO LUNARI DEJE DE JUGAR
+                    let mats = Array.isArray(node.material) ? node.material : [node.material];
+                    mats.forEach(mat => {
+                        if (mat.userData.originalMap === undefined) {
+                            mat.userData.originalMap = mat.map;
+                            mat.userData.originalEmissiveMap = mat.emissiveMap;
+                            mat.userData.originalColor = mat.color ? mat.color.getHex() : 0xffffff;
+                            mat.userData.originalEmissive = mat.emissive ? mat.emissive.getHex() : 0x000000;
+                            mat.userData.originalEmissiveIntensity = mat.emissiveIntensity !== undefined ? mat.emissiveIntensity : 1.0;
+                        }
+                    });
 
                     if (!PCManager.pcScreenMeshes.includes(node)) {
                         PCManager.pcScreenMeshes.push(node);
@@ -309,7 +311,8 @@ function handleInteraction(event) {
         const pcControls = document.getElementById('pc-controls');
         document.getElementById('tv-controls').style.display = 'none'; 
         
-        if (PCManager.isPcOn) {
+        // Clic solo abre enlaces si está jugando
+        if (PCManager.isPcOn && PCManager.isGamingMode) {
             window.open('https://archinime.github.io/-Archinime-', '_blank');
             pcControls.style.display = 'none';
         } else { 
@@ -324,12 +327,9 @@ function handleInteraction(event) {
         document.getElementById('tv-controls').style.display = 'none';
         const pcControls = document.getElementById('pc-controls');
 
-        if (PCManager.isPcOn) {
-            if (LunariSystem.currentState === 'jugar') {
-                window.open('https://survev.io', '_blank');
-            } else {
-                window.open('https://archinime.github.io/-Archinime-', '_blank');
-            }
+        // Clic solo abre enlaces si está jugando
+        if (PCManager.isPcOn && PCManager.isGamingMode) {
+            window.open('https://survev.io', '_blank');
             pcControls.style.display = 'none';
         } else {
             if (pcControls.style.display === 'none' || pcControls.style.display === '') pcControls.style.display = 'flex';
@@ -359,7 +359,8 @@ let then = performance.now(), frames = 0, lastFpsTime = then;
 function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
-    const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
+    const fpsInterval = State.gameSettings.fps > 0 ?
+    1000 / State.gameSettings.fps : 0;
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
         const delta = clock.getDelta(); LunariSystem.update(delta); 
@@ -373,5 +374,4 @@ function animate() {
 }
 
 window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); applyCurrentSettings(); });
-
 applyCurrentSettings(); updateLighting(); animate();

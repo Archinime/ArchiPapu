@@ -125,13 +125,13 @@ export const TVManager = {
             this.audioBotonTV.pause();
             this.audioBotonTV.currentTime = 0;
 
-            // --- LIBERAMOS EL AUDIO DE LA PC AQUÍ ---
             PCManager.canPlayAudio = true; 
             
             if (PCManager.isGamingMode && PCManager.isPcOn) {
                 PCManager.survVideo.muted = false;
-                // Extraer el volumen específico de la PC
-                PCManager.survVideo.volume = (State.gameSettings.volumenPC !== undefined ? State.gameSettings.volumenPC : 50) / 100;
+                // USA EL VOLUMEN ESPECÍFICO DE LA PC
+                let volPc = State.gameSettings.volumenPC !== undefined ? State.gameSettings.volumenPC : 50;
+                PCManager.survVideo.volume = volPc / 100;
                 PCManager.survVideo.play().catch(()=>{});
             }
 
@@ -156,6 +156,7 @@ export const TVManager = {
         this.currentTvIndex = random 
             ? Math.floor(Math.random() * this.tvPlaylist.length) 
             : (this.currentTvIndex + 1) % this.tvPlaylist.length;
+            
         this.tvVideo.src = this.tvPlaylist[this.currentTvIndex];
         this.tvVideo.volume = State.gameSettings.volumenTV / 100;
         

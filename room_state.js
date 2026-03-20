@@ -13,16 +13,12 @@ export const State = {
     }
 };
 
-// Limpieza de datos obsoletos
 if (State.inventoryData.base_foco) delete State.inventoryData.base_foco;
-
-// Sincronizar datos por defecto con los guardados
 for (let cat in defaultInventoryConfig) {
     if(!State.inventoryData[cat]) State.inventoryData[cat] = defaultInventoryConfig[cat];
     State.inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
     State.inventoryData[cat].label = defaultInventoryConfig[cat].label;
     State.inventoryData[cat].type = defaultInventoryConfig[cat].type || 'single';
-    
     if (State.inventoryData[cat].type === 'multiple') {
         if (!Array.isArray(State.inventoryData[cat].equipped)) State.inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
     } else {
@@ -39,7 +35,6 @@ for (let cat in defaultInventoryConfig) {
     }
 }
 
-// Detección de Hardware para gráficos base
 const ua = navigator.userAgent;
 export const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 const deviceMemory = navigator.deviceMemory || 4;
@@ -53,21 +48,18 @@ State.gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
     sombras: baseTier === 'baja' ? 0 : (baseTier === 'media' ? 1 : 2),
     fps: baseTier === 'baja' ? 30 : 60,
     volumenTV: 50,
-    volumenPC: 50, // <-- NUEVA VARIABLE
     volumenEfectos: 50,
+    volumenPC: 50,
     mostrarFps: false
 };
-
-// Compatibilidad con versión anterior de volumen
 if(State.gameSettings.volumen) { 
     State.gameSettings.volumenTV = State.gameSettings.volumen; 
     State.gameSettings.volumenEfectos = State.gameSettings.volumen; 
-    State.gameSettings.volumenPC = State.gameSettings.volumen; 
     delete State.gameSettings.volumen;
 }
-
-// Seguro por si el usuario tiene datos viejos sin volumenPC
-if (State.gameSettings.volumenPC === undefined) State.gameSettings.volumenPC = 50;
+if(State.gameSettings.volumenPC === undefined) {
+    State.gameSettings.volumenPC = 50;
+}
 
 export function checkDailyReward() {
     let lastLogin = localStorage.getItem('room_last_login');
