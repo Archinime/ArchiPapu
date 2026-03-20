@@ -23,6 +23,18 @@ const audioCerrarPoster = new Audio('guardar_poster.mp3');
 TVManager.init();
 PCManager.init();
 
+// NUEVA FUNCIÓN OPTIMIZADA SOLO PARA AUDIO (Tiempo Real)
+function applyAudioSettings() {
+    TVManager.setVolumes(State.gameSettings.volumenTV, State.gameSettings.volumenEfectos);
+    PCManager.setVolume(State.gameSettings.volumenPC, State.gameSettings.volumenEfectos);
+    
+    let volEf = State.gameSettings.volumenEfectos / 100;
+    audioPrenderLuz.volume = volEf; 
+    audioApagarLuz.volume = volEf;
+    audioAbrirPoster.volume = volEf; 
+    audioCerrarPoster.volume = volEf;
+}
+
 function applyCurrentSettings() {
     let pixelRatio = 1;
     if (State.gameSettings.calidad === 'media') pixelRatio = Math.min(window.devicePixelRatio, 1.2);
@@ -46,16 +58,12 @@ function applyCurrentSettings() {
 
     document.getElementById('fps-counter').style.display = State.gameSettings.mostrarFps ? 'block' : 'none';
     
-    TVManager.setVolumes(State.gameSettings.volumenTV, State.gameSettings.volumenEfectos);
-    // PASAMOS EL NUEVO VOLUMEN DE PC
-    PCManager.setVolume(State.gameSettings.volumenPC, State.gameSettings.volumenEfectos);
-    
-    let volEf = State.gameSettings.volumenEfectos / 100;
-    audioPrenderLuz.volume = volEf; audioApagarLuz.volume = volEf;
-    audioAbrirPoster.volume = volEf; audioCerrarPoster.volume = volEf;
+    // Aplicamos el audio junto con las gráficas al iniciar
+    applyAudioSettings();
 }
 
-UIManager.init(applyCurrentSettings, loadItemForSlot);
+// Pasamos la nueva función de audio al UIManager
+UIManager.init(applyCurrentSettings, applyAudioSettings, loadItemForSlot);
 
 function applyMaterialLogic(model, categoryKey) {
     if(!model) return;
@@ -207,7 +215,6 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
         
-        // CAPTURAMOS LAS TEXTURAS ORIGINALES DE LA PC AQUI
         if (categoryKey === 'pantalla_pc' || categoryKey === 'pantalla_pc2') { 
             if (!PCManager.pcScreenMeshes) PCManager.pcScreenMeshes = [];
 
@@ -305,10 +312,8 @@ function handleInteraction(event) {
         TVManager.lastTvClickTime = currentTime; return;
     }
 
-    // LÓGICA CORREGIDA PARA PANTALLA SECUNDARIA PC (Controles / Link Archinime)
     const pcScreenMesh = loadedSlotMeshes['pantalla_pc2'];
     if (pcScreenMesh && raycaster.intersectObject(pcScreenMesh, true).length > 0) {
-        // SI ESTÁ JUGANDO, ABRIR LINK. SI NO, MOSTRAR CONTROLES.
         if (LunariSystem.currentState === 'jugar') {
             window.open('https://archinime.github.io/-Archinime-', '_blank');
         } else {
@@ -321,7 +326,6 @@ function handleInteraction(event) {
         return;
     }
 
-    // LÓGICA CORREGIDA PARA PANTALLA PRINCIPAL PC
     const pc2ScreenMesh = loadedSlotMeshes['pantalla_pc'];
     if (pc2ScreenMesh && raycaster.intersectObject(pc2ScreenMesh, true).length > 0) {
         document.getElementById('tv-controls').style.display = 'none';

@@ -3,10 +3,12 @@ import { inventoryGroups } from './inventory-data.js';
 import { TVManager } from './room_tv.js';
 
 export const UIManager = {
-    currentCategory: 'cama', openGroup: 'muebles', applySettingsCallback: null, loadItemCallback: null,
+    currentCategory: 'cama', openGroup: 'muebles', applySettingsCallback: null, applyAudioCallback: null, loadItemCallback: null,
 
-    init(applySettingsCallback, loadItemCallback) {
+    // ACTUALIZADO: Recibimos la nueva función de audio
+    init(applySettingsCallback, applyAudioCallback, loadItemCallback) {
         this.applySettingsCallback = applySettingsCallback;
+        this.applyAudioCallback = applyAudioCallback; 
         this.loadItemCallback = loadItemCallback;
         this.setupModals();
         this.syncSettingsUI();
@@ -36,6 +38,7 @@ export const UIManager = {
     },
 
     syncSettingsUI() {
+        // AJUSTES GRÁFICOS
         document.querySelectorAll('#setting-calidad button').forEach(b => {
             b.classList.toggle('active', b.dataset.val === State.gameSettings.calidad);
             b.onclick = () => { 
@@ -44,7 +47,7 @@ export const UIManager = {
                 else if(State.gameSettings.calidad === 'media') { State.gameSettings.sombras = 1; State.gameSettings.fps = 60; } 
                 else if(State.gameSettings.calidad === 'alta') { State.gameSettings.sombras = 2; State.gameSettings.fps = 60; } 
                 
-                localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); // Guardado Inmediato
+                localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); 
                 this.syncSettingsUI(); this.applySettingsCallback(); 
             };
         });
@@ -53,43 +56,57 @@ export const UIManager = {
             b.classList.toggle('active', parseInt(b.dataset.val) === State.gameSettings.fps);
             b.onclick = () => { 
                 State.gameSettings.fps = parseInt(b.dataset.val); 
-                localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); // Guardado Inmediato
+                localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); 
                 this.syncSettingsUI(); 
             };
         });
 
-        const volTV = document.getElementById('setting-volumen-tv'); volTV.value = State.gameSettings.volumenTV; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`;
+        // ---- SISTEMA OPTIMIZADO DE AUDIO ----
+        // TV
+        const volTV = document.getElementById('setting-volumen-tv'); 
+        volTV.value = State.gameSettings.volumenTV; 
+        document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`;
+        
+        // oninput = actualiza en tiempo real solo el audio sin guardar en disco (muy rápido)
         volTV.oninput = (e) => { 
             State.gameSettings.volumenTV = parseInt(e.target.value);
             document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; 
-            localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); // Guardado Inmediato
-            this.applySettingsCallback(); 
+            if(this.applyAudioCallback) this.applyAudioCallback(); 
         };
+        // onchange = guarda cuando el usuario suelta el click de la barra
+        volTV.onchange = () => { localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); };
         
-        // NUEVO SLIDER PC
+        // PC
         const volPC = document.getElementById('setting-volumen-pc');
         if(volPC) {
-            volPC.value = State.gameSettings.volumenPC; document.getElementById('vol-pc-val').innerText = `${State.gameSettings.volumenPC}%`;
+            volPC.value = State.gameSettings.volumenPC; 
+            document.getElementById('vol-pc-val').innerText = `${State.gameSettings.volumenPC}%`;
+            
             volPC.oninput = (e) => { 
                 State.gameSettings.volumenPC = parseInt(e.target.value); 
                 document.getElementById('vol-pc-val').innerText = `${State.gameSettings.volumenPC}%`; 
-                localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); // Guardado Inmediato
-                this.applySettingsCallback(); 
+                if(this.applyAudioCallback) this.applyAudioCallback(); 
             };
+            volPC.onchange = () => { localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); };
         }
 
-        const volEf = document.getElementById('setting-volumen-efectos'); volEf.value = State.gameSettings.volumenEfectos; document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`;
+        // EFECTOS
+        const volEf = document.getElementById('setting-volumen-efectos'); 
+        volEf.value = State.gameSettings.volumenEfectos; 
+        document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`;
+        
         volEf.oninput = (e) => { 
             State.gameSettings.volumenEfectos = parseInt(e.target.value); 
             document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`; 
-            localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); // Guardado Inmediato
-            this.applySettingsCallback(); 
+            if(this.applyAudioCallback) this.applyAudioCallback(); 
         };
+        volEf.onchange = () => { localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); };
 
+        // Mostrar FPS
         const fpsCheck = document.getElementById('setting-showfps'); fpsCheck.checked = State.gameSettings.mostrarFps;
         fpsCheck.onchange = (e) => { 
             State.gameSettings.mostrarFps = e.target.checked; 
-            localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); // Guardado Inmediato
+            localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); 
             this.applySettingsCallback(); 
         };
     },
