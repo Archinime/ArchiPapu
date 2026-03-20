@@ -14,6 +14,7 @@ export const State = {
 };
 
 if (State.inventoryData.base_foco) delete State.inventoryData.base_foco;
+
 for (let cat in defaultInventoryConfig) {
     if(!State.inventoryData[cat]) State.inventoryData[cat] = defaultInventoryConfig[cat];
     State.inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
@@ -49,17 +50,16 @@ State.gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
     fps: baseTier === 'baja' ? 30 : 60,
     volumenTV: 50,
     volumenEfectos: 50,
-    volumenPC: 50,
+    volumenPC: 50, // <-- NUEVO VALOR
     mostrarFps: false
 };
+
 if(State.gameSettings.volumen) { 
     State.gameSettings.volumenTV = State.gameSettings.volumen; 
     State.gameSettings.volumenEfectos = State.gameSettings.volumen; 
     delete State.gameSettings.volumen;
 }
-if(State.gameSettings.volumenPC === undefined) {
-    State.gameSettings.volumenPC = 50;
-}
+if(State.gameSettings.volumenPC === undefined) State.gameSettings.volumenPC = 50;
 
 export function checkDailyReward() {
     let lastLogin = localStorage.getItem('room_last_login');

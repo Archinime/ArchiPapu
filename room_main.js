@@ -47,7 +47,9 @@ function applyCurrentSettings() {
     document.getElementById('fps-counter').style.display = State.gameSettings.mostrarFps ? 'block' : 'none';
     
     TVManager.setVolumes(State.gameSettings.volumenTV, State.gameSettings.volumenEfectos);
-    PCManager.setVolume(State.gameSettings.volumenEfectos, State.gameSettings.volumenPC);
+    // PASAMOS EL NUEVO VOLUMEN DE PC
+    PCManager.setVolume(State.gameSettings.volumenPC, State.gameSettings.volumenEfectos);
+    
     let volEf = State.gameSettings.volumenEfectos / 100;
     audioPrenderLuz.volume = volEf; audioApagarLuz.volume = volEf;
     audioAbrirPoster.volume = volEf; audioCerrarPoster.volume = volEf;
@@ -117,34 +119,28 @@ setTimeout(() => {
         setTimeout(() => loadingEl.style.display = 'none', 500);
     }
 }, 12000);
-
 if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
 
 const loader = new GLTFLoader();
-
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.dormir = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.dormir = new THREE.AnimationMixer(model); LunariSystem.actions.dormir_base = LunariSystem.mixers.dormir.clipAction(gltf.animations[0]); }
     LunariSystem.currentState = null; LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
 }, undefined, () => checkLoading());
-
 loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0 && LunariSystem.mixers.dormir) { LunariSystem.actions.dormir_random = LunariSystem.mixers.dormir.clipAction(gltf.animations[0]); LunariSystem.actions.dormir_random.loop = THREE.LoopOnce; LunariSystem.actions.dormir_random.clampWhenFinished = true; }
     checkLoading();
 }, undefined, () => checkLoading());
-
 loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.despertar = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.despertar = new THREE.AnimationMixer(model); LunariSystem.actions.despertar_base = LunariSystem.mixers.despertar.clipAction(gltf.animations[0]); }
     LunariSystem.currentState = null; LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
 }, undefined, () => checkLoading());
-
 loader.load(getFreshUrl('lunari_jugando.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.jugar = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.jugar = new THREE.AnimationMixer(model); LunariSystem.actions.jugar_base = LunariSystem.mixers.jugar.clipAction(gltf.animations[0]); }
     LunariSystem.currentState = null; LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
 }, undefined, () => checkLoading());
-
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
     focoDiaMesh = gltf.scene; applyMaterialLogic(focoDiaMesh, 'foco_dia'); luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
     const box = new THREE.Box3().setFromObject(focoDiaMesh); const center = new THREE.Vector3(); box.getCenter(center);
@@ -152,7 +148,6 @@ loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/fo
     scene.add(luzFocoDia); scene.add(focoDiaMesh); focoDiaMesh.visible = false; luzFocoDia.visible = true; 
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem); checkLoading();
 }, undefined, () => checkLoading());
-
 setInterval(() => {
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem);
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode);
@@ -201,26 +196,20 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                     });
                 }
              });
-            if (!TVManager.isTvOn) TVManager.tvVideo.pause();
+             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
         
+        // CAPTURAMOS LAS TEXTURAS ORIGINALES DE LA PC AQUI
         if (categoryKey === 'pantalla_pc' || categoryKey === 'pantalla_pc2') { 
             if (!PCManager.pcScreenMeshes) PCManager.pcScreenMeshes = [];
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
                     if (categoryKey === 'pantalla_pc') node.userData.isMainVideoScreen = true;
                     
-                    // GUARDAR PROPIEDADES ORIGINALES PARA CUANDO LUNARI DEJE DE JUGAR
-                    let mats = Array.isArray(node.material) ? node.material : [node.material];
-                    mats.forEach(mat => {
-                        if (mat.userData.originalMap === undefined) {
-                            mat.userData.originalMap = mat.map;
-                            mat.userData.originalEmissiveMap = mat.emissiveMap;
-                            mat.userData.originalColor = mat.color ? mat.color.getHex() : 0xffffff;
-                            mat.userData.originalEmissive = mat.emissive ? mat.emissive.getHex() : 0x000000;
-                            mat.userData.originalEmissiveIntensity = mat.emissiveIntensity !== undefined ? mat.emissiveIntensity : 1.0;
-                        }
-                    });
+                    if (!node.userData.originalMaterials) {
+                        const mats = Array.isArray(node.material) ? node.material : [node.material];
+                        node.userData.originalMaterials = mats.map(m => m.clone());
+                    }
 
                     if (!PCManager.pcScreenMeshes.includes(node)) {
                         PCManager.pcScreenMeshes.push(node);
@@ -255,7 +244,6 @@ for (let cat in State.inventoryData) {
 }
 
 WeatherSystem.setupWeatherVideo(loader, scene, applyMaterialLogic, loadedSlotMeshes, checkLoading);
-
 function updateLighting() {
     if (State.lightOn) {
         mainLight.visible = true;
@@ -286,7 +274,7 @@ function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
-
+    
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
     
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
@@ -306,34 +294,28 @@ function handleInteraction(event) {
         TVManager.lastTvClickTime = currentTime; return;
     }
 
+    // LÓGICA CORREGIDA PARA PANTALLA SECUNDARIA PC (Controles)
     const pcScreenMesh = loadedSlotMeshes['pantalla_pc2'];
     if (pcScreenMesh && raycaster.intersectObject(pcScreenMesh, true).length > 0) {
         const pcControls = document.getElementById('pc-controls');
         document.getElementById('tv-controls').style.display = 'none'; 
         
-        // Clic solo abre enlaces si está jugando
-        if (PCManager.isPcOn && PCManager.isGamingMode) {
-            window.open('https://archinime.github.io/-Archinime-', '_blank');
-            pcControls.style.display = 'none';
-        } else { 
-            if (pcControls.style.display === 'none' || pcControls.style.display === '') pcControls.style.display = 'flex';
-            else pcControls.style.display = 'none'; 
-        }
+        if (pcControls.style.display === 'none' || pcControls.style.display === '') pcControls.style.display = 'flex';
+        else pcControls.style.display = 'none'; 
         return;
     }
 
+    // LÓGICA CORREGIDA PARA PANTALLA PRINCIPAL PC
     const pc2ScreenMesh = loadedSlotMeshes['pantalla_pc'];
     if (pc2ScreenMesh && raycaster.intersectObject(pc2ScreenMesh, true).length > 0) {
         document.getElementById('tv-controls').style.display = 'none';
         const pcControls = document.getElementById('pc-controls');
+        pcControls.style.display = 'none';
 
-        // Clic solo abre enlaces si está jugando
-        if (PCManager.isPcOn && PCManager.isGamingMode) {
+        if (LunariSystem.currentState === 'jugar') {
             window.open('https://survev.io', '_blank');
-            pcControls.style.display = 'none';
         } else {
-            if (pcControls.style.display === 'none' || pcControls.style.display === '') pcControls.style.display = 'flex';
-            else pcControls.style.display = 'none';
+            window.open('https://archinime.github.io/-Archinime-', '_blank');
         }
         return;
     }
@@ -359,8 +341,7 @@ let then = performance.now(), frames = 0, lastFpsTime = then;
 function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
-    const fpsInterval = State.gameSettings.fps > 0 ?
-    1000 / State.gameSettings.fps : 0;
+    const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
         const delta = clock.getDelta(); LunariSystem.update(delta); 

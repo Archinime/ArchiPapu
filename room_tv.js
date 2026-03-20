@@ -83,7 +83,7 @@ export const TVManager = {
         overlay.style.transition = 'opacity 0.5s ease';
         overlay.style.opacity = '0';
         overlay.style.pointerEvents = 'none';
-
+        
         const btn = document.createElement('button');
         btn.innerHTML = '▶ INICIAR HABITACIÓN';
         btn.style.background = 'linear-gradient(90deg, #80cbc4, #4db6ac)';
@@ -125,13 +125,13 @@ export const TVManager = {
             this.audioBotonTV.pause();
             this.audioBotonTV.currentTime = 0;
 
+            // ACTIVAMOS LA PC
             PCManager.canPlayAudio = true; 
             
             if (PCManager.isGamingMode && PCManager.isPcOn) {
                 PCManager.survVideo.muted = false;
-                // USA EL VOLUMEN ESPECÍFICO DE LA PC
-                let volPc = State.gameSettings.volumenPC !== undefined ? State.gameSettings.volumenPC : 50;
-                PCManager.survVideo.volume = volPc / 100;
+                // USAMOS EL VOLUMEN DE LA PC EN VEZ DE EFECTOS
+                PCManager.survVideo.volume = (State.gameSettings.volumenPC !== undefined ? State.gameSettings.volumenPC : 50) / 100;
                 PCManager.survVideo.play().catch(()=>{});
             }
 
@@ -156,7 +156,6 @@ export const TVManager = {
         this.currentTvIndex = random 
             ? Math.floor(Math.random() * this.tvPlaylist.length) 
             : (this.currentTvIndex + 1) % this.tvPlaylist.length;
-            
         this.tvVideo.src = this.tvPlaylist[this.currentTvIndex];
         this.tvVideo.volume = State.gameSettings.volumenTV / 100;
         
@@ -175,7 +174,7 @@ export const TVManager = {
               tvPlayPauseBtn = document.getElementById('tv-play-pause'), 
               tvNextBtn = document.getElementById('tv-next'), 
               tvPowerBtn = document.getElementById('tv-power');
-
+        
         tvPrevBtn.onclick = () => { 
             this.playButtonSound();
             if (!this.isTvOn || this.tvTransitioning) return; 
@@ -192,7 +191,7 @@ export const TVManager = {
             if(this.tvVideo.paused) this.tvVideo.play(); 
             else this.tvVideo.pause(); 
         };
-
+        
         tvNextBtn.onclick = () => { 
             this.playButtonSound();
             if (this.isTvOn && !this.tvTransitioning) this.playNextTv(false); 
@@ -208,7 +207,6 @@ export const TVManager = {
                 this.tvVideo.pause();
        
                 const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
-                
                 const effectVideo = this.isTvOn ? this.tvEffectVideoOff : this.tvEffectVideoOn; 
                 const effectTexture = this.isTvOn ? this.tvEffectTextureOff : this.tvEffectTextureOn;
 
@@ -285,7 +283,8 @@ export const TVManager = {
         }
 
         if (this.tvScreenMesh) {
-            const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
+            const mats = Array.isArray(this.tvScreenMesh.material) ?
+            this.tvScreenMesh.material : [this.tvScreenMesh.material];
             mats.forEach(mat => { 
                 mat.map = this.tvTexture; 
                 mat.emissiveMap = this.tvTexture; 

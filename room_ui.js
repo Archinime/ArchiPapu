@@ -49,14 +49,15 @@ export const UIManager = {
             b.classList.toggle('active', parseInt(b.dataset.val) === State.gameSettings.fps);
             b.onclick = () => { State.gameSettings.fps = parseInt(b.dataset.val); this.syncSettingsUI(); };
         });
-
-        const volTV = document.getElementById('setting-volumen-tv'); volTV.value = State.gameSettings.volumenTV; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`;
-        volTV.oninput = (e) => { State.gameSettings.volumenTV = e.target.value; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; this.applySettingsCallback(); };
         
-        const volPC = document.getElementById('setting-volumen-pc'); 
+        const volTV = document.getElementById('setting-volumen-tv'); volTV.value = State.gameSettings.volumenTV; document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`;
+        volTV.oninput = (e) => { State.gameSettings.volumenTV = e.target.value;
+        document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; this.applySettingsCallback(); };
+        
+        // NUEVO SLIDER PC
+        const volPC = document.getElementById('setting-volumen-pc');
         if(volPC) {
-            volPC.value = State.gameSettings.volumenPC; 
-            document.getElementById('vol-pc-val').innerText = `${State.gameSettings.volumenPC}%`;
+            volPC.value = State.gameSettings.volumenPC; document.getElementById('vol-pc-val').innerText = `${State.gameSettings.volumenPC}%`;
             volPC.oninput = (e) => { State.gameSettings.volumenPC = e.target.value; document.getElementById('vol-pc-val').innerText = `${State.gameSettings.volumenPC}%`; this.applySettingsCallback(); };
         }
 
@@ -122,7 +123,7 @@ export const UIManager = {
             if (category === 'tele' && itemData.baseFile) this.loadItemCallback('pantalla_tv', itemData.baseFile, false);
             if (category === 'pc') {
                 if (itemData.baseFile) this.loadItemCallback('pantalla_pc', itemData.baseFile, false);
-                this.loadItemCallback('pantalla_pc2', 'pantalla_pc2.glb', false);
+                this.loadItemCallback('pantalla_pc2', 'pantalla_pc2.glb', false); 
             }
         }
         State.saveGame();

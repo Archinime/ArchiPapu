@@ -6,6 +6,7 @@ export const WeatherSystem = {
     lastWeatherCode: 0,
     
     actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, lunariRef) {
+        // Usa la hora precisa del dispositivo local para definir Día/Noche
         const hora = new Date().getHours();
         let colorHex, lightInt, emInt, dist;
         if (hora >= 6 && hora < 9) { colorHex = 0xffe4b5; lightInt = 0.8; emInt = 0.8; dist = 35; }
@@ -43,32 +44,29 @@ export const WeatherSystem = {
         };
 
         if (!navigator.onLine) {
-            this.loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, 'dia.mp4');
+            this.loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, this.esDeDiaLocal ? 'dia_soleado.mp4' : 'noche_despejada.mp4');
             return;
         }
 
-        // AUTO DETECCIÓN DE IP (Para evitar la alerta GPS del navegador)
-        fetch('https://ipapi.co/json/')
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.latitude && data.longitude) {
-                    this.fetchWeather(data.latitude, data.longitude, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
-                } else {
-                    this.usarGeolocalizacionNativa(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
-                }
-            })
-            .catch(() => {
-                this.usarGeolocalizacionNativa(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
-            });
-    },
-
-    usarGeolocalizacionNativa(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading) {
+        // Intenta Geolocalización, si falla o la bloquean, usa detección por IP
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => this.fetchWeather(position.coords.latitude, position.coords.longitude, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading),
-                () => this.fetchWeather(-12.0464, -77.0428, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading)
+                () => this.fetchWeatherByIP(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading)
             );
         } else {
+            this.fetchWeatherByIP(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
+        }
+    },
+
+    async fetchWeatherByIP(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading) {
+        try {
+            // Usa una API de IP como alternativa para obtener coordenadas exactas sin pedir permisos
+            const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
+            const data = await res.json();
+            this.fetchWeather(data.latitude, data.longitude, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
+        } catch(e) {
+            // Último recurso de emergencia
             this.fetchWeather(-12.0464, -77.0428, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
         }
     },
@@ -84,19 +82,31 @@ export const WeatherSystem = {
             this.lastWeatherCode = weatherCode;
         } catch (error) { console.error('Error del clima', error); }
 
-        let videoFile = 'soleado.mp4', weatherEmoji = "☀️", weatherName = "Soleado";
+        const isDay = this.esDeDiaLocal;
+        let videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4';
+        let weatherEmoji = isDay ? "☀️" : "🌙";
+        let weatherName = isDay ? "Soleado" : "Despejado";
+
         try {
-            // SI ES DE NOCHE, PRIORIZA SIEMPRE VIDEOS NOCTURNOS
-            if (!this.esDeDiaLocal) {
-                weatherEmoji = "🌙";
-                weatherName = "Despejado"; 
-                videoFile = 'noche.mp4';
-            } else {
-                if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)) { weatherEmoji = "🌧️"; weatherName = "Lluvioso"; videoFile = 'lluvia.mp4'; } 
-                else if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) { weatherEmoji = "❄️"; weatherName = "Nevado"; videoFile = 'nieve.mp4'; } 
-                else if ([95, 96, 99].includes(weatherCode)) { weatherEmoji = "⛈️"; weatherName = "Tormenta"; videoFile = 'tormenta.mp4'; } 
-                else if ([1, 2, 3, 45, 48].includes(weatherCode)) { weatherEmoji = "☁️"; weatherName = "Nublado"; videoFile = 'dia_nublado.mp4'; }
-                else { videoFile = 'dia.mp4'; }
+            if ([45, 48].includes(weatherCode)) { 
+                weatherEmoji = "🌫️"; weatherName = "Niebla"; 
+                videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4'; 
+            } 
+            else if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)) { 
+                weatherEmoji = "🌧️"; weatherName = "Lluvioso"; 
+                videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4'; 
+            } 
+            else if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) { 
+                weatherEmoji = "❄️"; weatherName = "Nevado"; 
+                videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4'; 
+            } 
+            else if ([95, 96, 99].includes(weatherCode)) { 
+                weatherEmoji = "⛈️"; weatherName = "Tormenta"; 
+                videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4'; 
+            } 
+            else if ([1, 2, 3].includes(weatherCode)) { 
+                weatherEmoji = "☁️"; weatherName = "Nublado"; 
+                videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4'; 
             }
         } catch (error) { weatherEmoji = "❌"; weatherName = "Clima offline"; }
 
@@ -111,7 +121,6 @@ export const WeatherSystem = {
         video.src = videoFile; 
         video.play().catch(e => console.log('Autoplay blocked'));
         const videoTexture = new THREE.VideoTexture(video); videoTexture.minFilter = THREE.LinearFilter; videoTexture.magFilter = THREE.LinearFilter; videoTexture.format = THREE.RGBAFormat; videoTexture.encoding = THREE.sRGBEncoding;
-        
         loader.load(getFreshUrl('cuadro.glb'), (gltf) => {
             const cuadroModel = gltf.scene;
             cuadroModel.traverse((node) => {
@@ -122,6 +131,7 @@ export const WeatherSystem = {
             });
             applyMaterialLogic(cuadroModel, 'cuadro');
             loadedSlotMeshes['cuadro'] = cuadroModel;
+           
             scene.add(cuadroModel);
             safeCheckLoading(); 
         }, undefined, () => {

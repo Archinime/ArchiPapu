@@ -8,7 +8,7 @@ export const PCManager = {
     audioBotonPC: new Audio('sonido_boton.mp3'),
     
     isGamingMode: false,
-    canPlayAudio: false,
+    canPlayAudio: false, 
     survVideo: document.createElement('video'),
     survVideoTexture: null,
     logoTexture: null, 
@@ -16,7 +16,7 @@ export const PCManager = {
     init() {
         this.survVideo.src = 'surv.mp4';
         this.survVideo.loop = true;
-        this.survVideo.muted = true;
+        this.survVideo.muted = true; 
         this.survVideo.playsInline = true;
         this.survVideo.setAttribute('playsinline', ''); 
         this.survVideo.setAttribute('webkit-playsinline', '');
@@ -29,7 +29,6 @@ export const PCManager = {
         this.survVideoTexture.minFilter = THREE.LinearFilter;
         this.survVideoTexture.magFilter = THREE.LinearFilter;
         this.survVideoTexture.format = THREE.RGBAFormat;
-
         this.survVideoTexture.wrapS = THREE.RepeatWrapping;
         this.survVideoTexture.repeat.x = -1;
 
@@ -71,36 +70,33 @@ export const PCManager = {
     updateScreens() {
         this.pcScreenMeshes.forEach(mesh => {
             const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-            mats.forEach(mat => {
-                if (this.isPcOn) {
-                    if (this.isGamingMode) {
-                        if (mesh.userData && mesh.userData.isMainVideoScreen) {
-                            mat.map = this.survVideoTexture;
-                            mat.emissiveMap = this.survVideoTexture;
-                            mat.color.setHex(0xffffff);
-                            mat.emissive.setHex(0xffffff);
-                            mat.emissiveIntensity = 1.0;
-                        } else {
-                            mat.map = this.logoTexture;
-                            mat.emissiveMap = this.logoTexture;
-                            mat.color.setHex(0xffffff);
-                            mat.emissive.setHex(0xffffff);
-                            mat.emissiveIntensity = 1.0;
-                        }
+            // Recuperamos los materiales originales guardados en room_main
+            const origMats = mesh.userData.originalMaterials;
+
+            mats.forEach((mat, index) => {
+                if (this.isGamingMode && this.isPcOn) {
+                    if (mesh.userData && mesh.userData.isMainVideoScreen) {
+                        mat.map = this.survVideoTexture;
+                        mat.emissiveMap = this.survVideoTexture;
+                        mat.color.setHex(0xffffff);
+                        mat.emissive.setHex(0xffffff);
+                        mat.emissiveIntensity = 1.0;
                     } else {
-                        // AQUÍ SE RESTAURAN LAS TEXTURAS ORIGINALES EN VEZ DEL CELESTE
-                        mat.map = mat.userData.originalMap !== undefined ? mat.userData.originalMap : null;
-                        mat.emissiveMap = mat.userData.originalEmissiveMap !== undefined ? mat.userData.originalEmissiveMap : null;
-                        if(mat.userData.originalColor !== undefined) mat.color.setHex(mat.userData.originalColor);
-                        if(mat.userData.originalEmissive !== undefined) mat.emissive.setHex(mat.userData.originalEmissive);
-                        mat.emissiveIntensity = mat.userData.originalEmissiveIntensity !== undefined ? mat.userData.originalEmissiveIntensity : 1.0;
+                        mat.map = this.logoTexture;
+                        mat.emissiveMap = this.logoTexture;
+                        mat.color.setHex(0xffffff);
+                        mat.emissive.setHex(0xffffff);
+                        mat.emissiveIntensity = 1.0;
                     }
                 } else {
-                    mat.map = null;
-                    mat.emissiveMap = null;
-                    mat.color.setHex(0x000000);
-                    mat.emissive.setHex(0x000000);
-                    mat.emissiveIntensity = 0;
+                    // SI NO ESTÁ JUGANDO, RESTAURA LAS TEXTURAS ORIGINALES
+                    if (origMats && origMats[index]) {
+                        mat.map = origMats[index].map;
+                        mat.emissiveMap = origMats[index].emissiveMap;
+                        mat.color.copy(origMats[index].color);
+                        mat.emissive.copy(origMats[index].emissive);
+                        mat.emissiveIntensity = origMats[index].emissiveIntensity;
+                    }
                 }
                 mat.needsUpdate = true;
             });
@@ -113,6 +109,7 @@ export const PCManager = {
         const pcModal = document.getElementById('pc-modal');
         const closePcBtn = document.getElementById('close-pc');
         const pcIframe = document.getElementById('pc-iframe');
+
         if (pcPowerBtn) {
             pcPowerBtn.onclick = () => {
                 this.playButtonSound();
@@ -122,6 +119,7 @@ export const PCManager = {
                 pcPowerBtn.innerText = this.isPcOn ? '🟢' : '🔴';
                 pcPowerBtn.style.color = this.isPcOn ? '#00ff00' : 'red';
                 pcPowerBtn.style.textShadow = this.isPcOn ? '0 0 5px #00ff00' : '0 0 5px red';
+                
                 if (this.isGamingMode) {
                     if (this.isPcOn) {
                         this.survVideo.muted = false;
@@ -161,8 +159,9 @@ export const PCManager = {
         }
     },
 
-    setVolume(volEf, volPc) {
+    // PASAMOS 2 VOLÚMENES: pc y efectos
+    setVolume(volPc, volEf) {
         this.audioBotonPC.volume = volEf / 100;
-        this.survVideo.volume = (volPc !== undefined ? volPc : volEf) / 100; 
+        this.survVideo.volume = volPc / 100; 
     }
 };
