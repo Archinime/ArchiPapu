@@ -37,13 +37,14 @@ function applyCurrentSettings() {
     let pixelRatio = 1;
     if (State.gameSettings.calidad === 'media') pixelRatio = Math.min(window.devicePixelRatio, 1.2);
     else if (State.gameSettings.calidad === 'alta') pixelRatio = Math.min(window.devicePixelRatio, 2); 
+    // OPTIMIZACIÓN EXTREMA: Escalado de resolución interna para móviles de gama baja
+    else if (State.gameSettings.calidad === 'baja') pixelRatio = isMobileUA ? 0.6 : 0.8; 
 
     renderer.setPixelRatio(pixelRatio);
-    
+
     // --- LÓGICA DE SOMBRAS MEJORADA ---
     let currentShadowType = renderer.shadowMap.type;
     let newShadowType = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
-
     // Si el tipo de sombra cambia dinámicamente, forzamos la actualización de materiales
     if (currentShadowType !== newShadowType) {
         renderer.shadowMap.type = newShadowType;
@@ -59,7 +60,9 @@ function applyCurrentSettings() {
     mainLight.castShadow = State.gameSettings.sombras > 0;
 
     if (State.gameSettings.sombras > 0) {
-        let shadowRes = State.gameSettings.sombras === 2 ? (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
+        let shadowRes = State.gameSettings.sombras === 2 ?
+            (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
+            
         if (mainLight.shadow.mapSize.width !== shadowRes) {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
@@ -70,7 +73,7 @@ function applyCurrentSettings() {
 
     for (let cat in loadedSlotMeshes) applyMaterialLogic(loadedSlotMeshes[cat], cat);
     if(focoDiaMesh) WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem);
-
+    
     document.getElementById('fps-counter').style.display = State.gameSettings.mostrarFps ? 'block' : 'none';
     applyAudioSettings();
 }
@@ -81,12 +84,14 @@ function applyMaterialLogic(model, categoryKey) {
     if(!model) return;
     const isFoco = categoryKey === 'foco', isFocoDia = categoryKey === 'foco_dia';
     const allowShadows = State.gameSettings.sombras > 0;
-    
     const isStructureCategory = ['paredes', 'piso', 'techo', 'puerta'].includes(categoryKey);
+    const isBaja = State.gameSettings.calidad === 'baja';
 
     model.traverse((node) => {
         if (node.isMesh) {
-            node.frustumCulled = false;
+            // OPTIMIZACIÓN: Reactivamos Culling en baja para que la GPU no dibuje lo que no ve.
+            node.frustumCulled = isBaja ? true : false;
+            
             if (isFoco || isFocoDia) {
                 node.castShadow = false; node.receiveShadow = false;
                 if (node.material) {
@@ -94,14 +99,16 @@ function applyMaterialLogic(model, categoryKey) {
                     if (isFocoDia) node.material.emissive = new THREE.Color(0xffffff);
                 }
             } else {
-                let nodeIsStructure = isStructureCategory || node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo');
+                let nodeIsStructure = isStructureCategory || node.name.toLowerCase().includes('pared') || 
+                                      node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo');
                 
                 node.castShadow = nodeIsStructure ? false : allowShadows;
                 node.receiveShadow = allowShadows;
                 
                 if(node.material) {
                     node.material.shadowSide = THREE.FrontSide;
-                    node.material.side = THREE.DoubleSide; 
+                    // OPTIMIZACIÓN: DoubleSide cuesta el doble de FPS. Lo desactivamos obligatoriamente en modo "baja".
+                    node.material.side = (isBaja || nodeIsStructure) ? THREE.FrontSide : THREE.DoubleSide;
                     node.material.needsUpdate = true;
                 }
             }
@@ -153,7 +160,6 @@ if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getEl
 const loader = new GLTFLoader();
 
 let pendingDormirRandom = null;
-
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.dormir = model;
     LunariSystem.mixers.dormir = new THREE.AnimationMixer(model);
@@ -253,7 +259,6 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
         const oldModel = loadedSlotMeshes[categoryKey];
         scene.remove(oldModel); 
         disposeThreeJSObject(oldModel);
-
         if (PCManager.pcScreenMeshes) {
             oldModel.traverse((node) => {
                 const idx = PCManager.pcScreenMeshes.indexOf(node);
@@ -275,15 +280,13 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                         else { mat.map = TVManager.tvTexture; mat.emissiveMap = TVManager.tvTexture; mat.color = new THREE.Color(0xffffff); mat.emissive = new THREE.Color(0xffffff); mat.emissiveIntensity = 1.0; }
                         mat.needsUpdate = true;
                     });
-                }
+                 }
              });
-
             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
         
         if (categoryKey === 'pantalla_pc' || categoryKey === 'pantalla_pc2') { 
             if (!PCManager.pcScreenMeshes) PCManager.pcScreenMeshes = [];
-
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
                     if (categoryKey === 'pantalla_pc') node.userData.isMainVideoScreen = true;
@@ -296,7 +299,6 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                     }
                 }
             });
-
             PCManager.updateScreens();
         }
         
@@ -306,20 +308,16 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
         if (categoryKey === 'interruptor') switchMesh = model;
         
         scene.add(model); loadedSlotMeshes[categoryKey] = model;
-
         if(isInitialLoad) checkLoading();
     }, undefined, () => { if(isInitialLoad) checkLoading(); });
 }
 
 for (let cat in State.inventoryData) {
     if (State.inventoryData[cat].type === 'multiple') continue; let eqId = State.inventoryData[cat].equipped;
-
     if (State.inventoryData[cat].items && State.inventoryData[cat].items[eqId]) {
         let it = State.inventoryData[cat].items[eqId];
-
         if (it.file) loadItemForSlot(cat, it.file, true);
         if (cat === 'foco' && it.baseFile) loadItemForSlot('base_foco', it.baseFile, true);
-
         if (cat === 'tele' && it.baseFile) loadItemForSlot('pantalla_tv', it.baseFile, true);
         if (cat === 'pc') {
             if (it.baseFile) loadItemForSlot('pantalla_pc', it.baseFile, true);
@@ -354,19 +352,15 @@ function toggleLight() {
 
 const posterViewModal = document.getElementById('poster-view-modal'), posterEnlargedImage = document.getElementById('poster-enlarged-image');
 document.getElementById('close-poster-view').onclick = () => { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); };
-
 posterViewModal.onclick = (e) => { if (e.target === posterViewModal) { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); } };
 
 function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
-
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
-
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
     
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
-
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
         const tvControls = document.getElementById('tv-controls'), currentTime = Date.now();
         document.getElementById('pc-controls').style.display = 'none'; 
@@ -398,7 +392,6 @@ function handleInteraction(event) {
     }
 
     const pc2ScreenMesh = loadedSlotMeshes['pantalla_pc'];
-
     if (pc2ScreenMesh && raycaster.intersectObject(pc2ScreenMesh, true).length > 0) {
         document.getElementById('tv-controls').style.display = 'none';
         const pcControls = document.getElementById('pc-controls');
@@ -413,13 +406,10 @@ function handleInteraction(event) {
     }
 
     const posterCategories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
-
     for (let cat of posterCategories) {
         const pMesh = loadedSlotMeshes[cat];
-
         if (pMesh && raycaster.intersectObject(pMesh, true).length > 0) {
             const itemData = State.inventoryData[cat].items[State.inventoryData[cat].equipped];
-
             if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); audioAbrirPoster.currentTime = 0; audioAbrirPoster.play().catch(e=>{});
             }
             break;
@@ -439,10 +429,9 @@ function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
     const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
-
+    
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
-
         if (State.isRoomStarted) {
             if (!wasStarted) {
                 wasStarted = true;
@@ -456,7 +445,7 @@ function animate() {
         }
 
         controls.update(); renderer.render(scene, camera);
-
+        
         if (State.gameSettings.mostrarFps) { 
             frames++;
             if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now;
@@ -466,5 +455,4 @@ function animate() {
 }
 
 window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); applyCurrentSettings(); });
-
 applyCurrentSettings(); updateLighting(); animate();
