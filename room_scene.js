@@ -28,9 +28,9 @@ export const SceneSetup = {
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.0;
         
-        // SOMBRAS SUAVIZADAS PARA OPTIMIZACIÓN Y FLUIDEZ
+        // SOMBRAS: Se asigna el tipo correcto desde el inicio
         this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+        this.renderer.shadowMap.type = gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; 
         
         document.body.appendChild(this.renderer.domElement);
 

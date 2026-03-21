@@ -27,7 +27,7 @@ function applyAudioSettings() {
     TVManager.setVolumes(State.gameSettings.volumenTV, State.gameSettings.volumenEfectos);
     PCManager.setVolume(State.gameSettings.volumenPC, State.gameSettings.volumenEfectos);
     let volEf = State.gameSettings.volumenEfectos / 100;
-    audioPrenderLuz.volume = volEf; 
+    audioPrenderLuz.volume = volEf;
     audioApagarLuz.volume = volEf;
     audioAbrirPoster.volume = volEf; 
     audioCerrarPoster.volume = volEf;
@@ -39,15 +39,33 @@ function applyCurrentSettings() {
     else if (State.gameSettings.calidad === 'alta') pixelRatio = Math.min(window.devicePixelRatio, 2); 
 
     renderer.setPixelRatio(pixelRatio);
+    
+    // --- LÓGICA DE SOMBRAS MEJORADA ---
+    let currentShadowType = renderer.shadowMap.type;
+    let newShadowType = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+
+    // Si el tipo de sombra cambia dinámicamente, forzamos la actualización de materiales
+    if (currentShadowType !== newShadowType) {
+        renderer.shadowMap.type = newShadowType;
+        scene.traverse((node) => {
+            if (node.isMesh && node.material) {
+                if (Array.isArray(node.material)) node.material.forEach(m => m.needsUpdate = true);
+                else node.material.needsUpdate = true;
+            }
+        });
+    }
+
     renderer.shadowMap.enabled = State.gameSettings.sombras > 0;
-    renderer.shadowMap.type = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     mainLight.castShadow = State.gameSettings.sombras > 0;
+
     if (State.gameSettings.sombras > 0) {
         let shadowRes = State.gameSettings.sombras === 2 ? (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
         if (mainLight.shadow.mapSize.width !== shadowRes) {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
         }
+        // Radio extra de difuminación solo para Ultra
+        mainLight.shadow.radius = State.gameSettings.sombras >= 2 ? 4 : 1; 
     }
 
     for (let cat in loadedSlotMeshes) applyMaterialLogic(loadedSlotMeshes[cat], cat);
@@ -64,7 +82,6 @@ function applyMaterialLogic(model, categoryKey) {
     const isFoco = categoryKey === 'foco', isFocoDia = categoryKey === 'foco_dia';
     const allowShadows = State.gameSettings.sombras > 0;
     
-    // Identificadores de estructuras planas que generan acné de sombras
     const isStructureCategory = ['paredes', 'piso', 'techo', 'puerta'].includes(categoryKey);
 
     model.traverse((node) => {
@@ -77,16 +94,13 @@ function applyMaterialLogic(model, categoryKey) {
                     if (isFocoDia) node.material.emissive = new THREE.Color(0xffffff);
                 }
             } else {
-                // VERIFICACIÓN ESTRUCTURAL: Si es pared, techo o piso, anulamos la proyección de sombras propia.
                 let nodeIsStructure = isStructureCategory || node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo');
                 
-                // Las estructuras solo RECIBEN sombra, no la emiten (adiós cuadrículas raras)
-                node.castShadow = nodeIsStructure ? false : allowShadows; 
+                node.castShadow = nodeIsStructure ? false : allowShadows;
                 node.receiveShadow = allowShadows;
                 
                 if(node.material) {
-                    // Forzamos FrontSide para evitar anomalías en mallas con grosor 0
-                    node.material.shadowSide = THREE.FrontSide; 
+                    node.material.shadowSide = THREE.FrontSide;
                     node.material.side = THREE.DoubleSide; 
                     node.material.needsUpdate = true;
                 }
@@ -132,13 +146,14 @@ setTimeout(() => {
         loadingEl.style.opacity = '0'; 
         setTimeout(() => { if(loadingEl) loadingEl.style.display = 'none'; }, 500);
     }
-}, 45000); 
+}, 45000);
 
 if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
 
 const loader = new GLTFLoader();
 
 let pendingDormirRandom = null;
+
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.dormir = model;
     LunariSystem.mixers.dormir = new THREE.AnimationMixer(model);
@@ -190,7 +205,8 @@ loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
         action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
         LunariSystem.actions.idle_randoms.push(action);
     });
-    LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
+    LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode);
+    checkLoading();
 }, undefined, () => checkLoading());
 
 loader.load(getFreshUrl('lunari_saluda.glb'), (gltf) => {
@@ -232,10 +248,12 @@ setInterval(() => {
 
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
+
     if (loadedSlotMeshes[categoryKey]) { 
         const oldModel = loadedSlotMeshes[categoryKey];
         scene.remove(oldModel); 
         disposeThreeJSObject(oldModel);
+
         if (PCManager.pcScreenMeshes) {
             oldModel.traverse((node) => {
                 const idx = PCManager.pcScreenMeshes.indexOf(node);
@@ -259,11 +277,13 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                     });
                 }
              });
-             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
+
+            if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
         
         if (categoryKey === 'pantalla_pc' || categoryKey === 'pantalla_pc2') { 
             if (!PCManager.pcScreenMeshes) PCManager.pcScreenMeshes = [];
+
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
                     if (categoryKey === 'pantalla_pc') node.userData.isMainVideoScreen = true;
@@ -276,6 +296,7 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                     }
                 }
             });
+
             PCManager.updateScreens();
         }
         
@@ -285,16 +306,20 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
         if (categoryKey === 'interruptor') switchMesh = model;
         
         scene.add(model); loadedSlotMeshes[categoryKey] = model;
+
         if(isInitialLoad) checkLoading();
     }, undefined, () => { if(isInitialLoad) checkLoading(); });
 }
 
 for (let cat in State.inventoryData) {
     if (State.inventoryData[cat].type === 'multiple') continue; let eqId = State.inventoryData[cat].equipped;
+
     if (State.inventoryData[cat].items && State.inventoryData[cat].items[eqId]) {
         let it = State.inventoryData[cat].items[eqId];
+
         if (it.file) loadItemForSlot(cat, it.file, true);
         if (cat === 'foco' && it.baseFile) loadItemForSlot('base_foco', it.baseFile, true);
+
         if (cat === 'tele' && it.baseFile) loadItemForSlot('pantalla_tv', it.baseFile, true);
         if (cat === 'pc') {
             if (it.baseFile) loadItemForSlot('pantalla_pc', it.baseFile, true);
@@ -329,16 +354,19 @@ function toggleLight() {
 
 const posterViewModal = document.getElementById('poster-view-modal'), posterEnlargedImage = document.getElementById('poster-enlarged-image');
 document.getElementById('close-poster-view').onclick = () => { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); };
+
 posterViewModal.onclick = (e) => { if (e.target === posterViewModal) { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); } };
 
 function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
+
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
-    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return;
-    }
+
+    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
     
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
+
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
         const tvControls = document.getElementById('tv-controls'), currentTime = Date.now();
         document.getElementById('pc-controls').style.display = 'none'; 
@@ -370,6 +398,7 @@ function handleInteraction(event) {
     }
 
     const pc2ScreenMesh = loadedSlotMeshes['pantalla_pc'];
+
     if (pc2ScreenMesh && raycaster.intersectObject(pc2ScreenMesh, true).length > 0) {
         document.getElementById('tv-controls').style.display = 'none';
         const pcControls = document.getElementById('pc-controls');
@@ -384,10 +413,13 @@ function handleInteraction(event) {
     }
 
     const posterCategories = ['poster_1', 'poster_2', 'poster_3', 'poster_4'];
+
     for (let cat of posterCategories) {
         const pMesh = loadedSlotMeshes[cat];
+
         if (pMesh && raycaster.intersectObject(pMesh, true).length > 0) {
             const itemData = State.inventoryData[cat].items[State.inventoryData[cat].equipped];
+
             if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); audioAbrirPoster.currentTime = 0; audioAbrirPoster.play().catch(e=>{});
             }
             break;
@@ -401,36 +433,38 @@ renderer.domElement.addEventListener('pointermove', (e) => { const dx = e.client
 renderer.domElement.addEventListener('pointerup', (e) => { if (!isDragging && !document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active') && !document.getElementById('pc-modal').classList.contains('visible')) handleInteraction(e); isDragging = false; });
 
 let then = performance.now(), frames = 0, lastFpsTime = then;
-let wasStarted = false; 
+let wasStarted = false;
 
 function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
     const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
-    
+
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
-        
+
         if (State.isRoomStarted) {
             if (!wasStarted) {
                 wasStarted = true;
                 LunariSystem.currentState = null;
                 LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode);
             }
-            const delta = clock.getDelta(); 
+            const delta = clock.getDelta();
             LunariSystem.update(delta); 
         } else {
-            clock.getDelta(); 
+            clock.getDelta();
         }
 
         controls.update(); renderer.render(scene, camera);
-        
+
         if (State.gameSettings.mostrarFps) { 
             frames++;
-            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now; } 
+            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now;
+            } 
         }
     }
 }
 
 window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); applyCurrentSettings(); });
+
 applyCurrentSettings(); updateLighting(); animate();

@@ -11,10 +11,10 @@ export const LunariSystem = {
     activeAction: null,
     idleTimer: 0,
     dormirTimer: 0,
+    currentIdleIndex: 0, // Índice para reproducir animaciones random en orden
 
     evaluateState(esDeDiaLocal, lastWeatherCode, intervalTick = false) {
         const hora = new Date().getHours();
-        
         if (hora >= 22 || hora < 7) { 
             this.setState('dormir', esDeDiaLocal, lastWeatherCode);
         } else {
@@ -40,7 +40,6 @@ export const LunariSystem = {
         }
         
         if (this.activeAction) this.activeAction.stop();
-        
         if (this.mixers.idle) this.mixers.idle.removeEventListener('finished', this.onIdleFinished);
         if (this.mixers.dormir) this.mixers.dormir.removeEventListener('finished', this.onDormirFinished);
 
@@ -84,9 +83,15 @@ export const LunariSystem = {
 
     onIdleFinished: (event) => {
         if (event.action === LunariSystem.actions.saluda || LunariSystem.actions.idle_randoms.includes(event.action)) {
-            event.action.fadeOut(0.5);
-            LunariSystem.activeAction = LunariSystem.actions.idle_base;
-            if (LunariSystem.activeAction) LunariSystem.activeAction.reset().fadeIn(0.5).play();
+            const prevAction = event.action;
+            const nextAction = LunariSystem.actions.idle_base;
+            
+            LunariSystem.activeAction = nextAction;
+            if (LunariSystem.activeAction) {
+                LunariSystem.activeAction.reset().play();
+                // Mezcla fluida hacia la animación base
+                prevAction.crossFadeTo(LunariSystem.activeAction, 0.8, false);
+            }
             LunariSystem.idleTimer = 0;
         }
     },
@@ -109,13 +114,21 @@ export const LunariSystem = {
 
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base) {
             this.idleTimer += delta;
+            
             if (this.idleTimer >= 30) {
                 this.idleTimer = 0;
+                
                 if (this.actions.idle_randoms.length > 0) {
-                    const randomAction = this.actions.idle_randoms[Math.floor(Math.random() * this.actions.idle_randoms.length)];
-                    this.activeAction.fadeOut(0.5);
-                    this.activeAction = randomAction;
-                    this.activeAction.reset().fadeIn(0.5).play();
+                    // Tomamos la animación siguiente en orden, sin aleatoriedad
+                    const nextAction = this.actions.idle_randoms[this.currentIdleIndex];
+                    this.currentIdleIndex = (this.currentIdleIndex + 1) % this.actions.idle_randoms.length;
+
+                    const prevAction = this.activeAction;
+                    this.activeAction = nextAction;
+                    this.activeAction.reset().play();
+                    
+                    // Mezcla fluida desde la pose base a la animación random
+                    prevAction.crossFadeTo(this.activeAction, 0.8, false); 
                 }
             }
         }
