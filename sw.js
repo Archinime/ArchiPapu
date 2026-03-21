@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'room-cache-v12'; // Subimos a v12 por los nuevos archivos de idle
+const CACHE_NAME = 'room-cache-v12'; 
 const urlsToCache = [
     './',
     './index.html',

@@ -5,7 +5,7 @@ export const State = {
     inventoryData: JSON.parse(localStorage.getItem('room_inventory')) || defaultInventoryConfig,
     gameSettings: null,
     lightOn: localStorage.getItem('lightState') !== 'off',
-    isRoomStarted: false, // <-- NUEVA BANDERA DE INICIO
+    isRoomStarted: false,
     saveGame() {
         localStorage.setItem('room_coins', this.playerCoins);
         localStorage.setItem('room_inventory', JSON.stringify(this.inventoryData));
@@ -60,6 +60,7 @@ if(State.gameSettings.volumen) {
     delete State.gameSettings.volumen;
 }
 if(State.gameSettings.volumenPC === undefined) State.gameSettings.volumenPC = 50;
+
 export function checkDailyReward() {
     let lastLogin = localStorage.getItem('room_last_login');
     let today = new Date().toDateString();

@@ -114,7 +114,7 @@ export const TVManager = {
         
         btn.addEventListener('click', () => {
             this.hasInteracted = true;
-            State.isRoomStarted = true; // <-- ARRANCA EL MOTOR GENERAL
+            State.isRoomStarted = true; // Habilita el bucle en room_main
             
             this.tvVideo.muted = false;
             this.tvVideo.play().catch(()=>{});
@@ -126,7 +126,6 @@ export const TVManager = {
             this.audioBotonTV.pause();
             this.audioBotonTV.currentTime = 0;
 
-            // ACTIVAMOS LA PC
             PCManager.canPlayAudio = true; 
             
             if (PCManager.isGamingMode && PCManager.isPcOn) {

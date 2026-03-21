@@ -16,15 +16,11 @@ export const LunariSystem = {
         const hora = new Date().getHours();
         
         if (hora >= 22 || hora < 7) { 
-            // Horario estricto de dormir (Noche)
             this.setState('dormir', esDeDiaLocal, lastWeatherCode);
         } else {
-            // Rutina Diurna Dinámica
             if (!this.currentState || this.currentState === 'dormir') {
-                // Siempre arranca o despierta entrando al estado Idle para poder "Saludar"
                 this.setState('idle', esDeDiaLocal, lastWeatherCode);
             } else if (intervalTick && State.isRoomStarted) {
-                // Cada 60s, si es de día, tiene 20% de probabilidad de cambiar lo que está haciendo
                 if (Math.random() < 0.20) {
                     const dayStates = ['idle', 'despertar', 'jugar'];
                     const randomState = dayStates[Math.floor(Math.random() * dayStates.length)];
@@ -45,7 +41,6 @@ export const LunariSystem = {
         
         if (this.activeAction) this.activeAction.stop();
         
-        // Limpiar escuchadores previos
         if (this.mixers.idle) this.mixers.idle.removeEventListener('finished', this.onIdleFinished);
         if (this.mixers.dormir) this.mixers.dormir.removeEventListener('finished', this.onDormirFinished);
 
@@ -70,7 +65,6 @@ export const LunariSystem = {
         else if (newState === 'idle' && this.models.idle) {
             this.models.idle.visible = true;
             this.idleTimer = 0;
-            // Si tiene animación de saludar cargada, la usamos primero
             if (this.actions.saluda) {
                 this.activeAction = this.actions.saluda;
                 this.activeAction.reset().fadeIn(0.5).play();
@@ -89,12 +83,11 @@ export const LunariSystem = {
     },
 
     onIdleFinished: (event) => {
-        // Cuando termine de saludar o de hacer un idle random, vuelve a la pose idle base
         if (event.action === LunariSystem.actions.saluda || LunariSystem.actions.idle_randoms.includes(event.action)) {
             event.action.fadeOut(0.5);
             LunariSystem.activeAction = LunariSystem.actions.idle_base;
             if (LunariSystem.activeAction) LunariSystem.activeAction.reset().fadeIn(0.5).play();
-            LunariSystem.idleTimer = 0; // Reinicia el contador de 30s
+            LunariSystem.idleTimer = 0;
         }
     },
 
@@ -108,13 +101,12 @@ export const LunariSystem = {
     },
 
     update(delta) {
-        if (!State.isRoomStarted) return; // BLOQUEA LAS ANIMACIONES HASTA QUE SE INICIE
+        if (!State.isRoomStarted) return; // BLOQUEADO HASTA PRESIONAR INICIAR
 
         for (let key in this.mixers) {
             if (this.mixers[key]) this.mixers[key].update(delta);
         }
 
-        // Lógica de animaciones Idle aleatorias (cada 30s)
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base) {
             this.idleTimer += delta;
             if (this.idleTimer >= 30) {
@@ -124,12 +116,10 @@ export const LunariSystem = {
                     this.activeAction.fadeOut(0.5);
                     this.activeAction = randomAction;
                     this.activeAction.reset().fadeIn(0.5).play();
-                    // El listener onIdleFinished lo regresará a la base al terminar
                 }
             }
         }
 
-        // Lógica de movimientos durmiendo (cada 60s)
         if (this.currentState === 'dormir' && this.activeAction === this.actions.dormir_base) {
             this.dormirTimer += delta;
             if (this.dormirTimer >= 60) {

@@ -99,7 +99,7 @@ for (let cat in State.inventoryData) {
         }
     }
 }
-// Sumamos los 13 modelos estáticos base: dormir1, dormir2, despierta, jugando, foco, cuadro, y los 7 idles nuevos
+// Sumamos los 13 modelos estáticos EXACTOS
 totalModelsToLoad += 13;
 
 function checkLoading() {
@@ -110,18 +110,20 @@ function checkLoading() {
         const percent = Math.min((modelsLoaded / totalModelsToLoad) * 100, 100);
         loadBar.style.width = `${percent}%`;
         if (modelsLoaded >= totalModelsToLoad) { 
-            setTimeout(() => { if(loadingEl) loadingEl.style.opacity = '0'; setTimeout(()=>loadingEl.style.display='none', 500); }, 500);
+            setTimeout(() => { if(loadingEl) loadingEl.style.opacity = '0'; setTimeout(()=> { if(loadingEl) loadingEl.style.display='none'; }, 500); }, 500);
         }
     }
 }
 
+// Aumentado a 45 segundos para dar tiempo real a cargar los modelos pesados
 setTimeout(() => {
     const loadingEl = document.getElementById('loading');
     if(loadingEl && loadingEl.style.display !== 'none') {
         loadingEl.style.opacity = '0'; 
-        setTimeout(() => loadingEl.style.display = 'none', 500);
+        setTimeout(() => { if(loadingEl) loadingEl.style.display = 'none'; }, 500);
     }
-}, 12000);
+}, 45000); 
+
 if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
 
 const loader = new GLTFLoader();
@@ -217,10 +219,8 @@ loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/fo
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem); checkLoading();
 }, undefined, () => checkLoading());
 
-// EVALUACIÓN PERIÓDICA DEL ENTORNO
 setInterval(() => {
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem);
-    // Pasamos true para que haga tick de día aleatorio
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode, true);
 }, 60000);
 
@@ -395,6 +395,8 @@ renderer.domElement.addEventListener('pointermove', (e) => { const dx = e.client
 renderer.domElement.addEventListener('pointerup', (e) => { if (!isDragging && !document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active') && !document.getElementById('pc-modal').classList.contains('visible')) handleInteraction(e); isDragging = false; });
 
 let then = performance.now(), frames = 0, lastFpsTime = then;
+let wasStarted = false; // Gatillo maestro
+
 function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
@@ -405,11 +407,16 @@ function animate() {
         
         // BLOQUEO MAESTRO: SOLO SE ACTUALIZA LA ANIMACIÓN SI LA SALA ESTÁ INICIADA
         if (State.isRoomStarted) {
+            if (!wasStarted) {
+                wasStarted = true;
+                // Forzamos el reinicio de estado aquí para que la animación de Saludar comience AHORA
+                LunariSystem.currentState = null;
+                LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode);
+            }
             const delta = clock.getDelta(); 
             LunariSystem.update(delta); 
         } else {
-            // Necesitamos limpiar el delta para que no salte el tiempo cuando inicie
-            clock.getDelta(); 
+            clock.getDelta(); // Limpiamos el reloj para que no salte de golpe al iniciar
         }
 
         controls.update(); renderer.render(scene, camera);
