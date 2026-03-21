@@ -40,17 +40,16 @@ function applyCurrentSettings() {
 
     renderer.setPixelRatio(pixelRatio);
     
-    // --- LÓGICA DE SOMBRAS MEJORADA ---
+    // --- LÓGICA DE SOMBRAS: VSM para Ultra, PCF para Estándar ---
     let currentShadowType = renderer.shadowMap.type;
-    let newShadowType = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+    let newShadowType = State.gameSettings.sombras >= 2 ? THREE.VSMShadowMap : THREE.PCFShadowMap;
 
-    // Si el tipo de sombra cambia dinámicamente, forzamos la actualización de materiales
     if (currentShadowType !== newShadowType) {
         renderer.shadowMap.type = newShadowType;
         scene.traverse((node) => {
             if (node.isMesh && node.material) {
-                if (Array.isArray(node.material)) node.material.forEach(m => m.needsUpdate = true);
-                else node.material.needsUpdate = true;
+                let mats = Array.isArray(node.material) ? node.material : [node.material];
+                mats.forEach(m => m.needsUpdate = true);
             }
         });
     }
@@ -64,8 +63,14 @@ function applyCurrentSettings() {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
         }
-        // Radio extra de difuminación solo para Ultra
-        mainLight.shadow.radius = State.gameSettings.sombras >= 2 ? 4 : 1; 
+        
+        if (State.gameSettings.sombras >= 2) {
+            mainLight.shadow.blurSamples = 25; // Difuminado extremo para VSM
+            mainLight.shadow.radius = 4;
+        } else {
+            mainLight.shadow.blurSamples = 1;
+            mainLight.shadow.radius = 1;
+        }
     }
 
     for (let cat in loadedSlotMeshes) applyMaterialLogic(loadedSlotMeshes[cat], cat);
@@ -455,7 +460,23 @@ function animate() {
             clock.getDelta();
         }
 
-        controls.update(); renderer.render(scene, camera);
+        controls.update(); 
+        
+        // --- SISTEMA DE COLISIÓN DE CÁMARA (Anti-Clip de Paredes) ---
+        const camDir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize();
+        const camRay = new THREE.Raycaster(controls.target, camDir);
+        const structureMeshes = [];
+        ['paredes', 'techo', 'piso'].forEach(key => {
+            if (loadedSlotMeshes[key]) structureMeshes.push(loadedSlotMeshes[key]);
+        });
+        if (structureMeshes.length > 0) {
+            const intersects = camRay.intersectObjects(structureMeshes, true);
+            if (intersects.length > 0 && intersects[0].distance < camera.position.distanceTo(controls.target)) {
+                camera.position.copy(controls.target).add(camDir.multiplyScalar(Math.max(2.5, intersects[0].distance - 0.3)));
+            }
+        }
+
+        renderer.render(scene, camera);
 
         if (State.gameSettings.mostrarFps) { 
             frames++;

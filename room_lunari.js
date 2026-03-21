@@ -11,7 +11,7 @@ export const LunariSystem = {
     activeAction: null,
     idleTimer: 0,
     dormirTimer: 0,
-    currentIdleIndex: 0, // Índice para reproducir animaciones random en orden
+    currentIdleIndex: 0, 
 
     evaluateState(esDeDiaLocal, lastWeatherCode, intervalTick = false) {
         const hora = new Date().getHours();
@@ -89,7 +89,6 @@ export const LunariSystem = {
             LunariSystem.activeAction = nextAction;
             if (LunariSystem.activeAction) {
                 LunariSystem.activeAction.reset().play();
-                // Mezcla fluida hacia la animación base
                 prevAction.crossFadeTo(LunariSystem.activeAction, 0.8, false);
             }
             LunariSystem.idleTimer = 0;
@@ -106,7 +105,7 @@ export const LunariSystem = {
     },
 
     update(delta) {
-        if (!State.isRoomStarted) return; // BLOQUEADO HASTA PRESIONAR INICIAR
+        if (!State.isRoomStarted) return; 
 
         for (let key in this.mixers) {
             if (this.mixers[key]) this.mixers[key].update(delta);
@@ -119,7 +118,6 @@ export const LunariSystem = {
                 this.idleTimer = 0;
                 
                 if (this.actions.idle_randoms.length > 0) {
-                    // Tomamos la animación siguiente en orden, sin aleatoriedad
                     const nextAction = this.actions.idle_randoms[this.currentIdleIndex];
                     this.currentIdleIndex = (this.currentIdleIndex + 1) % this.actions.idle_randoms.length;
 
@@ -127,7 +125,6 @@ export const LunariSystem = {
                     this.activeAction = nextAction;
                     this.activeAction.reset().play();
                     
-                    // Mezcla fluida desde la pose base a la animación random
                     prevAction.crossFadeTo(this.activeAction, 0.8, false); 
                 }
             }

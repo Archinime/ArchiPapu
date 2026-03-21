@@ -28,9 +28,9 @@ export const SceneSetup = {
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.0;
         
-        // SOMBRAS: Se asigna el tipo correcto desde el inicio
+        // SOMBRAS: VSM para Ultra (Difuminado real), PCF para Estándar (Pixeleado clásico)
         this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; 
+        this.renderer.shadowMap.type = gameSettings.sombras >= 2 ? THREE.VSMShadowMap : THREE.PCFShadowMap; 
         
         document.body.appendChild(this.renderer.domElement);
 
@@ -55,13 +55,19 @@ export const SceneSetup = {
         this.mainLight.penumbra = 0.8;
         this.mainLight.castShadow = true;
 
-        // CORRECCIÓN DE ACNÉ DE SOMBRAS: Mayor tolerancia en el Bias
         this.mainLight.shadow.bias = -0.001;
         this.mainLight.shadow.normalBias = 0.05;
         
-        // Ajustamos la resolución según la calidad
-        this.mainLight.shadow.mapSize.width = gameSettings.calidad === 'alta' ? 2048 : 1024;
-        this.mainLight.shadow.mapSize.height = gameSettings.calidad === 'alta' ? 2048 : 1024;
+        // Resoluciones base
+        let shadowRes = gameSettings.sombras >= 2 ? 4096 : 1024;
+        this.mainLight.shadow.mapSize.width = shadowRes;
+        this.mainLight.shadow.mapSize.height = shadowRes;
+
+        // Configuración de desenfoque inicial para VSM
+        if (gameSettings.sombras >= 2) {
+            this.mainLight.shadow.blurSamples = 25;
+            this.mainLight.shadow.radius = 4;
+        }
 
         this.scene.add(this.mainLight);
     }
