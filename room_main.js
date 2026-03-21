@@ -23,11 +23,9 @@ const audioCerrarPoster = new Audio('guardar_poster.mp3');
 TVManager.init();
 PCManager.init();
 
-// NUEVA FUNCIÓN OPTIMIZADA SOLO PARA AUDIO (Tiempo Real)
 function applyAudioSettings() {
     TVManager.setVolumes(State.gameSettings.volumenTV, State.gameSettings.volumenEfectos);
     PCManager.setVolume(State.gameSettings.volumenPC, State.gameSettings.volumenEfectos);
-    
     let volEf = State.gameSettings.volumenEfectos / 100;
     audioPrenderLuz.volume = volEf; 
     audioApagarLuz.volume = volEf;
@@ -44,7 +42,6 @@ function applyCurrentSettings() {
     renderer.shadowMap.enabled = State.gameSettings.sombras > 0;
     renderer.shadowMap.type = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     mainLight.castShadow = State.gameSettings.sombras > 0;
-
     if (State.gameSettings.sombras > 0) {
         let shadowRes = State.gameSettings.sombras === 2 ? (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
         if (mainLight.shadow.mapSize.width !== shadowRes) {
@@ -57,12 +54,9 @@ function applyCurrentSettings() {
     if(focoDiaMesh) WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem);
 
     document.getElementById('fps-counter').style.display = State.gameSettings.mostrarFps ? 'block' : 'none';
-    
-    // Aplicamos el audio junto con las gráficas al iniciar
     applyAudioSettings();
 }
 
-// Pasamos la nueva función de audio al UIManager
 UIManager.init(applyCurrentSettings, applyAudioSettings, loadItemForSlot);
 
 function applyMaterialLogic(model, categoryKey) {
@@ -105,7 +99,8 @@ for (let cat in State.inventoryData) {
         }
     }
 }
-totalModelsToLoad += 6;
+// Sumamos los 13 modelos estáticos base: dormir1, dormir2, despierta, jugando, foco, cuadro, y los 7 idles nuevos
+totalModelsToLoad += 13;
 
 function checkLoading() {
     modelsLoaded++;
@@ -131,29 +126,89 @@ if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getEl
 
 const loader = new GLTFLoader();
 
+// --- SISTEMA DE CARGA DE DORMIR ---
+let pendingDormirRandom = null;
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.dormir = model;
-    if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.dormir = new THREE.AnimationMixer(model); LunariSystem.actions.dormir_base = LunariSystem.mixers.dormir.clipAction(gltf.animations[0]); }
-    LunariSystem.currentState = null; LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
+    LunariSystem.mixers.dormir = new THREE.AnimationMixer(model);
+    if (gltf.animations && gltf.animations.length > 0) { 
+        LunariSystem.actions.dormir_base = LunariSystem.mixers.dormir.clipAction(gltf.animations[0]); 
+    }
+    if (pendingDormirRandom) {
+        LunariSystem.actions.dormir_random = LunariSystem.mixers.dormir.clipAction(pendingDormirRandom); 
+        LunariSystem.actions.dormir_random.loop = THREE.LoopOnce; LunariSystem.actions.dormir_random.clampWhenFinished = true; 
+    }
+    LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
 }, undefined, () => checkLoading());
 
 loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
-    if (gltf.animations && gltf.animations.length > 0 && LunariSystem.mixers.dormir) { LunariSystem.actions.dormir_random = LunariSystem.mixers.dormir.clipAction(gltf.animations[0]); LunariSystem.actions.dormir_random.loop = THREE.LoopOnce; LunariSystem.actions.dormir_random.clampWhenFinished = true; }
+    if (gltf.animations && gltf.animations.length > 0) { 
+        if (LunariSystem.mixers.dormir) {
+            LunariSystem.actions.dormir_random = LunariSystem.mixers.dormir.clipAction(gltf.animations[0]); 
+            LunariSystem.actions.dormir_random.loop = THREE.LoopOnce; LunariSystem.actions.dormir_random.clampWhenFinished = true; 
+        } else { pendingDormirRandom = gltf.animations[0]; }
+    }
     checkLoading();
 }, undefined, () => checkLoading());
 
+// --- ESTADOS DE DÍA ESTÁTICOS ---
 loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.despertar = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.despertar = new THREE.AnimationMixer(model); LunariSystem.actions.despertar_base = LunariSystem.mixers.despertar.clipAction(gltf.animations[0]); }
-    LunariSystem.currentState = null; LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
+    checkLoading();
 }, undefined, () => checkLoading());
 
 loader.load(getFreshUrl('lunari_jugando.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.jugar = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.jugar = new THREE.AnimationMixer(model); LunariSystem.actions.jugar_base = LunariSystem.mixers.jugar.clipAction(gltf.animations[0]); }
-    LunariSystem.currentState = null; LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
+    checkLoading();
 }, undefined, () => checkLoading());
 
+// --- NUEVO SISTEMA IDLE Y SALUDO ---
+const pendingIdleClips = { saluda: null, randoms: [] };
+loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
+    const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.idle = model;
+    LunariSystem.mixers.idle = new THREE.AnimationMixer(model); 
+    if (gltf.animations && gltf.animations.length > 0) { 
+        LunariSystem.actions.idle_base = LunariSystem.mixers.idle.clipAction(gltf.animations[0]); 
+    }
+    if (pendingIdleClips.saluda) {
+        LunariSystem.actions.saluda = LunariSystem.mixers.idle.clipAction(pendingIdleClips.saluda);
+        LunariSystem.actions.saluda.loop = THREE.LoopOnce; LunariSystem.actions.saluda.clampWhenFinished = true;
+    }
+    pendingIdleClips.randoms.forEach(clip => {
+        const action = LunariSystem.mixers.idle.clipAction(clip);
+        action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
+        LunariSystem.actions.idle_randoms.push(action);
+    });
+    LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
+}, undefined, () => checkLoading());
+
+loader.load(getFreshUrl('lunari_saluda.glb'), (gltf) => {
+    if (gltf.animations && gltf.animations.length > 0) { 
+        if (LunariSystem.mixers.idle) {
+            LunariSystem.actions.saluda = LunariSystem.mixers.idle.clipAction(gltf.animations[0]); 
+            LunariSystem.actions.saluda.loop = THREE.LoopOnce; LunariSystem.actions.saluda.clampWhenFinished = true;
+        } else { pendingIdleClips.saluda = gltf.animations[0]; }
+    }
+    checkLoading();
+}, undefined, () => checkLoading());
+
+const idleRandomFiles = ['lunari_idle2.glb', 'lunari_idle3.glb', 'lunari_idle4.glb', 'lunari_idle5.glb', 'lunari_idle6.glb'];
+idleRandomFiles.forEach(file => {
+    loader.load(getFreshUrl(file), (gltf) => {
+        if (gltf.animations && gltf.animations.length > 0) {
+            if (LunariSystem.mixers.idle) {
+                const action = LunariSystem.mixers.idle.clipAction(gltf.animations[0]);
+                action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
+                LunariSystem.actions.idle_randoms.push(action);
+            } else { pendingIdleClips.randoms.push(gltf.animations[0]); }
+        }
+        checkLoading();
+    }, undefined, () => checkLoading());
+});
+
+// --- ENTORNO ---
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
     focoDiaMesh = gltf.scene; applyMaterialLogic(focoDiaMesh, 'foco_dia'); luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
     const box = new THREE.Box3().setFromObject(focoDiaMesh); const center = new THREE.Vector3(); box.getCenter(center);
@@ -162,33 +217,19 @@ loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/fo
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem); checkLoading();
 }, undefined, () => checkLoading());
 
+// EVALUACIÓN PERIÓDICA DEL ENTORNO
 setInterval(() => {
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem);
-    LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode);
-
-    if (LunariSystem.currentState === 'dormir') {
-        const { dormir_base, dormir_random } = LunariSystem.actions;
-        if (dormir_base && dormir_random && LunariSystem.activeAction !== dormir_random) {
-            dormir_base.fadeOut(0.5); dormir_random.reset().fadeIn(0.5).play(); LunariSystem.activeAction = dormir_random;
-            const onFinished = (event) => {
-                if (event.action === dormir_random) { 
-                    dormir_random.fadeOut(0.5); dormir_base.reset().fadeIn(0.5).play(); 
-                    LunariSystem.activeAction = dormir_base; LunariSystem.mixers.dormir.removeEventListener('finished', onFinished); 
-                }
-            };
-            LunariSystem.mixers.dormir.addEventListener('finished', onFinished);
-        }
-    }
+    // Pasamos true para que haga tick de día aleatorio
+    LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode, true);
 }, 60000);
 
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
-
     if (loadedSlotMeshes[categoryKey]) { 
         const oldModel = loadedSlotMeshes[categoryKey];
         scene.remove(oldModel); 
         disposeThreeJSObject(oldModel);
-
         if (PCManager.pcScreenMeshes) {
             oldModel.traverse((node) => {
                 const idx = PCManager.pcScreenMeshes.indexOf(node);
@@ -212,21 +253,18 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                     });
                 }
              });
-            if (!TVManager.isTvOn) TVManager.tvVideo.pause();
+             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
         
         if (categoryKey === 'pantalla_pc' || categoryKey === 'pantalla_pc2') { 
             if (!PCManager.pcScreenMeshes) PCManager.pcScreenMeshes = [];
-
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
                     if (categoryKey === 'pantalla_pc') node.userData.isMainVideoScreen = true;
-                    
                     if (!node.userData.originalMaterials) {
                         const mats = Array.isArray(node.material) ? node.material : [node.material];
                         node.userData.originalMaterials = mats.map(m => m.clone());
                     }
-
                     if (!PCManager.pcScreenMeshes.includes(node)) {
                         PCManager.pcScreenMeshes.push(node);
                     }
@@ -291,7 +329,6 @@ function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
-
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return;
     }
     
@@ -321,7 +358,7 @@ function handleInteraction(event) {
             document.getElementById('tv-controls').style.display = 'none'; 
             
             if (pcControls.style.display === 'none' || pcControls.style.display === '') pcControls.style.display = 'flex';
-            else pcControls.style.display = 'none'; 
+            else pcControls.style.display = 'none';
         }
         return;
     }
@@ -360,19 +397,26 @@ renderer.domElement.addEventListener('pointerup', (e) => { if (!isDragging && !d
 let then = performance.now(), frames = 0, lastFpsTime = then;
 function animate() {
     requestAnimationFrame(animate);
-
     const now = performance.now(); const elapsed = now - then;
     const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
     
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
-        const delta = clock.getDelta(); LunariSystem.update(delta); 
+        
+        // BLOQUEO MAESTRO: SOLO SE ACTUALIZA LA ANIMACIÓN SI LA SALA ESTÁ INICIADA
+        if (State.isRoomStarted) {
+            const delta = clock.getDelta(); 
+            LunariSystem.update(delta); 
+        } else {
+            // Necesitamos limpiar el delta para que no salte el tiempo cuando inicie
+            clock.getDelta(); 
+        }
+
         controls.update(); renderer.render(scene, camera);
         
         if (State.gameSettings.mostrarFps) { 
             frames++;
-            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now;
-            } 
+            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now; } 
         }
     }
 }

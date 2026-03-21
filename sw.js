@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'room-cache-v11'; // <-- Subimos a v11 por el nuevo archivo
+const CACHE_NAME = 'room-cache-v12'; // Subimos a v12 por los nuevos archivos de idle
 const urlsToCache = [
     './',
     './index.html',
@@ -17,9 +17,16 @@ const urlsToCache = [
     'guardar_poster.mp3',
     'sonido_boton.mp3',
     'lunari_esta_despierta.glb', 
-    'lunari_jugando.glb', 
+    'lunari_jugando.glb',
+    'lunari_idle.glb',
+    'lunari_saluda.glb',
+    'lunari_idle2.glb',
+    'lunari_idle3.glb',
+    'lunari_idle4.glb',
+    'lunari_idle5.glb',
+    'lunari_idle6.glb',
     'surv.mp4',
-    'logo.avif' // <-- NUEVA IMAGEN CACHEADA
+    'logo.avif'
 ];
 
 self.addEventListener('install', event => {
@@ -45,13 +52,11 @@ self.addEventListener('fetch', event => {
     const requestUrl = event.request.url;
     const isMedia = requestUrl.endsWith('.mp4') || requestUrl.endsWith('.glb') || requestUrl.endsWith('.mp3') || requestUrl.endsWith('.avif');
 
-    // Caché Primero para multimedia (no cambian y pesan mucho)
     if (isMedia) {
         event.respondWith(
             caches.match(event.request).then(cachedResponse => {
                 if (cachedResponse) return cachedResponse;
-                return fetch(event.request).then(networkResponse => 
-                {
+                return fetch(event.request).then(networkResponse => {
                     const clone = networkResponse.clone();
                     caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
                     return networkResponse;
@@ -59,7 +64,6 @@ self.addEventListener('fetch', event => {
             }).catch(() => caches.match(event.request))
         );
     } else {
-        // Red Primero para HTML, JS, CSS
         event.respondWith(
             fetch(event.request).then(networkResponse => {
                 if (!requestUrl.includes('nocache=')) {

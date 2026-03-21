@@ -111,9 +111,10 @@ export const TVManager = {
                 overlay.style.pointerEvents = 'auto';
             }
         }, 500);
-
+        
         btn.addEventListener('click', () => {
             this.hasInteracted = true;
+            State.isRoomStarted = true; // <-- ARRANCA EL MOTOR GENERAL
             
             this.tvVideo.muted = false;
             this.tvVideo.play().catch(()=>{});
@@ -130,14 +131,12 @@ export const TVManager = {
             
             if (PCManager.isGamingMode && PCManager.isPcOn) {
                 PCManager.survVideo.muted = false;
-                // USAMOS EL VOLUMEN DE LA PC EN VEZ DE EFECTOS
                 PCManager.survVideo.volume = (State.gameSettings.volumenPC !== undefined ? State.gameSettings.volumenPC : 50) / 100;
                 PCManager.survVideo.play().catch(()=>{});
             }
 
             overlay.style.opacity = '0';
             setTimeout(() => overlay.remove(), 500);
-
             if (this.pendingAutoTurnOn) {
                 this.turnOnAutomatically();
             }
@@ -156,6 +155,7 @@ export const TVManager = {
         this.currentTvIndex = random 
             ? Math.floor(Math.random() * this.tvPlaylist.length) 
             : (this.currentTvIndex + 1) % this.tvPlaylist.length;
+            
         this.tvVideo.src = this.tvPlaylist[this.currentTvIndex];
         this.tvVideo.volume = State.gameSettings.volumenTV / 100;
         
@@ -174,7 +174,7 @@ export const TVManager = {
               tvPlayPauseBtn = document.getElementById('tv-play-pause'), 
               tvNextBtn = document.getElementById('tv-next'), 
               tvPowerBtn = document.getElementById('tv-power');
-        
+              
         tvPrevBtn.onclick = () => { 
             this.playButtonSound();
             if (!this.isTvOn || this.tvTransitioning) return; 
@@ -231,6 +231,7 @@ export const TVManager = {
                         tvPowerBtn.innerText = '🔴'; 
                         tvPowerBtn.style.color = 'red'; 
                         tvPowerBtn.style.textShadow = '0 0 5px red';
+                        
                         mats.forEach(mat => { 
                             mat.map = null; 
                             mat.emissiveMap = null; 
@@ -244,6 +245,7 @@ export const TVManager = {
                         tvPowerBtn.innerText = '🟢'; 
                         tvPowerBtn.style.color = '#00ff00'; 
                         tvPowerBtn.style.textShadow = '0 0 5px #00ff00';
+                        
                         mats.forEach(mat => { 
                             mat.map = this.tvTexture; 
                             mat.emissiveMap = this.tvTexture; 
@@ -252,6 +254,7 @@ export const TVManager = {
                             mat.emissiveIntensity = 1.0; 
                             mat.needsUpdate = true; 
                         });
+                        
                         if (this.tvPlaylist.length > 0 && !this.tvVideo.src) {
                             this.playNextTv(true);
                         } else if (this.tvPlaylist.length > 0) {
@@ -283,8 +286,7 @@ export const TVManager = {
         }
 
         if (this.tvScreenMesh) {
-            const mats = Array.isArray(this.tvScreenMesh.material) ?
-            this.tvScreenMesh.material : [this.tvScreenMesh.material];
+            const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
             mats.forEach(mat => { 
                 mat.map = this.tvTexture; 
                 mat.emissiveMap = this.tvTexture; 
