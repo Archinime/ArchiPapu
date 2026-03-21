@@ -63,6 +63,10 @@ function applyMaterialLogic(model, categoryKey) {
     if(!model) return;
     const isFoco = categoryKey === 'foco', isFocoDia = categoryKey === 'foco_dia';
     const allowShadows = State.gameSettings.sombras > 0;
+    
+    // Identificadores de estructuras planas que generan acné de sombras
+    const isStructureCategory = ['paredes', 'piso', 'techo', 'puerta'].includes(categoryKey);
+
     model.traverse((node) => {
         if (node.isMesh) {
             node.frustumCulled = false;
@@ -73,11 +77,18 @@ function applyMaterialLogic(model, categoryKey) {
                     if (isFocoDia) node.material.emissive = new THREE.Color(0xffffff);
                 }
             } else {
-                node.castShadow = allowShadows; node.receiveShadow = allowShadows;
+                // VERIFICACIÓN ESTRUCTURAL: Si es pared, techo o piso, anulamos la proyección de sombras propia.
+                let nodeIsStructure = isStructureCategory || node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo');
+                
+                // Las estructuras solo RECIBEN sombra, no la emiten (adiós cuadrículas raras)
+                node.castShadow = nodeIsStructure ? false : allowShadows; 
+                node.receiveShadow = allowShadows;
+                
                 if(node.material) {
-                    node.material.shadowSide = THREE.FrontSide;
-                    if(node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo')) node.material.shadowSide = THREE.BackSide;
-                    node.material.side = THREE.DoubleSide; node.material.needsUpdate = true;
+                    // Forzamos FrontSide para evitar anomalías en mallas con grosor 0
+                    node.material.shadowSide = THREE.FrontSide; 
+                    node.material.side = THREE.DoubleSide; 
+                    node.material.needsUpdate = true;
                 }
             }
         }
@@ -99,7 +110,7 @@ for (let cat in State.inventoryData) {
         }
     }
 }
-// Sumamos los 13 modelos estáticos EXACTOS
+
 totalModelsToLoad += 13;
 
 function checkLoading() {
@@ -115,7 +126,6 @@ function checkLoading() {
     }
 }
 
-// Aumentado a 45 segundos para dar tiempo real a cargar los modelos pesados
 setTimeout(() => {
     const loadingEl = document.getElementById('loading');
     if(loadingEl && loadingEl.style.display !== 'none') {
@@ -128,7 +138,6 @@ if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getEl
 
 const loader = new GLTFLoader();
 
-// --- SISTEMA DE CARGA DE DORMIR ---
 let pendingDormirRandom = null;
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.dormir = model;
@@ -153,7 +162,6 @@ loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
     checkLoading();
 }, undefined, () => checkLoading());
 
-// --- ESTADOS DE DÍA ESTÁTICOS ---
 loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.despertar = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.despertar = new THREE.AnimationMixer(model); LunariSystem.actions.despertar_base = LunariSystem.mixers.despertar.clipAction(gltf.animations[0]); }
@@ -166,7 +174,6 @@ loader.load(getFreshUrl('lunari_jugando.glb'), (gltf) => {
     checkLoading();
 }, undefined, () => checkLoading());
 
-// --- NUEVO SISTEMA IDLE Y SALUDO ---
 const pendingIdleClips = { saluda: null, randoms: [] };
 loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.idle = model;
@@ -210,7 +217,6 @@ idleRandomFiles.forEach(file => {
     }, undefined, () => checkLoading());
 });
 
-// --- ENTORNO ---
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
     focoDiaMesh = gltf.scene; applyMaterialLogic(focoDiaMesh, 'foco_dia'); luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
     const box = new THREE.Box3().setFromObject(focoDiaMesh); const center = new THREE.Vector3(); box.getCenter(center);
@@ -395,7 +401,7 @@ renderer.domElement.addEventListener('pointermove', (e) => { const dx = e.client
 renderer.domElement.addEventListener('pointerup', (e) => { if (!isDragging && !document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active') && !document.getElementById('pc-modal').classList.contains('visible')) handleInteraction(e); isDragging = false; });
 
 let then = performance.now(), frames = 0, lastFpsTime = then;
-let wasStarted = false; // Gatillo maestro
+let wasStarted = false; 
 
 function animate() {
     requestAnimationFrame(animate);
@@ -405,18 +411,16 @@ function animate() {
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
         
-        // BLOQUEO MAESTRO: SOLO SE ACTUALIZA LA ANIMACIÓN SI LA SALA ESTÁ INICIADA
         if (State.isRoomStarted) {
             if (!wasStarted) {
                 wasStarted = true;
-                // Forzamos el reinicio de estado aquí para que la animación de Saludar comience AHORA
                 LunariSystem.currentState = null;
                 LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode);
             }
             const delta = clock.getDelta(); 
             LunariSystem.update(delta); 
         } else {
-            clock.getDelta(); // Limpiamos el reloj para que no salte de golpe al iniciar
+            clock.getDelta(); 
         }
 
         controls.update(); renderer.render(scene, camera);
