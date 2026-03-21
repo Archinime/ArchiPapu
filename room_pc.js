@@ -24,7 +24,7 @@ export const PCManager = {
         
         document.body.appendChild(this.survVideo);
         this.survVideo.style.display = 'none';
-        
+
         this.survVideoTexture = new THREE.VideoTexture(this.survVideo);
         this.survVideoTexture.minFilter = THREE.LinearFilter;
         this.survVideoTexture.magFilter = THREE.LinearFilter;
@@ -43,19 +43,44 @@ export const PCManager = {
         this.audioBotonPC.currentTime = 0;
         this.audioBotonPC.play().catch(e=>{});
     },
+
+    // NUEVO: Secuencia de encendido
+    turnOnSequence() {
+        if (this.pcTransitioning || this.isPcOn) return;
+        this.pcTransitioning = true;
+        this.isPcOn = true;
+        
+        // Ejecutamos updateScreens para que muestre el brillo de "arranque"
+        this.updateScreens(); 
+
+        setTimeout(() => {
+            this.pcTransitioning = false;
+            if (this.isGamingMode) {
+                if (this.canPlayAudio) this.survVideo.muted = false;
+                this.survVideo.play().catch(e=>{});
+            }
+            // Muestra texturas normales o juego tras la transición
+            this.updateScreens(); 
+        }, 800); // 800 milisegundos de transición de encendido
+    },
     
     setGamingMode(active) {
         this.isGamingMode = active;
+        const pcPowerBtn = document.getElementById('pc-power');
+
         if (active) {
-            this.isPcOn = true;
-            if (this.canPlayAudio) {
-                this.survVideo.muted = false;
+            if (!this.isPcOn) {
+                this.turnOnSequence();
             } else {
-                this.survVideo.muted = true;
+                if (this.canPlayAudio) {
+                    this.survVideo.muted = false;
+                } else {
+                    this.survVideo.muted = true;
+                }
+                this.survVideo.play().catch(e=>{});
+                this.updateScreens();
             }
             
-            this.survVideo.play().catch(e=>{});
-            const pcPowerBtn = document.getElementById('pc-power');
             if (pcPowerBtn) {
                 pcPowerBtn.innerText = '🟢';
                 pcPowerBtn.style.color = '#00ff00';
@@ -63,18 +88,32 @@ export const PCManager = {
             }
         } else {
             this.survVideo.pause();
+            this.updateScreens();
         }
-        this.updateScreens(); 
     },
 
     updateScreens() {
         this.pcScreenMeshes.forEach(mesh => {
             const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-            // Recuperamos los materiales originales guardados en room_main
             const origMats = mesh.userData.originalMaterials;
 
             mats.forEach((mat, index) => {
-                if (this.isGamingMode && this.isPcOn) {
+                if (!this.isPcOn) {
+                    // APAGADA: Totalmente negra
+                    mat.map = null;
+                    mat.emissiveMap = null;
+                    mat.color.setHex(0x050505);
+                    mat.emissive.setHex(0x000000);
+                    mat.emissiveIntensity = 0;
+                } else if (this.pcTransitioning) {
+                    // ENCENDIENDO: Brillo azul/gris oscuro
+                    mat.map = null;
+                    mat.emissiveMap = null;
+                    mat.color.setHex(0x1a2b3c);
+                    mat.emissive.setHex(0x1a2b3c);
+                    mat.emissiveIntensity = 0.5;
+                } else if (this.isGamingMode) {
+                    // MODO JUEGO
                     if (mesh.userData && mesh.userData.isMainVideoScreen) {
                         mat.map = this.survVideoTexture;
                         mat.emissiveMap = this.survVideoTexture;
@@ -89,13 +128,13 @@ export const PCManager = {
                         mat.emissiveIntensity = 1.0;
                     }
                 } else {
-                    // SI NO ESTÁ JUGANDO, RESTAURA LAS TEXTURAS ORIGINALES
+                    // ENCENDIDA (TEXTURAS ORIGINALES)
                     if (origMats && origMats[index]) {
                         mat.map = origMats[index].map;
                         mat.emissiveMap = origMats[index].emissiveMap;
                         mat.color.copy(origMats[index].color);
                         mat.emissive.copy(origMats[index].emissive);
-                        mat.emissiveIntensity = origMats[index].emissiveIntensity;
+                        mat.emissiveIntensity = origMats[index].emissiveIntensity !== undefined ? origMats[index].emissiveIntensity : 1.0;
                     }
                 }
                 mat.needsUpdate = true;
@@ -115,24 +154,26 @@ export const PCManager = {
                 this.playButtonSound();
                 if (this.pcTransitioning || this.pcScreenMeshes.length === 0) return;
                 
-                this.isPcOn = !this.isPcOn;
-                pcPowerBtn.innerText = this.isPcOn ? '🟢' : '🔴';
-                pcPowerBtn.style.color = this.isPcOn ? '#00ff00' : 'red';
-                pcPowerBtn.style.textShadow = this.isPcOn ? '0 0 5px #00ff00' : '0 0 5px red';
-                
-                if (this.isGamingMode) {
-                    if (this.isPcOn) {
-                        this.survVideo.muted = false;
-                        this.survVideo.play().catch(()=>{});
-                    } else {
-                        this.survVideo.pause();
-                    }
-                }
+                if (!this.isPcOn) {
+                    // Inicia la animación de encendido
+                    this.turnOnSequence();
+                    pcPowerBtn.innerText = '🟢';
+                    pcPowerBtn.style.color = '#00ff00';
+                    pcPowerBtn.style.textShadow = '0 0 5px #00ff00';
+                } else {
+                    // Apaga inmediatamente
+                    this.isPcOn = false;
+                    this.survVideo.pause();
+                    this.updateScreens();
+                    
+                    pcPowerBtn.innerText = '🔴';
+                    pcPowerBtn.style.color = 'red';
+                    pcPowerBtn.style.textShadow = '0 0 5px red';
 
-                this.updateScreens();
-                if (!this.isPcOn && pcModal.classList.contains('visible')) {
-                    pcModal.classList.remove('visible');
-                    pcIframe.src = ''; 
+                    if (pcModal.classList.contains('visible')) {
+                        pcModal.classList.remove('visible');
+                        pcIframe.src = ''; 
+                    }
                 }
             };
         }
@@ -159,7 +200,6 @@ export const PCManager = {
         }
     },
 
-    // PASAMOS 2 VOLÚMENES: pc y efectos
     setVolume(volPc, volEf) {
         this.audioBotonPC.volume = volEf / 100;
         this.survVideo.volume = volPc / 100; 

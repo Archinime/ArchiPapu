@@ -141,14 +141,21 @@ input:checked + .ff-slider-round:before { transform: translateX(22px); backgroun
 
 /* --- MEDIA QUERIES PARA MÓVILES --- */
 @media (max-width: 768px) {
-    .pc-modal-content {
-        width: 100%;
-        height: 100%;
-        border-radius: 0;
-        border: none;
-    }
-    
-    #pc-header {
-        padding: 10px 15px; 
-    }
+    .pc-modal-content { width: 100%; height: 100%; border-radius: 0; border: none; }
+    #pc-header { padding: 10px 15px; }
+
+    /* Adaptación del Inventario */
+    #inventory-modal { width: 95%; height: 95%; padding: 15px; top: 2.5%; left: 2.5%; }
+    #inv-body { flex-direction: column; gap: 15px; }
+    #inv-sidebar { width: 100%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); padding-right: 0; padding-bottom: 15px; max-height: 40%; }
+    #inv-content { width: 100%; padding-right: 0; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); padding-bottom: 20px; }
+    .item-preview { height: 100px; }
+
+    /* Adaptación del Modal de Ajustes */
+    .ff-modal-content { width: 95%; }
+    .ff-body { flex-direction: column; }
+    .ff-sidebar { width: 100%; flex-direction: row; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 0; overflow-x: auto; }
+    .ff-tab { padding: 10px 15px; border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; }
+    .ff-tab.active { border-left: none; border-bottom: 3px solid #80cbc4; background: linear-gradient(0deg, rgba(128,203,196,0.15), transparent); }
+    .ff-content { width: 100%; padding: 15px; }
 }
