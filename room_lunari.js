@@ -11,12 +11,7 @@ export const LunariSystem = {
     activeAction: null,
     idleTimer: 0,
     dormirTimer: 0,
-    currentIdleIndex: 0, 
-
-    // Variables para el sistema de clicks al dormir
-    sleepClickCount: 0,
-    sleepClickTimer: 0,
-    lastForcedSleepTime: 0,
+    currentIdleIndex: 0, // Índice para reproducir animaciones random en orden
 
     evaluateState(esDeDiaLocal, lastWeatherCode, intervalTick = false) {
         const hora = new Date().getHours();
@@ -40,9 +35,6 @@ export const LunariSystem = {
         const oldState = this.currentState;
         this.currentState = newState;
 
-        // FIX PARA LA POSE T: Si no hay estado anterior (primera carga), el fade es 0.
-        const fadeTime = oldState ? 0.5 : 0; 
-
         for (let key in this.models) {
             if (this.models[key]) this.models[key].visible = false;
         }
@@ -54,31 +46,19 @@ export const LunariSystem = {
         if (newState === 'dormir' && this.models.dormir) {
             this.models.dormir.visible = true;
             this.activeAction = this.actions.dormir_base;
-            if (this.activeAction) {
-                this.activeAction.reset();
-                if(fadeTime > 0) this.activeAction.fadeIn(fadeTime);
-                this.activeAction.play();
-            }
+            if (this.activeAction) this.activeAction.reset().fadeIn(0.5).play();
             this.dormirTimer = 0;
         } 
         else if (newState === 'despertar' && this.models.despertar) {
             this.models.despertar.visible = true;
             this.activeAction = this.actions.despertar_base;
-            if (this.activeAction) {
-                this.activeAction.reset();
-                if(fadeTime > 0) this.activeAction.fadeIn(fadeTime);
-                this.activeAction.play();
-            }
+            if (this.activeAction) this.activeAction.reset().fadeIn(0.5).play();
             if (State.isRoomStarted) TVManager.turnOnAutomatically(); 
         }
         else if (newState === 'jugar' && this.models.jugar) {
             this.models.jugar.visible = true;
             this.activeAction = this.actions.jugar_base;
-            if (this.activeAction) {
-                this.activeAction.reset();
-                if(fadeTime > 0) this.activeAction.fadeIn(fadeTime);
-                this.activeAction.play();
-            }
+            if (this.activeAction) this.activeAction.reset().fadeIn(0.5).play();
             PCManager.setGamingMode(true);
         }
         else if (newState === 'idle' && this.models.idle) {
@@ -86,17 +66,11 @@ export const LunariSystem = {
             this.idleTimer = 0;
             if (this.actions.saluda) {
                 this.activeAction = this.actions.saluda;
-                this.activeAction.reset();
-                if(fadeTime > 0) this.activeAction.fadeIn(fadeTime);
-                this.activeAction.play();
+                this.activeAction.reset().fadeIn(0.5).play();
                 this.mixers.idle.addEventListener('finished', this.onIdleFinished);
             } else {
                 this.activeAction = this.actions.idle_base;
-                if (this.activeAction) {
-                    this.activeAction.reset();
-                    if(fadeTime > 0) this.activeAction.fadeIn(fadeTime);
-                    this.activeAction.play();
-                }
+                if (this.activeAction) this.activeAction.reset().fadeIn(0.5).play();
             }
         }
         
@@ -115,6 +89,7 @@ export const LunariSystem = {
             LunariSystem.activeAction = nextAction;
             if (LunariSystem.activeAction) {
                 LunariSystem.activeAction.reset().play();
+                // Mezcla fluida hacia la animación base
                 prevAction.crossFadeTo(LunariSystem.activeAction, 0.8, false);
             }
             LunariSystem.idleTimer = 0;
@@ -130,31 +105,8 @@ export const LunariSystem = {
         }
     },
 
-    forceRandomSleep() {
-        const now = Date.now();
-        // Cooldown de 6 segundos
-        if (now - this.lastForcedSleepTime < 6000) return; 
-        if (this.currentState !== 'dormir' || this.activeAction !== this.actions.dormir_base) return;
-
-        this.lastForcedSleepTime = now;
-        this.dormirTimer = 0; // Reiniciamos el timer de 60s
-        
-        if (this.actions.dormir_random) {
-            this.activeAction.fadeOut(0.5);
-            this.activeAction = this.actions.dormir_random;
-            this.activeAction.reset().fadeIn(0.5).play();
-            this.mixers.dormir.addEventListener('finished', this.onDormirFinished);
-        }
-    },
-
     update(delta) {
-        if (!State.isRoomStarted) return; 
-
-        // Temporizador para los clicks
-        if (this.sleepClickTimer > 0) {
-            this.sleepClickTimer -= delta;
-            if (this.sleepClickTimer <= 0) this.sleepClickCount = 0;
-        }
+        if (!State.isRoomStarted) return; // BLOQUEADO HASTA PRESIONAR INICIAR
 
         for (let key in this.mixers) {
             if (this.mixers[key]) this.mixers[key].update(delta);
@@ -162,16 +114,21 @@ export const LunariSystem = {
 
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base) {
             this.idleTimer += delta;
+            
             if (this.idleTimer >= 30) {
                 this.idleTimer = 0;
+                
                 if (this.actions.idle_randoms.length > 0) {
+                    // Tomamos la animación siguiente en orden, sin aleatoriedad
                     const nextAction = this.actions.idle_randoms[this.currentIdleIndex];
                     this.currentIdleIndex = (this.currentIdleIndex + 1) % this.actions.idle_randoms.length;
 
                     const prevAction = this.activeAction;
                     this.activeAction = nextAction;
                     this.activeAction.reset().play();
-                    prevAction.crossFadeTo(this.activeAction, 0.8, false);
+                    
+                    // Mezcla fluida desde la pose base a la animación random
+                    prevAction.crossFadeTo(this.activeAction, 0.8, false); 
                 }
             }
         }

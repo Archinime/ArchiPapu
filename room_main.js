@@ -37,9 +37,10 @@ function applyCurrentSettings() {
     let pixelRatio = 1;
     let newToneMapping = THREE.ACESFilmicToneMapping;
 
+    // OPTIMIZACIONES FUERTES PARA DISPOSITIVOS DE GAMA BAJA
     if (State.gameSettings.calidad === 'baja') {
-        pixelRatio = Math.min(window.devicePixelRatio || 1, 0.7);
-        newToneMapping = THREE.NoToneMapping;
+        pixelRatio = Math.min(window.devicePixelRatio || 1, 0.7); // Reducción de resolución interna drástica
+        newToneMapping = THREE.NoToneMapping; // Desactiva efectos pesados de color
     } else if (State.gameSettings.calidad === 'media') {
         pixelRatio = Math.min(window.devicePixelRatio || 1, 1.2);
     } else if (State.gameSettings.calidad === 'alta') {
@@ -50,19 +51,23 @@ function applyCurrentSettings() {
     
     let needsMaterialUpdate = false;
 
+    // Actualiza el mapeo de tonos si cambió la calidad
     if (renderer.toneMapping !== newToneMapping) {
         renderer.toneMapping = newToneMapping;
         needsMaterialUpdate = true;
     }
 
+    // --- LÓGICA DE SOMBRAS MEJORADA ---
     let currentShadowType = renderer.shadowMap.type;
     let newShadowType = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     
+    // Si el tipo de sombra cambia dinámicamente, forzamos la actualización
     if (currentShadowType !== newShadowType) {
         renderer.shadowMap.type = newShadowType;
         needsMaterialUpdate = true;
     }
 
+    // Actualiza los materiales globalmente si cambiaron las sombras o el ToneMapping
     if (needsMaterialUpdate) {
         scene.traverse((node) => {
             if (node.isMesh && node.material) {
@@ -74,13 +79,14 @@ function applyCurrentSettings() {
 
     renderer.shadowMap.enabled = State.gameSettings.sombras > 0;
     mainLight.castShadow = State.gameSettings.sombras > 0;
-    
+
     if (State.gameSettings.sombras > 0) {
         let shadowRes = State.gameSettings.sombras === 2 ? (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
         if (mainLight.shadow.mapSize.width !== shadowRes) {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
         }
+        // Radio extra de difuminación solo para Ultra
         mainLight.shadow.radius = State.gameSettings.sombras >= 2 ? 4 : 1; 
     }
 
@@ -98,9 +104,10 @@ function applyMaterialLogic(model, categoryKey) {
     const allowShadows = State.gameSettings.sombras > 0;
     const isStructureCategory = ['paredes', 'piso', 'techo', 'puerta'].includes(categoryKey);
     const isBaja = State.gameSettings.calidad === 'baja';
-    
+
     model.traverse((node) => {
         if (node.isMesh) {
+            // MANTENIDO: Esto evita que el personaje/ropa desaparezca al voltear la cámara
             node.frustumCulled = false;
             
             if (isFoco || isFocoDia) {
@@ -120,6 +127,7 @@ function applyMaterialLogic(model, categoryKey) {
                     node.material.shadowSide = THREE.FrontSide;
                     node.material.side = THREE.DoubleSide;
                     
+                    // OPTIMIZACIÓN GAMA BAJA: Fuerza materiales simples ignorando cálculos pesados de reflejos
                     if (isBaja) {
                         let mats = Array.isArray(node.material) ? node.material : [node.material];
                         mats.forEach(m => {
@@ -129,6 +137,7 @@ function applyMaterialLogic(model, categoryKey) {
                             }
                         });
                     }
+
                     node.material.needsUpdate = true;
                 }
             }
@@ -151,6 +160,7 @@ for (let cat in State.inventoryData) {
         }
     }
 }
+
 totalModelsToLoad += 13;
 
 function checkLoading() {
@@ -173,11 +183,12 @@ setTimeout(() => {
         setTimeout(() => { if(loadingEl) loadingEl.style.display = 'none'; }, 500);
     }
 }, 45000);
+
 if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
 
 const loader = new GLTFLoader();
-let pendingDormirRandom = null;
 
+let pendingDormirRandom = null;
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.dormir = model;
     LunariSystem.mixers.dormir = new THREE.AnimationMixer(model);
@@ -299,7 +310,7 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                     });
                 }
              });
-             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
+            if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
         
         if (categoryKey === 'pantalla_pc' || categoryKey === 'pantalla_pc2') { 
@@ -363,8 +374,8 @@ const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2();
 function toggleLight() {
     State.lightOn = !State.lightOn;
     localStorage.setItem('lightState', State.lightOn ? 'on' : 'off'); updateLighting();
-    if (State.lightOn) { audioPrenderLuz.currentTime = 0; audioPrenderLuz.play().catch(e=>{}); } 
-    else { audioApagarLuz.currentTime = 0; audioApagarLuz.play().catch(e=>{}); }
+    if (State.lightOn) { audioPrenderLuz.currentTime = 0; audioPrenderLuz.play().catch(e=>{}); } else { audioApagarLuz.currentTime = 0;
+    audioApagarLuz.play().catch(e=>{}); }
 }
 
 const posterViewModal = document.getElementById('poster-view-modal'), posterEnlargedImage = document.getElementById('poster-enlarged-image');
@@ -377,19 +388,6 @@ function handleInteraction(event) {
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
     
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
-    
-    // --- LUNARI DURMIENDO CLICK ---
-    if (LunariSystem.currentState === 'dormir' && LunariSystem.models.dormir) {
-        if (raycaster.intersectObject(LunariSystem.models.dormir, true).length > 0) {
-            LunariSystem.sleepClickCount++;
-            LunariSystem.sleepClickTimer = 1.0; // 1 segundo para sumar clicks
-            if (LunariSystem.sleepClickCount >= 3) {
-                LunariSystem.forceRandomSleep();
-                LunariSystem.sleepClickCount = 0;
-            }
-            return;
-        }
-    }
     
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
@@ -441,7 +439,8 @@ function handleInteraction(event) {
         const pMesh = loadedSlotMeshes[cat];
         if (pMesh && raycaster.intersectObject(pMesh, true).length > 0) {
             const itemData = State.inventoryData[cat].items[State.inventoryData[cat].equipped];
-            if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); audioAbrirPoster.currentTime = 0; audioAbrirPoster.play().catch(e=>{}); }
+            if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); audioAbrirPoster.currentTime = 0; audioAbrirPoster.play().catch(e=>{});
+            }
             break;
         }
     }
@@ -462,6 +461,7 @@ function animate() {
     
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
+        
         if (State.isRoomStarted) {
             if (!wasStarted) {
                 wasStarted = true;
@@ -475,9 +475,11 @@ function animate() {
         }
 
         controls.update(); renderer.render(scene, camera);
+        
         if (State.gameSettings.mostrarFps) { 
             frames++;
-            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now; } 
+            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now;
+            } 
         }
     }
 }
