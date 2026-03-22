@@ -13,10 +13,10 @@ export const LunariSystem = {
     dormirTimer: 0,
     currentIdleIndex: 0, 
 
-    // Variables para el sistema de clics interactivos
-    clickCount: 0,
-    lastClickTime: 0,
-    lastForceTime: 0,
+    // Variables para el sistema de clicks al dormir
+    sleepClickCount: 0,
+    sleepClickTimer: 0,
+    lastForcedSleepTime: 0,
 
     evaluateState(esDeDiaLocal, lastWeatherCode, intervalTick = false) {
         const hora = new Date().getHours();
@@ -40,6 +40,9 @@ export const LunariSystem = {
         const oldState = this.currentState;
         this.currentState = newState;
 
+        // FIX PARA LA POSE T: Si no hay estado anterior (primera carga), el fade es 0.
+        const fadeTime = oldState ? 0.5 : 0; 
+
         for (let key in this.models) {
             if (this.models[key]) this.models[key].visible = false;
         }
@@ -51,22 +54,31 @@ export const LunariSystem = {
         if (newState === 'dormir' && this.models.dormir) {
             this.models.dormir.visible = true;
             this.activeAction = this.actions.dormir_base;
-            // CORRECCIÓN T-POSE: Arranca directo con reset().play() sin fadeIn()
-            if (this.activeAction) this.activeAction.reset().play();
+            if (this.activeAction) {
+                this.activeAction.reset();
+                if(fadeTime > 0) this.activeAction.fadeIn(fadeTime);
+                this.activeAction.play();
+            }
             this.dormirTimer = 0;
         } 
         else if (newState === 'despertar' && this.models.despertar) {
             this.models.despertar.visible = true;
             this.activeAction = this.actions.despertar_base;
-            // CORRECCIÓN T-POSE
-            if (this.activeAction) this.activeAction.reset().play();
+            if (this.activeAction) {
+                this.activeAction.reset();
+                if(fadeTime > 0) this.activeAction.fadeIn(fadeTime);
+                this.activeAction.play();
+            }
             if (State.isRoomStarted) TVManager.turnOnAutomatically(); 
         }
         else if (newState === 'jugar' && this.models.jugar) {
             this.models.jugar.visible = true;
             this.activeAction = this.actions.jugar_base;
-            // CORRECCIÓN T-POSE
-            if (this.activeAction) this.activeAction.reset().play();
+            if (this.activeAction) {
+                this.activeAction.reset();
+                if(fadeTime > 0) this.activeAction.fadeIn(fadeTime);
+                this.activeAction.play();
+            }
             PCManager.setGamingMode(true);
         }
         else if (newState === 'idle' && this.models.idle) {
@@ -74,13 +86,17 @@ export const LunariSystem = {
             this.idleTimer = 0;
             if (this.actions.saluda) {
                 this.activeAction = this.actions.saluda;
-                // CORRECCIÓN T-POSE
-                this.activeAction.reset().play();
+                this.activeAction.reset();
+                if(fadeTime > 0) this.activeAction.fadeIn(fadeTime);
+                this.activeAction.play();
                 this.mixers.idle.addEventListener('finished', this.onIdleFinished);
             } else {
                 this.activeAction = this.actions.idle_base;
-                // CORRECCIÓN T-POSE
-                if (this.activeAction) this.activeAction.reset().play();
+                if (this.activeAction) {
+                    this.activeAction.reset();
+                    if(fadeTime > 0) this.activeAction.fadeIn(fadeTime);
+                    this.activeAction.play();
+                }
             }
         }
         
@@ -107,57 +123,38 @@ export const LunariSystem = {
 
     onDormirFinished: (event) => {
         if (event.action === LunariSystem.actions.dormir_random) {
-            const prevAction = event.action;
+            event.action.fadeOut(0.5);
             LunariSystem.activeAction = LunariSystem.actions.dormir_base;
-            if (LunariSystem.activeAction) {
-                LunariSystem.activeAction.reset().play();
-                // Usamos crossFadeTo para una transición suave entre animaciones del mismo modelo
-                prevAction.crossFadeTo(LunariSystem.activeAction, 0.5, false);
-            }
+            if (LunariSystem.activeAction) LunariSystem.activeAction.reset().fadeIn(0.5).play();
             LunariSystem.dormirTimer = 0;
         }
     },
 
-    // NUEVO: Manejo de clics múltiples
-    handleClick() {
-        if (this.currentState !== 'dormir') return;
-        
-        const now = performance.now();
-        
-        // Cooldown de 6 segundos después de forzarlo
-        if (now - this.lastForceTime < 6000) return;
-        
-        // Reiniciar clics si pasó más de 1 segundo desde el último
-        if (now - this.lastClickTime > 1000) {
-            this.clickCount = 0;
-        }
-        
-        this.clickCount++;
-        this.lastClickTime = now;
-        
-        // Forzar al hacer 3 toques/clics rápidos
-        if (this.clickCount >= 3) {
-            this.clickCount = 0;
-            this.forceDormirRandom();
-        }
-    },
+    forceRandomSleep() {
+        const now = Date.now();
+        // Cooldown de 6 segundos
+        if (now - this.lastForcedSleepTime < 6000) return; 
+        if (this.currentState !== 'dormir' || this.activeAction !== this.actions.dormir_base) return;
 
-    forceDormirRandom() {
-        if (!this.actions.dormir_random || this.activeAction === this.actions.dormir_random) return;
+        this.lastForcedSleepTime = now;
+        this.dormirTimer = 0; // Reiniciamos el timer de 60s
         
-        this.lastForceTime = performance.now();
-        this.dormirTimer = 0; // Reiniciamos el temporizador normal
-        
-        const prevAction = this.activeAction;
-        this.activeAction = this.actions.dormir_random;
-        this.activeAction.reset().play();
-        prevAction.crossFadeTo(this.activeAction, 0.5, false);
-        
-        this.mixers.dormir.addEventListener('finished', this.onDormirFinished);
+        if (this.actions.dormir_random) {
+            this.activeAction.fadeOut(0.5);
+            this.activeAction = this.actions.dormir_random;
+            this.activeAction.reset().fadeIn(0.5).play();
+            this.mixers.dormir.addEventListener('finished', this.onDormirFinished);
+        }
     },
 
     update(delta) {
         if (!State.isRoomStarted) return; 
+
+        // Temporizador para los clicks
+        if (this.sleepClickTimer > 0) {
+            this.sleepClickTimer -= delta;
+            if (this.sleepClickTimer <= 0) this.sleepClickCount = 0;
+        }
 
         for (let key in this.mixers) {
             if (this.mixers[key]) this.mixers[key].update(delta);
@@ -182,8 +179,13 @@ export const LunariSystem = {
         if (this.currentState === 'dormir' && this.activeAction === this.actions.dormir_base) {
             this.dormirTimer += delta;
             if (this.dormirTimer >= 60) {
-                // Reutilizamos la función del clic para que la lógica fluida sea la misma
-                this.forceDormirRandom();
+                this.dormirTimer = 0;
+                if (this.actions.dormir_random) {
+                    this.activeAction.fadeOut(0.5);
+                    this.activeAction = this.actions.dormir_random;
+                    this.activeAction.reset().fadeIn(0.5).play();
+                    this.mixers.dormir.addEventListener('finished', this.onDormirFinished);
+                }
             }
         }
     },
