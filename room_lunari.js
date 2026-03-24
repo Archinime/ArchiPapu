@@ -7,11 +7,22 @@ export const LunariSystem = {
     currentState: null,
     models: { dormir: null, despertar: null, jugar: null, idle: null },
     mixers: { dormir: null, despertar: null, jugar: null, idle: null },
-    actions: { dormir_base: null, dormir_random: null, despertar_base: null, jugar_base: null, idle_base: null, saluda: null, idle_randoms: [] },
+    actions: { 
+        dormir_base: null, 
+        dormir_random: null, 
+        despertar_base: null, 
+        jugar_base: null, 
+        idle_base: null, 
+        saluda: null, 
+        idle_randoms: [],
+        idle_click: null, // Animación al hacer click (lunari_idle3)
+        idle_holds: []    // Animaciones al mantener presionado (besos)
+    },
     activeAction: null,
     idleTimer: 0,
     dormirTimer: 0,
-    currentIdleIndex: 0, // Índice para reproducir animaciones random en orden
+    currentIdleIndex: 0,
+    holdCooldown: 0, // Enfriamiento de 15 segundos para las animaciones de mantener presionado
 
     evaluateState(esDeDiaLocal, lastWeatherCode, intervalTick = false) {
         const hora = new Date().getHours();
@@ -81,15 +92,49 @@ export const LunariSystem = {
         this.updateLunariText(esDeDiaLocal, lastWeatherCode);
     },
 
+    // --- NUEVAS FUNCIONES DE INTERACCIÓN DIRECTA ---
+    triggerClickAnimation() {
+        if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base && this.actions.idle_click) {
+            const prevAction = this.activeAction;
+            this.activeAction = this.actions.idle_click;
+            this.activeAction.reset().play();
+            prevAction.crossFadeTo(this.activeAction, 0.8, false);
+            this.idleTimer = 0; // Reinicia el temporizador para que no la interrumpa un random pronto
+            this.mixers.idle.addEventListener('finished', this.onIdleFinished);
+        }
+    },
+
+    triggerHoldAnimation() {
+        if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base && this.actions.idle_holds.length > 0) {
+            if (this.holdCooldown > 0) {
+                console.log("Animación en enfriamiento. Faltan " + Math.ceil(this.holdCooldown) + "s");
+                return; // Bloqueado por el límite de 15 segundos
+            }
+            const randomHold = this.actions.idle_holds[Math.floor(Math.random() * this.actions.idle_holds.length)];
+            const prevAction = this.activeAction;
+            this.activeAction = randomHold;
+            this.activeAction.reset().play();
+            prevAction.crossFadeTo(this.activeAction, 0.8, false);
+            this.idleTimer = 0;
+            this.holdCooldown = 15; // Aplica el enfriamiento de 15 segundos
+            this.mixers.idle.addEventListener('finished', this.onIdleFinished);
+        }
+    },
+    // ------------------------------------------------
+
     onIdleFinished: (event) => {
-        if (event.action === LunariSystem.actions.saluda || LunariSystem.actions.idle_randoms.includes(event.action)) {
+        // Verifica si la animación que terminó es alguna de las posibles
+        if (event.action === LunariSystem.actions.saluda || 
+            LunariSystem.actions.idle_randoms.includes(event.action) ||
+            event.action === LunariSystem.actions.idle_click ||
+            LunariSystem.actions.idle_holds.includes(event.action)) {
+            
             const prevAction = event.action;
             const nextAction = LunariSystem.actions.idle_base;
             
             LunariSystem.activeAction = nextAction;
             if (LunariSystem.activeAction) {
                 LunariSystem.activeAction.reset().play();
-                // Mezcla fluida hacia la animación base
                 prevAction.crossFadeTo(LunariSystem.activeAction, 0.8, false);
             }
             LunariSystem.idleTimer = 0;
@@ -106,7 +151,12 @@ export const LunariSystem = {
     },
 
     update(delta) {
-        if (!State.isRoomStarted) return; // BLOQUEADO HASTA PRESIONAR INICIAR
+        if (!State.isRoomStarted) return;
+
+        // Reduce el contador de enfriamiento si está activo
+        if (this.holdCooldown > 0) {
+            this.holdCooldown -= delta;
+        }
 
         for (let key in this.mixers) {
             if (this.mixers[key]) this.mixers[key].update(delta);
@@ -114,21 +164,17 @@ export const LunariSystem = {
 
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base) {
             this.idleTimer += delta;
-            
             if (this.idleTimer >= 30) {
                 this.idleTimer = 0;
-                
                 if (this.actions.idle_randoms.length > 0) {
-                    // Tomamos la animación siguiente en orden, sin aleatoriedad
                     const nextAction = this.actions.idle_randoms[this.currentIdleIndex];
                     this.currentIdleIndex = (this.currentIdleIndex + 1) % this.actions.idle_randoms.length;
 
                     const prevAction = this.activeAction;
                     this.activeAction = nextAction;
                     this.activeAction.reset().play();
-                    
-                    // Mezcla fluida desde la pose base a la animación random
-                    prevAction.crossFadeTo(this.activeAction, 0.8, false); 
+                    prevAction.crossFadeTo(this.activeAction, 0.8, false);
+                    this.mixers.idle.addEventListener('finished', this.onIdleFinished);
                 }
             }
         }

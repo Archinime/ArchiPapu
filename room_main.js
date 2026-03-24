@@ -37,10 +37,9 @@ function applyCurrentSettings() {
     let pixelRatio = 1;
     let newToneMapping = THREE.ACESFilmicToneMapping;
 
-    // OPTIMIZACIONES FUERTES PARA DISPOSITIVOS DE GAMA BAJA
     if (State.gameSettings.calidad === 'baja') {
-        pixelRatio = Math.min(window.devicePixelRatio || 1, 0.7); // Reducción de resolución interna drástica
-        newToneMapping = THREE.NoToneMapping; // Desactiva efectos pesados de color
+        pixelRatio = Math.min(window.devicePixelRatio || 1, 0.7);
+        newToneMapping = THREE.NoToneMapping;
     } else if (State.gameSettings.calidad === 'media') {
         pixelRatio = Math.min(window.devicePixelRatio || 1, 1.2);
     } else if (State.gameSettings.calidad === 'alta') {
@@ -51,23 +50,19 @@ function applyCurrentSettings() {
     
     let needsMaterialUpdate = false;
 
-    // Actualiza el mapeo de tonos si cambió la calidad
     if (renderer.toneMapping !== newToneMapping) {
         renderer.toneMapping = newToneMapping;
         needsMaterialUpdate = true;
     }
 
-    // --- LÓGICA DE SOMBRAS MEJORADA ---
     let currentShadowType = renderer.shadowMap.type;
     let newShadowType = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     
-    // Si el tipo de sombra cambia dinámicamente, forzamos la actualización
     if (currentShadowType !== newShadowType) {
         renderer.shadowMap.type = newShadowType;
         needsMaterialUpdate = true;
     }
 
-    // Actualiza los materiales globalmente si cambiaron las sombras o el ToneMapping
     if (needsMaterialUpdate) {
         scene.traverse((node) => {
             if (node.isMesh && node.material) {
@@ -79,14 +74,14 @@ function applyCurrentSettings() {
 
     renderer.shadowMap.enabled = State.gameSettings.sombras > 0;
     mainLight.castShadow = State.gameSettings.sombras > 0;
-
+    
     if (State.gameSettings.sombras > 0) {
-        let shadowRes = State.gameSettings.sombras === 2 ? (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
+        let shadowRes = State.gameSettings.sombras === 2 ?
+            (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
         if (mainLight.shadow.mapSize.width !== shadowRes) {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
         }
-        // Radio extra de difuminación solo para Ultra
         mainLight.shadow.radius = State.gameSettings.sombras >= 2 ? 4 : 1; 
     }
 
@@ -104,10 +99,9 @@ function applyMaterialLogic(model, categoryKey) {
     const allowShadows = State.gameSettings.sombras > 0;
     const isStructureCategory = ['paredes', 'piso', 'techo', 'puerta'].includes(categoryKey);
     const isBaja = State.gameSettings.calidad === 'baja';
-
+    
     model.traverse((node) => {
         if (node.isMesh) {
-            // MANTENIDO: Esto evita que el personaje/ropa desaparezca al voltear la cámara
             node.frustumCulled = false;
             
             if (isFoco || isFocoDia) {
@@ -127,7 +121,6 @@ function applyMaterialLogic(model, categoryKey) {
                     node.material.shadowSide = THREE.FrontSide;
                     node.material.side = THREE.DoubleSide;
                     
-                    // OPTIMIZACIÓN GAMA BAJA: Fuerza materiales simples ignorando cálculos pesados de reflejos
                     if (isBaja) {
                         let mats = Array.isArray(node.material) ? node.material : [node.material];
                         mats.forEach(m => {
@@ -137,7 +130,6 @@ function applyMaterialLogic(model, categoryKey) {
                             }
                         });
                     }
-
                     node.material.needsUpdate = true;
                 }
             }
@@ -161,7 +153,8 @@ for (let cat in State.inventoryData) {
     }
 }
 
-totalModelsToLoad += 13;
+// Actualizado para incluir los nuevos archivos
+totalModelsToLoad += 15; 
 
 function checkLoading() {
     modelsLoaded++;
@@ -224,7 +217,8 @@ loader.load(getFreshUrl('lunari_jugando.glb'), (gltf) => {
     checkLoading();
 }, undefined, () => checkLoading());
 
-const pendingIdleClips = { saluda: null, randoms: [] };
+const pendingIdleClips = { saluda: null, click: null, randoms: [], holds: [] };
+
 loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.idle = model;
     LunariSystem.mixers.idle = new THREE.AnimationMixer(model); 
@@ -235,10 +229,19 @@ loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
         LunariSystem.actions.saluda = LunariSystem.mixers.idle.clipAction(pendingIdleClips.saluda);
         LunariSystem.actions.saluda.loop = THREE.LoopOnce; LunariSystem.actions.saluda.clampWhenFinished = true;
     }
+    if (pendingIdleClips.click) {
+        LunariSystem.actions.idle_click = LunariSystem.mixers.idle.clipAction(pendingIdleClips.click);
+        LunariSystem.actions.idle_click.loop = THREE.LoopOnce; LunariSystem.actions.idle_click.clampWhenFinished = true;
+    }
     pendingIdleClips.randoms.forEach(clip => {
         const action = LunariSystem.mixers.idle.clipAction(clip);
         action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
         LunariSystem.actions.idle_randoms.push(action);
+    });
+    pendingIdleClips.holds.forEach(clip => {
+        const action = LunariSystem.mixers.idle.clipAction(clip);
+        action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
+        LunariSystem.actions.idle_holds.push(action);
     });
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode);
     checkLoading();
@@ -254,7 +257,34 @@ loader.load(getFreshUrl('lunari_saluda.glb'), (gltf) => {
     checkLoading();
 }, undefined, () => checkLoading());
 
-const idleRandomFiles = ['lunari_idle2.glb', 'lunari_idle3.glb', 'lunari_idle4.glb', 'lunari_idle5.glb', 'lunari_idle6.glb'];
+// Animación de CLICK (la antigua idle3)
+loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
+    if (gltf.animations && gltf.animations.length > 0) { 
+        if (LunariSystem.mixers.idle) {
+            LunariSystem.actions.idle_click = LunariSystem.mixers.idle.clipAction(gltf.animations[0]); 
+            LunariSystem.actions.idle_click.loop = THREE.LoopOnce; LunariSystem.actions.idle_click.clampWhenFinished = true;
+        } else { pendingIdleClips.click = gltf.animations[0]; }
+    }
+    checkLoading();
+}, undefined, () => checkLoading());
+
+// Animaciones de MANTENER PRESIONADO
+const holdFiles = ['lunari_beso.glb', 'lunari_beso_volado.glb'];
+holdFiles.forEach(file => {
+    loader.load(getFreshUrl(file), (gltf) => {
+        if (gltf.animations && gltf.animations.length > 0) {
+            if (LunariSystem.mixers.idle) {
+                const action = LunariSystem.mixers.idle.clipAction(gltf.animations[0]);
+                action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
+                LunariSystem.actions.idle_holds.push(action);
+            } else { pendingIdleClips.holds.push(gltf.animations[0]); }
+        }
+        checkLoading();
+    }, undefined, () => checkLoading());
+});
+
+// Animaciones RANDOM (se eliminó la idle3)
+const idleRandomFiles = ['lunari_idle2.glb', 'lunari_idle4.glb', 'lunari_idle5.glb', 'lunari_idle6.glb'];
 idleRandomFiles.forEach(file => {
     loader.load(getFreshUrl(file), (gltf) => {
         if (gltf.animations && gltf.animations.length > 0) {
@@ -310,7 +340,7 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                     });
                 }
              });
-            if (!TVManager.isTvOn) TVManager.tvVideo.pause();
+             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
         
         if (categoryKey === 'pantalla_pc' || categoryKey === 'pantalla_pc2') { 
@@ -446,22 +476,71 @@ function handleInteraction(event) {
     }
 }
 
-let pointerDownPos = { x: 0, y: 0 }; let isDragging = false;
-renderer.domElement.addEventListener('pointerdown', (e) => { pointerDownPos.x = e.clientX; pointerDownPos.y = e.clientY; isDragging = false; });
-renderer.domElement.addEventListener('pointermove', (e) => { const dx = e.clientX - pointerDownPos.x; const dy = e.clientY - pointerDownPos.y; if (Math.sqrt(dx * dx + dy * dy) > 5) isDragging = true; });
-renderer.domElement.addEventListener('pointerup', (e) => { if (!isDragging && !document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active') && !document.getElementById('pc-modal').classList.contains('visible')) handleInteraction(e); isDragging = false; });
+// NUEVO SISTEMA DE PUNTERO PARA DETECTAR CLICKS Y MANTENER PRESIONADO
+let pointerDownPos = { x: 0, y: 0 }; 
+let isDragging = false;
+let pointerDownTime = 0;
+let isLunariTargeted = false;
+
+renderer.domElement.addEventListener('pointerdown', (e) => { 
+    pointerDownPos.x = e.clientX; 
+    pointerDownPos.y = e.clientY; 
+    isDragging = false; 
+    pointerDownTime = performance.now();
+    
+    // Configura el raycaster para ver a quién tocamos
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1; 
+    raycaster.setFromCamera(mouse, camera);
+    
+    isLunariTargeted = false;
+    // Solo apuntamos a Lunari si está en modo idle y el modelo está visible
+    if (LunariSystem.currentState === 'idle' && LunariSystem.models.idle && LunariSystem.models.idle.visible) {
+        if (raycaster.intersectObject(LunariSystem.models.idle, true).length > 0) {
+            isLunariTargeted = true;
+        }
+    }
+});
+
+renderer.domElement.addEventListener('pointermove', (e) => { 
+    const dx = e.clientX - pointerDownPos.x; 
+    const dy = e.clientY - pointerDownPos.y; 
+    if (Math.sqrt(dx * dx + dy * dy) > 5) isDragging = true; 
+});
+
+renderer.domElement.addEventListener('pointerup', (e) => { 
+    if (!isDragging && !document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active') && !document.getElementById('pc-modal').classList.contains('visible')) {
+        
+        let handledByLunari = false;
+        if (isLunariTargeted) {
+            const holdDuration = performance.now() - pointerDownTime;
+            // 400 milisegundos de límite para diferenciar toque de mantener presionado
+            if (holdDuration >= 400) { 
+                LunariSystem.triggerHoldAnimation();
+            } else {
+                LunariSystem.triggerClickAnimation();
+            }
+            handledByLunari = true;
+        }
+        
+        // Si Lunari no manejó el click, delegamos a los pósters/PC/TV
+        if (!handledByLunari) {
+            handleInteraction(e); 
+        }
+    } 
+    isDragging = false; 
+    isLunariTargeted = false;
+});
 
 let then = performance.now(), frames = 0, lastFpsTime = then;
 let wasStarted = false;
-
 function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
     const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
-    
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
-        
         if (State.isRoomStarted) {
             if (!wasStarted) {
                 wasStarted = true;
@@ -475,7 +554,6 @@ function animate() {
         }
 
         controls.update(); renderer.render(scene, camera);
-        
         if (State.gameSettings.mostrarFps) { 
             frames++;
             if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now;
