@@ -153,7 +153,6 @@ for (let cat in State.inventoryData) {
     }
 }
 
-// Actualizado para incluir los nuevos archivos
 totalModelsToLoad += 15; 
 
 function checkLoading() {
@@ -220,7 +219,19 @@ loader.load(getFreshUrl('lunari_jugando.glb'), (gltf) => {
 const pendingIdleClips = { saluda: null, click: null, randoms: [], holds: [] };
 
 loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
-    const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.idle = model;
+    const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); 
+    
+    // --- HITBOX INVISIBLE PARA DETECTAR CUERPO/CARA ---
+    // Usamos opacity: 0 y transparent: true para que el motor físico sí lo registre.
+    const hitboxGeom = new THREE.CylinderGeometry(0.8, 0.8, 3.5, 12);
+    const hitboxMat = new THREE.MeshBasicMaterial({ opacity: 0, transparent: true, depthWrite: false });
+    const hitbox = new THREE.Mesh(hitboxGeom, hitboxMat);
+    hitbox.position.set(0, 1.75, 0); // Lo subimos para abarcar el torso y la cabeza
+    hitbox.name = "LunariHitbox";
+    model.add(hitbox);
+    // --------------------------------------------------
+
+    scene.add(model); LunariSystem.models.idle = model;
     LunariSystem.mixers.idle = new THREE.AnimationMixer(model); 
     if (gltf.animations && gltf.animations.length > 0) { 
         LunariSystem.actions.idle_base = LunariSystem.mixers.idle.clipAction(gltf.animations[0]); 
@@ -257,7 +268,6 @@ loader.load(getFreshUrl('lunari_saluda.glb'), (gltf) => {
     checkLoading();
 }, undefined, () => checkLoading());
 
-// Animación de CLICK (la antigua idle3)
 loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0) { 
         if (LunariSystem.mixers.idle) {
@@ -268,7 +278,6 @@ loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
     checkLoading();
 }, undefined, () => checkLoading());
 
-// Animaciones de MANTENER PRESIONADO
 const holdFiles = ['lunari_beso.glb', 'lunari_beso_volado.glb'];
 holdFiles.forEach(file => {
     loader.load(getFreshUrl(file), (gltf) => {
@@ -283,7 +292,6 @@ holdFiles.forEach(file => {
     }, undefined, () => checkLoading());
 });
 
-// Animaciones RANDOM (se eliminó la idle3)
 const idleRandomFiles = ['lunari_idle2.glb', 'lunari_idle4.glb', 'lunari_idle5.glb', 'lunari_idle6.glb'];
 idleRandomFiles.forEach(file => {
     loader.load(getFreshUrl(file), (gltf) => {
@@ -476,7 +484,6 @@ function handleInteraction(event) {
     }
 }
 
-// NUEVO SISTEMA DE PUNTERO PARA DETECTAR CLICKS Y MANTENER PRESIONADO
 let pointerDownPos = { x: 0, y: 0 }; 
 let isDragging = false;
 let pointerDownTime = 0;
@@ -488,16 +495,22 @@ renderer.domElement.addEventListener('pointerdown', (e) => {
     isDragging = false; 
     pointerDownTime = performance.now();
     
-    // Configura el raycaster para ver a quién tocamos
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1; 
     raycaster.setFromCamera(mouse, camera);
     
     isLunariTargeted = false;
-    // Solo apuntamos a Lunari si está en modo idle y el modelo está visible
     if (LunariSystem.currentState === 'idle' && LunariSystem.models.idle && LunariSystem.models.idle.visible) {
-        if (raycaster.intersectObject(LunariSystem.models.idle, true).length > 0) {
+        
+        // Buscamos primero el Hitbox invisible (garantiza el click en todo el cuerpo)
+        const hitbox = LunariSystem.models.idle.getObjectByName("LunariHitbox");
+        
+        if (hitbox && raycaster.intersectObject(hitbox).length > 0) {
+            isLunariTargeted = true;
+        } 
+        // Si por alguna razón escapa al hitbox, hace un chequeo clásico por si acaso
+        else if (raycaster.intersectObject(LunariSystem.models.idle, true).length > 0) {
             isLunariTargeted = true;
         }
     }
@@ -515,7 +528,7 @@ renderer.domElement.addEventListener('pointerup', (e) => {
         let handledByLunari = false;
         if (isLunariTargeted) {
             const holdDuration = performance.now() - pointerDownTime;
-            // 400 milisegundos de límite para diferenciar toque de mantener presionado
+            // 400 ms límite para distinguir el toque de "mantener presionado"
             if (holdDuration >= 400) { 
                 LunariSystem.triggerHoldAnimation();
             } else {
@@ -524,7 +537,7 @@ renderer.domElement.addEventListener('pointerup', (e) => {
             handledByLunari = true;
         }
         
-        // Si Lunari no manejó el click, delegamos a los pósters/PC/TV
+        // Si no interactuó con Lunari, probamos con el resto de objetos de la habitación
         if (!handledByLunari) {
             handleInteraction(e); 
         }
