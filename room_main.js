@@ -100,7 +100,7 @@ function applyMaterialLogic(model, categoryKey) {
     
     model.traverse((node) => {
         if (node.isMesh) {
-            // NUEVO: Ignoramos la hitbox para no alterar su material transparente
+            // MUY IMPORTANTE: Evitamos que se pinte el Hitbox y lo dejamos invisible
             if (node.name === 'LunariHitbox') return;
 
             node.frustumCulled = false;
@@ -220,23 +220,57 @@ loader.load(getFreshUrl('lunari_jugando.glb'), (gltf) => {
 const pendingIdleClips = { saluda: null, click: null, randoms: [], holds: [] };
 
 loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
-    const model = gltf.scene; model.visible = false; 
+    const model = gltf.scene; 
+    model.visible = false; 
 
-    // --- NUEVO: HITBOX DE COLISIÓN PARA LUNARI ---
-    // Cilindro invisible que cubre a Lunari por completo para garantizar la detección de clicks en todo su cuerpo.
-    const hitboxGeo = new THREE.CylinderGeometry(0.8, 0.8, 2.5, 8); 
+    // --- NUEVO: HITBOX DINÁMICO PERFECTO ---
+    // Actualizamos las matrices globales para leer su tamaño real en pantalla
+    model.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+
+    // Leemos la escala que el modelo trajo desde Blender para compensarla matemáticamente
+    const scale = new THREE.Vector3();
+    model.getWorldScale(scale);
+
+    // Aseguramos un tamaño mínimo (por si tarda en cargar la geometría)
+    const sizeX = Math.max(size.x, 0.5);
+    const sizeY = Math.max(size.y, 1.2);
+    const sizeZ = Math.max(size.z, 0.5);
+
+    // Calculamos el tamaño interno de la caja. 
+    // Lo multiplicamos por 2 de ancho/profundo y 1.5 de alto para cubrir cualquier animación de brazos/cabeza
+    const localSizeX = (sizeX / scale.x) * 2.0; 
+    const localSizeY = (sizeY / scale.y) * 1.5; 
+    const localSizeZ = (sizeZ / scale.z) * 2.0; 
+
+    const hitboxGeo = new THREE.BoxGeometry(localSizeX, localSizeY, localSizeZ);
     const hitboxMat = new THREE.MeshBasicMaterial({ 
         transparent: true, 
-        opacity: 0, 
-        depthWrite: false 
+        opacity: 0, // Completamente invisible a la vista, pero real para el click
+        depthWrite: false,
+        side: THREE.DoubleSide
     });
+    
     const hitbox = new THREE.Mesh(hitboxGeo, hitboxMat);
     hitbox.name = 'LunariHitbox';
-    hitbox.position.set(0, 1.25, 0); // Lo centramos verticalmente
-    model.add(hitbox);
-    // ---------------------------------------------
+    hitbox.frustumCulled = false; // Evita que desaparezca mágicamente al mover la cámara
 
-    applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.idle = model;
+    // Posicionamos el hitbox en el centro real del personaje
+    model.worldToLocal(center);
+    hitbox.position.copy(center);
+    hitbox.position.y += localSizeY * 0.15; // Lo elevamos un poquito para asegurar la cabeza
+    
+    model.add(hitbox);
+    // ----------------------------------------
+
+    applyMaterialLogic(model, 'lunari'); 
+    scene.add(model); 
+    LunariSystem.models.idle = model;
+    
     LunariSystem.mixers.idle = new THREE.AnimationMixer(model); 
     if (gltf.animations && gltf.animations.length > 0) { 
         LunariSystem.actions.idle_base = LunariSystem.mixers.idle.clipAction(gltf.animations[0]); 
@@ -274,7 +308,7 @@ loader.load(getFreshUrl('lunari_saluda.glb'), (gltf) => {
     checkLoading();
 }, undefined, () => checkLoading());
 
-// Animación de CLICK
+// Animación de CLICK (la antigua idle3)
 loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0) { 
         if (LunariSystem.mixers.idle) {
@@ -300,7 +334,7 @@ holdFiles.forEach(file => {
     }, undefined, () => checkLoading());
 });
 
-// Animaciones RANDOM
+// Animaciones RANDOM (se eliminó la idle3)
 const idleRandomFiles = ['lunari_idle2.glb', 'lunari_idle4.glb', 'lunari_idle5.glb', 'lunari_idle6.glb'];
 idleRandomFiles.forEach(file => {
     loader.load(getFreshUrl(file), (gltf) => {
@@ -493,6 +527,7 @@ function handleInteraction(event) {
     }
 }
 
+// SISTEMA DE PUNTERO PARA DETECTAR CLICKS Y MANTENER PRESIONADO
 let pointerDownPos = { x: 0, y: 0 };
 let isDragging = false;
 let pointerDownTime = 0;
@@ -512,6 +547,7 @@ renderer.domElement.addEventListener('pointerdown', (e) => {
     isLunariTargeted = false;
   
     if (LunariSystem.currentState === 'idle' && LunariSystem.models.idle && LunariSystem.models.idle.visible) {
+        // Al usar 'true', el raycaster detectará nuestra caja invisible interna
         if (raycaster.intersectObject(LunariSystem.models.idle, true).length > 0) {
             isLunariTargeted = true;
         }
@@ -530,6 +566,7 @@ renderer.domElement.addEventListener('pointerup', (e) => {
         let handledByLunari = false;
         if (isLunariTargeted) {
             const holdDuration = performance.now() - pointerDownTime;
+            // 400 milisegundos para diferenciar toque de presionado
             if (holdDuration >= 400) { 
                 LunariSystem.triggerHoldAnimation();
             } else {
