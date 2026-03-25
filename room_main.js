@@ -31,37 +31,37 @@ window.startCameraZoom = function() {
     originalCamPos.copy(camera.position);
     originalTarget.copy(controls.target);
 
-    // Valores seguros y fijos de la cara
+    // Fijamos una altura estable para la cara (Lunari mide ~1.6m, su cara está en ~1.45m).
+    // Evitamos usar Box3 porque la hitbox distorsiona el tamaño y manda la cámara al suelo.
     let faceX = 0;
+    let faceY = 1.45; 
     let faceZ = 0;
-    // Asignamos una altura fija para la cara respecto al suelo (4.8 suele ser exacto para modelos anime)
-    let faceY = 4.8; 
 
-    // Tomamos la posición real del modelo base, evitando distorsiones por la animación
+    // Tomamos la posición X y Z actual del modelo de Lunari por si cambia de lugar
     if (LunariSystem.models.idle) {
         const pos = new THREE.Vector3();
         LunariSystem.models.idle.getWorldPosition(pos);
         faceX = pos.x;
         faceZ = pos.z;
-        faceY = pos.y + 4.8; 
     }
 
-    // Miramos directamente a esa posición fija de la cara
+    // Miramos directamente a la cara
     zoomLookAt.set(faceX, faceY, faceZ);
 
-    // Calculamos de dónde viene la cámara para mantener la línea horizontal perfecta (recto)
+    // Dirección desde la cara HACIA la cámara actual
     const dir = new THREE.Vector3().subVectors(originalCamPos, zoomLookAt);
-    dir.y = 0; // Obligamos a que la dirección sea plana (sin inclinación arriba/abajo)
+    dir.y = 0; // Obligamos a que el vector sea estrictamente plano horizontal
     
-    if (dir.lengthSq() > 0) {
+    if (dir.lengthSq() > 0.001) {
         dir.normalize();
     } else {
+        // Por si acaso la cámara estaba exactamente arriba
         dir.set(0, 0, 1);
     }
 
-    // Plantamos la cámara a 1.8 metros de su cara (un buen primer plano)
-    zoomTargetPos.copy(zoomLookAt).addScaledVector(dir, 1.8);
-    // MUY IMPORTANTE: Igualamos la altura de la cámara con la mirada para que no mire al suelo
+    // Plantamos la cámara a 1.0 metros de su cara (antes 2.5, por eso se alejaba).
+    // Al poner la "y" de la cámara exactamente en faceY, forzamos un acercamiento 100% recto y sin inclinación.
+    zoomTargetPos.copy(zoomLookAt).addScaledVector(dir, 1.0);
     zoomTargetPos.y = faceY; 
 };
 
@@ -131,8 +131,7 @@ function applyCurrentSettings() {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
         }
-        mainLight.shadow.radius = State.gameSettings.sombras >= 2 ?
-            4 : 1; 
+        mainLight.shadow.radius = State.gameSettings.sombras >= 2 ? 4 : 1; 
     }
 
     for (let cat in loadedSlotMeshes) applyMaterialLogic(loadedSlotMeshes[cat], cat);
@@ -157,30 +156,24 @@ function applyMaterialLogic(model, categoryKey) {
             
             if (isFoco || isFocoDia) {
                 node.castShadow = false; node.receiveShadow = false;
-         
                 if (node.material) {
                     if (isFoco) { node.material.emissive = new THREE.Color(0xffeedd); node.material.emissiveIntensity = State.lightOn ? 1.5 : 0; }
                     if (isFocoDia) node.material.emissive = new THREE.Color(0xffffff);
                 }
             } else {
-  
-               let nodeIsStructure = isStructureCategory || node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo');
+                let nodeIsStructure = isStructureCategory || node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo');
                 node.castShadow = nodeIsStructure ? false : allowShadows;
                 node.receiveShadow = allowShadows;
                 
-                // ARREGLO TECHO NEGRO: Iterar sobre el array para asegurar el DoubleSide en todos los materiales
                 if(node.material) {
-                    let mats = Array.isArray(node.material) ?
-                        node.material : [node.material];
+                    let mats = Array.isArray(node.material) ? node.material : [node.material];
                     mats.forEach(m => {
                         m.shadowSide = THREE.FrontSide;
-                        m.side = THREE.DoubleSide; // Aplica doble cara a estructuras multicapa
+                        m.side = THREE.DoubleSide;
                         if (isBaja && m.isMeshStandardMaterial) {
-        
                             m.roughness = 1.0;
                             m.metalness = 0.0;
                         }
-                        
                         m.needsUpdate = true;
                     });
                 }
@@ -244,6 +237,7 @@ loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     }
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0) { 
         if (LunariSystem.mixers.dormir) {
@@ -253,16 +247,19 @@ loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
     }
     checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.despertar = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.despertar = new THREE.AnimationMixer(model); LunariSystem.actions.despertar_base = LunariSystem.mixers.despertar.clipAction(gltf.animations[0]); }
     checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('lunari_jugando.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.jugar = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.jugar = new THREE.AnimationMixer(model); LunariSystem.actions.jugar_base = LunariSystem.mixers.jugar.clipAction(gltf.animations[0]); }
     checkLoading();
 }, undefined, () => checkLoading());
+
 const pendingIdleClips = { saluda: null, click: null, randoms: [], holds: [] };
 loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
     const model = gltf.scene; 
@@ -340,6 +337,7 @@ loader.load(getFreshUrl('lunari_saluda.glb'), (gltf) => {
     }
     checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0) { 
         if (LunariSystem.mixers.idle) {
@@ -349,6 +347,7 @@ loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
     }
     checkLoading();
 }, undefined, () => checkLoading());
+
 const holdFiles = ['lunari_beso.glb', 'lunari_beso_volado.glb'];
 holdFiles.forEach(file => {
     loader.load(getFreshUrl(file), (gltf) => {
@@ -382,6 +381,7 @@ idleRandomFiles.forEach(file => {
         checkLoading();
     }, undefined, () => checkLoading());
 });
+
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
     focoDiaMesh = gltf.scene; applyMaterialLogic(focoDiaMesh, 'foco_dia'); luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
     const box = new THREE.Box3().setFromObject(focoDiaMesh); const center = new THREE.Vector3(); box.getCenter(center);
@@ -389,10 +389,12 @@ loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/fo
     scene.add(luzFocoDia); scene.add(focoDiaMesh); focoDiaMesh.visible = false; luzFocoDia.visible = true; 
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem); checkLoading();
 }, undefined, () => checkLoading());
+
 setInterval(() => {
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem);
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode, true);
 }, 60000);
+
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
     if (loadedSlotMeshes[categoryKey]) { 
@@ -418,14 +420,13 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                     let mats = Array.isArray(node.material) ? node.material : [node.material];
                     mats.forEach(mat => { 
                         if (!TVManager.isTvOn) { mat.map = null; mat.emissiveMap = null; mat.color = new THREE.Color(0x000000); mat.emissive = new THREE.Color(0x000000); mat.emissiveIntensity = 0; } 
-
                         else { mat.map = TVManager.tvTexture; mat.emissiveMap = TVManager.tvTexture; mat.color = new THREE.Color(0xffffff); mat.emissive = new THREE.Color(0xffffff); mat.emissiveIntensity = 1.0; }
                         mat.needsUpdate = true;
                     });
            
                 }
              });
-        if (!TVManager.isTvOn) TVManager.tvVideo.pause();
+            if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
         
         if (categoryKey === 'pantalla_pc' || categoryKey === 'pantalla_pc2') { 
@@ -441,7 +442,7 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                     if (!PCManager.pcScreenMeshes.includes(node)) {
                         PCManager.pcScreenMeshes.push(node);
      
-                     }
+                    }
                 }
             });
             PCManager.updateScreens();
@@ -498,6 +499,7 @@ function toggleLight() {
 const posterViewModal = document.getElementById('poster-view-modal'), posterEnlargedImage = document.getElementById('poster-enlarged-image');
 document.getElementById('close-poster-view').onclick = () => { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); };
 posterViewModal.onclick = (e) => { if (e.target === posterViewModal) { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); } };
+
 function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
