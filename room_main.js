@@ -15,6 +15,29 @@ const { scene, clock, camera, renderer, controls, ambient, hemiLight, mainLight 
 const loadedSlotMeshes = {};
 let switchMesh = null, focoMesh = null, focoDiaMesh = null, luzFocoDia = null;
 
+// --- VARIABLES GLOBALES PARA EL EFECTO DE ZOOM ---
+let isCameraZooming = false;
+let cameraZoomTimer = 0;
+const originalCamPos = new THREE.Vector3();
+const originalTarget = new THREE.Vector3();
+const zoomTargetPos = new THREE.Vector3();
+const zoomLookAt = new THREE.Vector3();
+
+window.startCameraZoom = function() {
+    if (isCameraZooming) return;
+    isCameraZooming = true;
+    cameraZoomTimer = 0;
+    
+    // Guardamos la posición actual exacta del usuario
+    originalCamPos.copy(camera.position);
+    originalTarget.copy(controls.target);
+
+    // Ajustar las coordenadas para apuntar y acercarse a la cara de Lunari
+    zoomLookAt.set(0, 1.4, 0); // Altura de la cabeza
+    zoomTargetPos.set(0, 1.4, 1.3); // La cámara se planta a 1.3m de frente
+};
+// ------------------------------------------------
+
 const audioPrenderLuz = new Audio('prender_luz.mp3');
 const audioApagarLuz = new Audio('apagar_luz.mp3');
 const audioAbrirPoster = new Audio('abrir_poster.mp3');
@@ -56,7 +79,8 @@ function applyCurrentSettings() {
     }
 
     let currentShadowType = renderer.shadowMap.type;
-    let newShadowType = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+    let newShadowType = State.gameSettings.sombras >= 2 ?
+THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     
     if (currentShadowType !== newShadowType) {
         renderer.shadowMap.type = newShadowType;
@@ -75,12 +99,14 @@ function applyCurrentSettings() {
     renderer.shadowMap.enabled = State.gameSettings.sombras > 0;
     mainLight.castShadow = State.gameSettings.sombras > 0;
     if (State.gameSettings.sombras > 0) {
-        let shadowRes = State.gameSettings.sombras === 2 ? (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
+        let shadowRes = State.gameSettings.sombras === 2 ?
+(isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
         if (mainLight.shadow.mapSize.width !== shadowRes) {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
         }
-        mainLight.shadow.radius = State.gameSettings.sombras >= 2 ? 4 : 1; 
+        mainLight.shadow.radius = State.gameSettings.sombras >= 2 ?
+4 : 1; 
     }
 
     for (let cat in loadedSlotMeshes) applyMaterialLogic(loadedSlotMeshes[cat], cat);
@@ -100,7 +126,6 @@ function applyMaterialLogic(model, categoryKey) {
     
     model.traverse((node) => {
         if (node.isMesh) {
-            // Evitamos que se pinte el Hitbox
             if (node.name === 'LunariHitbox') return;
 
             node.frustumCulled = false;
@@ -121,7 +146,8 @@ function applyMaterialLogic(model, categoryKey) {
                     node.material.side = THREE.DoubleSide;
                     
                     if (isBaja) {
-                        let mats = Array.isArray(node.material) ? node.material : [node.material];
+                        let mats = Array.isArray(node.material) ?
+node.material : [node.material];
                         mats.forEach(m => {
                             if (m.isMeshStandardMaterial) {
                                 m.roughness = 1.0;
@@ -215,12 +241,10 @@ loader.load(getFreshUrl('lunari_jugando.glb'), (gltf) => {
 }, undefined, () => checkLoading());
 
 const pendingIdleClips = { saluda: null, click: null, randoms: [], holds: [] };
-
 loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
     const model = gltf.scene; 
     model.visible = false; 
 
-    // --- HITBOX DE PROPORCIÓN HUMANA ESTRICTA ---
     model.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(model);
     const size = new THREE.Vector3();
@@ -231,12 +255,10 @@ loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
     model.getWorldScale(scale);
 
     let realY = size.y / scale.y;
-    if (realY < 1.0) realY = 1.6; // Valor seguro por si falla el SkinnedMesh
+    if (realY < 1.0) realY = 1.6; 
 
-    // Restringimos fuertemente el ancho (X y Z) a medio metro para no estorbar
     const localSizeX = 0.55; 
     const localSizeZ = 0.55; 
-    // Mantenemos la altura del modelo y le sumamos un 15% extra para asegurar la cabeza
     const localSizeY = realY * 1.15; 
 
     const hitboxGeo = new THREE.BoxGeometry(localSizeX, localSizeY, localSizeZ);
@@ -246,24 +268,18 @@ loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
         depthWrite: false,
         side: THREE.DoubleSide
     });
-    
     const hitbox = new THREE.Mesh(hitboxGeo, hitboxMat);
     hitbox.name = 'LunariHitbox';
     hitbox.frustumCulled = false;
 
     model.worldToLocal(center);
-    
-    // Forzamos X y Z a 0 (el centro absoluto en Blender) para que no se desvíe a un lado.
-    // Posicionamos en Y usando el centro dinámico ajustado hacia arriba para atrapar la cabeza.
     hitbox.position.set(0, center.y + (localSizeY * 0.1), 0);
     
     model.add(hitbox);
-    // ---------------------------------------------
 
     applyMaterialLogic(model, 'lunari'); 
     scene.add(model); 
     LunariSystem.models.idle = model;
-    
     LunariSystem.mixers.idle = new THREE.AnimationMixer(model);
     if (gltf.animations && gltf.animations.length > 0) { 
         LunariSystem.actions.idle_base = LunariSystem.mixers.idle.clipAction(gltf.animations[0]);
@@ -285,9 +301,10 @@ loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
     pendingIdleClips.holds.forEach(clip => {
         const action = LunariSystem.mixers.idle.clipAction(clip);
         action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
+        // NUEVO: Transferir el userData si lo tenía como pendiente
+        if (clip.userData) action.userData = clip.userData;
         LunariSystem.actions.idle_holds.push(action);
     });
-    
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode);
     checkLoading();
 }, undefined, () => checkLoading());
@@ -319,8 +336,14 @@ holdFiles.forEach(file => {
             if (LunariSystem.mixers.idle) {
                 const action = LunariSystem.mixers.idle.clipAction(gltf.animations[0]);
                 action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
+                // NUEVO: Etiquetar el archivo y el trigger de tiempo
+                action.userData = { fileName: file, triggered: false };
                 LunariSystem.actions.idle_holds.push(action);
-            } else { pendingIdleClips.holds.push(gltf.animations[0]); }
+            } else { 
+                // NUEVO: Etiquetar el clip si el mixer aún no existe
+                gltf.animations[0].userData = { fileName: file, triggered: false };
+                pendingIdleClips.holds.push(gltf.animations[0]); 
+            }
         }
         checkLoading();
     }, undefined, () => checkLoading());
@@ -380,9 +403,9 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                         else { mat.map = TVManager.tvTexture; mat.emissiveMap = TVManager.tvTexture; mat.color = new THREE.Color(0xffffff); mat.emissive = new THREE.Color(0xffffff); mat.emissiveIntensity = 1.0; }
                         mat.needsUpdate = true;
                     });
-                }
+                 }
              });
-            if (!TVManager.isTvOn) TVManager.tvVideo.pause();
+             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
         
         if (categoryKey === 'pantalla_pc' || categoryKey === 'pantalla_pc2') { 
@@ -459,7 +482,6 @@ function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
-    
     if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
     
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
@@ -512,7 +534,8 @@ function handleInteraction(event) {
         const pMesh = loadedSlotMeshes[cat];
         if (pMesh && raycaster.intersectObject(pMesh, true).length > 0) {
             const itemData = State.inventoryData[cat].items[State.inventoryData[cat].equipped];
-            if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); audioAbrirPoster.currentTime = 0; audioAbrirPoster.play().catch(e=>{}); }
+            if (itemData && itemData.preview) { posterEnlargedImage.src = itemData.preview; posterViewModal.classList.add('visible'); audioAbrirPoster.currentTime = 0; audioAbrirPoster.play().catch(e=>{});
+            }
             break;
         }
     }
@@ -535,7 +558,7 @@ renderer.domElement.addEventListener('pointerdown', (e) => {
     raycaster.setFromCamera(mouse, camera);
     
     isLunariTargeted = false;
-  
+    
     if (LunariSystem.currentState === 'idle' && LunariSystem.models.idle && LunariSystem.models.idle.visible) {
         if (raycaster.intersectObject(LunariSystem.models.idle, true).length > 0) {
             isLunariTargeted = true;
@@ -578,27 +601,60 @@ function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
     const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
-
+    
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
-        
+
+        let delta = 0;
         if (State.isRoomStarted) {
             if (!wasStarted) {
                 wasStarted = true;
                 LunariSystem.currentState = null;
                 LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode);
             }
-            const delta = clock.getDelta();
+            delta = clock.getDelta();
             LunariSystem.update(delta); 
         } else {
-            clock.getDelta();
+            delta = clock.getDelta();
         }
 
-        controls.update(); renderer.render(scene, camera);
-        
+        // --- NUEVO: INTERPOLACIÓN FLUIDA DE LA CÁMARA ---
+        if (isCameraZooming) {
+            cameraZoomTimer += delta;
+            let t = 0;
+            if (cameraZoomTimer < 1.0) {
+                // Acercamiento (1 seg) aplicando smoothstep
+                t = cameraZoomTimer;
+                t = t * t * (3 - 2 * t);
+                camera.position.lerpVectors(originalCamPos, zoomTargetPos, t);
+                controls.target.lerpVectors(originalTarget, zoomLookAt, t);
+            } else if (cameraZoomTimer < 2.5) {
+                // Mantener la cámara cerca por 1.5 seg
+                camera.position.copy(zoomTargetPos);
+                controls.target.copy(zoomLookAt);
+            } else if (cameraZoomTimer < 3.5) {
+                // Alejamiento suave (1 seg)
+                t = cameraZoomTimer - 2.5;
+                t = t * t * (3 - 2 * t);
+                camera.position.lerpVectors(zoomTargetPos, originalCamPos, t);
+                controls.target.lerpVectors(zoomLookAt, originalTarget, t);
+            } else {
+                // Finalizar ciclo
+                isCameraZooming = false;
+                camera.position.copy(originalCamPos);
+                controls.target.copy(originalTarget);
+            }
+            camera.updateProjectionMatrix();
+        } else {
+            controls.update(); 
+        }
+        // ------------------------------------------------
+
+        renderer.render(scene, camera);
         if (State.gameSettings.mostrarFps) { 
             frames++;
-            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now; } 
+            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now;
+            } 
         }
     }
 }

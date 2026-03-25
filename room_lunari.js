@@ -15,14 +15,14 @@ export const LunariSystem = {
         idle_base: null, 
         saluda: null, 
         idle_randoms: [],
-        idle_click: null, // Animación al hacer click (lunari_idle3)
-        idle_holds: []    // Animaciones al mantener presionado (besos)
+        idle_click: null, 
+        idle_holds: []    
     },
     activeAction: null,
     idleTimer: 0,
     dormirTimer: 0,
     currentIdleIndex: 0,
-    holdCooldown: 0, // Enfriamiento de 15 segundos para las animaciones de mantener presionado
+    holdCooldown: 0, 
 
     evaluateState(esDeDiaLocal, lastWeatherCode, intervalTick = false) {
         const hora = new Date().getHours();
@@ -92,14 +92,13 @@ export const LunariSystem = {
         this.updateLunariText(esDeDiaLocal, lastWeatherCode);
     },
 
-    // --- NUEVAS FUNCIONES DE INTERACCIÓN DIRECTA ---
     triggerClickAnimation() {
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base && this.actions.idle_click) {
             const prevAction = this.activeAction;
             this.activeAction = this.actions.idle_click;
             this.activeAction.reset().play();
             prevAction.crossFadeTo(this.activeAction, 0.8, false);
-            this.idleTimer = 0; // Reinicia el temporizador para que no la interrumpa un random pronto
+            this.idleTimer = 0;
             this.mixers.idle.addEventListener('finished', this.onIdleFinished);
         }
     },
@@ -108,27 +107,34 @@ export const LunariSystem = {
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base && this.actions.idle_holds.length > 0) {
             if (this.holdCooldown > 0) {
                 console.log("Animación en enfriamiento. Faltan " + Math.ceil(this.holdCooldown) + "s");
-                return; // Bloqueado por el límite de 15 segundos
+                return; 
             }
             const randomHold = this.actions.idle_holds[Math.floor(Math.random() * this.actions.idle_holds.length)];
             const prevAction = this.activeAction;
             this.activeAction = randomHold;
+            
+            // NUEVO: Asegurarnos de que el trigger esté reiniciado al reproducir
+            if (this.activeAction.userData) this.activeAction.userData.triggered = false;
+
             this.activeAction.reset().play();
             prevAction.crossFadeTo(this.activeAction, 0.8, false);
             this.idleTimer = 0;
-            this.holdCooldown = 15; // Aplica el enfriamiento de 15 segundos
+            this.holdCooldown = 15;
             this.mixers.idle.addEventListener('finished', this.onIdleFinished);
         }
     },
-    // ------------------------------------------------
 
     onIdleFinished: (event) => {
-        // Verifica si la animación que terminó es alguna de las posibles
+        // Reiniciamos la bandera de trigger en caso de que la animación la tuviera
+        if (event.action && event.action.userData) {
+            event.action.userData.triggered = false;
+        }
+
         if (event.action === LunariSystem.actions.saluda || 
             LunariSystem.actions.idle_randoms.includes(event.action) ||
             event.action === LunariSystem.actions.idle_click ||
             LunariSystem.actions.idle_holds.includes(event.action)) {
-            
+           
             const prevAction = event.action;
             const nextAction = LunariSystem.actions.idle_base;
             
@@ -150,10 +156,51 @@ export const LunariSystem = {
         }
     },
 
+    // --- NUEVO: EFECTO DE BESO VOLADO (CORAZONES NEÓN) ---
+    createHeartsEffect() {
+        // Paleta de colores neón 
+        const colors = ['#ff00ff', '#00ffff', '#ff1493', '#8a2be2'];
+        
+        for (let i = 0; i < 20; i++) {
+            const heart = document.createElement('div');
+            heart.innerHTML = '❤️';
+            heart.style.position = 'fixed'; 
+            heart.style.left = '50%';
+            heart.style.top = '45%'; // Altura aproximada del rostro/pecho de Lunari
+            heart.style.fontSize = `${Math.random() * 30 + 15}px`;
+            
+            // Truco CSS para pintar el emoji con colores neón puros
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            heart.style.color = 'transparent';  
+            heart.style.textShadow = `0 0 0 ${color}, 0 0 15px ${color}`;
+            
+            heart.style.pointerEvents = 'none';
+            heart.style.zIndex = '9999';
+            heart.style.transition = 'all 2s cubic-bezier(0.25, 1, 0.5, 1)';
+            heart.style.transform = `translate(-50%, -50%) scale(0)`;
+            heart.style.opacity = '1';
+
+            document.body.appendChild(heart);
+
+            // Animar dispersión
+            setTimeout(() => {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 250 + 100;
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance - 150; // Tendencia a volar hacia arriba
+                heart.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(1.5) rotate(${Math.random() * 60 - 30}deg)`;
+                heart.style.opacity = '0';
+            }, 50);
+
+            // Limpieza del DOM
+            setTimeout(() => {
+                heart.remove();
+            }, 2050);
+        }
+    },
+
     update(delta) {
         if (!State.isRoomStarted) return;
-
-        // Reduce el contador de enfriamiento si está activo
         if (this.holdCooldown > 0) {
             this.holdCooldown -= delta;
         }
@@ -188,6 +235,21 @@ export const LunariSystem = {
                     this.activeAction = this.actions.dormir_random;
                     this.activeAction.reset().fadeIn(0.5).play();
                     this.mixers.dormir.addEventListener('finished', this.onDormirFinished);
+                }
+            }
+        }
+
+        // --- NUEVO: VERIFICAR TIEMPO EXACTO PARA EFECTOS ---
+        if (this.activeAction && this.activeAction.userData && this.activeAction.userData.fileName) {
+            // Disparar justo a los 2 segundos
+            if (this.activeAction.time >= 2.0 && !this.activeAction.userData.triggered) {
+                this.activeAction.userData.triggered = true; // Evitar que se llame múltiples veces
+                
+                if (this.activeAction.userData.fileName === 'lunari_beso_volado.glb') {
+                    this.createHeartsEffect();
+                } else if (this.activeAction.userData.fileName === 'lunari_beso.glb') {
+                    // Llamar a la función global de cámara en room_main.js
+                    if (window.startCameraZoom) window.startCameraZoom();
                 }
             }
         }
