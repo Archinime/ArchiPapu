@@ -17,22 +17,23 @@ let switchMesh = null, focoMesh = null, focoDiaMesh = null, luzFocoDia = null;
 
 let isCameraZooming = false;
 let cameraZoomTimer = 0;
+let zoomEffectTriggered = false; // NUEVO: Bandera para controlar que el efecto salga una sola vez
 const originalCamPos = new THREE.Vector3();
 const originalTarget = new THREE.Vector3();
 const zoomTargetPos = new THREE.Vector3();
 const zoomLookAt = new THREE.Vector3();
 
-// ALGORITMO CÁMARA RECTA Y EXACTA - CORREGIDO (ALTURA MUNDO 3D)
+// ALGORITMO CÁMARA RECTA Y EXACTA
 window.startCameraZoom = function() {
     if (isCameraZooming) return;
     isCameraZooming = true;
     cameraZoomTimer = 0;
+    zoomEffectTriggered = false; // Reiniciamos el efecto
     
     originalCamPos.copy(camera.position);
     originalTarget.copy(controls.target);
 
     // En tu escena, la cámara empieza en Y=6 y mira a Y=5.
-    // MODIFICADO: Subimos la altura a 6.7 para apuntar a la cara en lugar del torso.
     let faceX = 0;
     let faceY = 8.2; 
     let faceZ = 0;
@@ -57,10 +58,40 @@ window.startCameraZoom = function() {
         dir.set(0, 0, 1);
     }
 
-    // Plantamos la cámara a 1.2 metros de su cara (close-up perfecto), exactamente a su nivel horizontal
-    zoomTargetPos.copy(zoomLookAt).addScaledVector(dir, 1.2);
+    // MODIFICADO: Cambiamos de 1.2 a 1.5 para no atravesar la cabeza del personaje
+    zoomTargetPos.copy(zoomLookAt).addScaledVector(dir, 1.5);
     zoomTargetPos.y = faceY; 
 };
+
+// NUEVO: Función para mostrar el efecto de beso/corazón
+function showKissEffect() {
+    const heart = document.createElement('div');
+    heart.innerHTML = '💖'; // Puedes cambiarlo por '💋' si prefieres un beso literal
+    heart.style.position = 'absolute';
+    heart.style.left = '50%';
+    heart.style.top = '50%';
+    heart.style.transform = 'translate(-50%, -50%) scale(0)';
+    heart.style.fontSize = '80px';
+    heart.style.pointerEvents = 'none'; // Para que no bloquee clicks
+    heart.style.zIndex = '9999';
+    heart.style.textShadow = '0 0 20px rgba(255, 105, 180, 0.8)';
+    heart.style.transition = 'transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 1s ease-out';
+    heart.style.opacity = '1';
+
+    document.body.appendChild(heart);
+
+    // Forzar un reflow para que la animación inicie correctamente
+    void heart.offsetWidth;
+
+    // Animar: Sube un poco y crece al tamaño final
+    heart.style.transform = 'translate(-50%, -150%) scale(1.5)';
+
+    // Desvanecer suavemente y eliminar del DOM
+    setTimeout(() => {
+        heart.style.opacity = '0';
+        setTimeout(() => heart.remove(), 1000);
+    }, 1000);
+}
 
 const audioPrenderLuz = new Audio('prender_luz.mp3');
 const audioApagarLuz = new Audio('apagar_luz.mp3');
@@ -103,7 +134,7 @@ function applyCurrentSettings() {
 
     let currentShadowType = renderer.shadowMap.type;
     let newShadowType = State.gameSettings.sombras >= 2 ?
-THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+        THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     
     if (currentShadowType !== newShadowType) {
         renderer.shadowMap.type = newShadowType;
@@ -123,13 +154,13 @@ THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     mainLight.castShadow = State.gameSettings.sombras > 0;
     if (State.gameSettings.sombras > 0) {
         let shadowRes = State.gameSettings.sombras === 2 ?
-(isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
+            (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
         if (mainLight.shadow.mapSize.width !== shadowRes) {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
         }
         mainLight.shadow.radius = State.gameSettings.sombras >= 2 ?
-4 : 1; 
+            4 : 1; 
     }
 
     for (let cat in loadedSlotMeshes) applyMaterialLogic(loadedSlotMeshes[cat], cat);
@@ -154,33 +185,27 @@ function applyMaterialLogic(model, categoryKey) {
             
             if (isFoco || isFocoDia) {
                 node.castShadow = false; node.receiveShadow = false;
-         
                 if (node.material) {
                     if (isFoco) { node.material.emissive = new THREE.Color(0xffeedd); node.material.emissiveIntensity = State.lightOn ? 1.5 : 0; }
                     if (isFocoDia) node.material.emissive = new THREE.Color(0xffffff);
                 }
             } else {
-  
                let nodeIsStructure = isStructureCategory || node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo');
                 node.castShadow = nodeIsStructure ? false : allowShadows;
                 node.receiveShadow = allowShadows;
                 
                 if(node.material) {
-    
-                 let mats = Array.isArray(node.material) ?
-node.material : [node.material];
+                    let mats = Array.isArray(node.material) ? node.material : [node.material];
                     mats.forEach(m => {
                         m.shadowSide = THREE.FrontSide;
                         m.side = THREE.DoubleSide;
                         if (isBaja && m.isMeshStandardMaterial) {
-               
-                             m.roughness = 1.0;
+                            m.roughness = 1.0;
                             m.metalness = 0.0;
                         }
                         m.needsUpdate = true;
-     
                     });
-}
+                }
             }
         }
     });
@@ -241,6 +266,7 @@ loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     }
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0) { 
         if (LunariSystem.mixers.dormir) {
@@ -250,16 +276,19 @@ loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
     }
     checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.despertar = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.despertar = new THREE.AnimationMixer(model); LunariSystem.actions.despertar_base = LunariSystem.mixers.despertar.clipAction(gltf.animations[0]); }
     checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('lunari_jugando.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.jugar = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.jugar = new THREE.AnimationMixer(model); LunariSystem.actions.jugar_base = LunariSystem.mixers.jugar.clipAction(gltf.animations[0]); }
     checkLoading();
 }, undefined, () => checkLoading());
+
 const pendingIdleClips = { saluda: null, click: null, randoms: [], holds: [] };
 loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
     const model = gltf.scene; 
@@ -278,8 +307,7 @@ loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
     if (realY < 1.0) realY = 1.6; 
 
     const localSizeX = 0.55; 
-    const localSizeZ 
-= 0.55; 
+    const localSizeZ = 0.55; 
     const localSizeY = realY * 1.15; 
 
     const hitboxGeo = new THREE.BoxGeometry(localSizeX, localSizeY, localSizeZ);
@@ -338,6 +366,7 @@ loader.load(getFreshUrl('lunari_saluda.glb'), (gltf) => {
     }
     checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0) { 
         if (LunariSystem.mixers.idle) {
@@ -347,6 +376,7 @@ loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
     }
     checkLoading();
 }, undefined, () => checkLoading());
+
 const holdFiles = ['lunari_beso.glb', 'lunari_beso_volado.glb'];
 holdFiles.forEach(file => {
     loader.load(getFreshUrl(file), (gltf) => {
@@ -354,18 +384,17 @@ holdFiles.forEach(file => {
             if (LunariSystem.mixers.idle) {
                 const action = LunariSystem.mixers.idle.clipAction(gltf.animations[0]);
                 action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
-                action.userData = 
-{ fileName: file, triggered: false };
+                action.userData = { fileName: file, triggered: false };
                 LunariSystem.actions.idle_holds.push(action);
             } else { 
                 gltf.animations[0].userData = { fileName: file, triggered: false };
                 pendingIdleClips.holds.push(gltf.animations[0]); 
             }
         }
-    
         checkLoading();
     }, undefined, () => checkLoading());
 });
+
 const idleRandomFiles = ['lunari_idle2.glb', 'lunari_idle4.glb', 'lunari_idle5.glb', 'lunari_idle6.glb'];
 idleRandomFiles.forEach(file => {
     loader.load(getFreshUrl(file), (gltf) => {
@@ -373,14 +402,13 @@ idleRandomFiles.forEach(file => {
             if (LunariSystem.mixers.idle) {
                 const action = LunariSystem.mixers.idle.clipAction(gltf.animations[0]);
                 action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
-                
-LunariSystem.actions.idle_randoms.push(action);
-       
+                LunariSystem.actions.idle_randoms.push(action);
              } else { pendingIdleClips.randoms.push(gltf.animations[0]); }
         }
         checkLoading();
     }, undefined, () => checkLoading());
 });
+
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
     focoDiaMesh = gltf.scene; applyMaterialLogic(focoDiaMesh, 'foco_dia'); luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
     const box = new THREE.Box3().setFromObject(focoDiaMesh); const center = new THREE.Vector3(); box.getCenter(center);
@@ -388,10 +416,12 @@ loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/fo
     scene.add(luzFocoDia); scene.add(focoDiaMesh); focoDiaMesh.visible = false; luzFocoDia.visible = true; 
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem); checkLoading();
 }, undefined, () => checkLoading());
+
 setInterval(() => {
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem);
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode, true);
 }, 60000);
+
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
     if (loadedSlotMeshes[categoryKey]) { 
@@ -412,17 +442,14 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
         if (categoryKey === 'pantalla_tv') {
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
-                  
                     TVManager.tvScreenMesh = node; 
                     let mats = Array.isArray(node.material) ? node.material : [node.material];
                     mats.forEach(mat => { 
                         if (!TVManager.isTvOn) { 
-mat.map = null; mat.emissiveMap = null; mat.color = new THREE.Color(0x000000); mat.emissive = new THREE.Color(0x000000); mat.emissiveIntensity = 0; } 
+                            mat.map = null; mat.emissiveMap = null; mat.color = new THREE.Color(0x000000); mat.emissive = new THREE.Color(0x000000); mat.emissiveIntensity = 0; } 
                         else { mat.map = TVManager.tvTexture; mat.emissiveMap = TVManager.tvTexture; mat.color = new THREE.Color(0xffffff); mat.emissive = new THREE.Color(0xffffff); mat.emissiveIntensity = 1.0; }
                         mat.needsUpdate = true;
-             
                     });
-           
                 }
              });
             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
@@ -434,14 +461,11 @@ mat.map = null; mat.emissiveMap = null; mat.color = new THREE.Color(0x000000); m
                 if (node.isMesh && node.material) {
                     if (categoryKey === 'pantalla_pc') node.userData.isMainVideoScreen = true;
                     if (!node.userData.originalMaterials) {
-                        const mats = Array.isArray(node.material) ? node.material 
-                            : [node.material];
+                        const mats = Array.isArray(node.material) ? node.material : [node.material];
                         node.userData.originalMaterials = mats.map(m => m.clone());
                     }
                     if (!PCManager.pcScreenMeshes.includes(node)) {
- 
                         PCManager.pcScreenMeshes.push(node);
-     
                     }
                 }
             });
@@ -474,6 +498,7 @@ for (let cat in State.inventoryData) {
 }
 
 WeatherSystem.setupWeatherVideo(loader, scene, applyMaterialLogic, loadedSlotMeshes, checkLoading);
+
 function updateLighting() {
     if (State.lightOn) {
         mainLight.visible = true;
@@ -493,12 +518,13 @@ function toggleLight() {
     State.lightOn = !State.lightOn;
     localStorage.setItem('lightState', State.lightOn ? 'on' : 'off'); updateLighting();
     if (State.lightOn) { audioPrenderLuz.currentTime = 0; audioPrenderLuz.play().catch(e=>{}); } else { audioApagarLuz.currentTime = 0;
-        audioApagarLuz.play().catch(e=>{}); }
+    audioApagarLuz.play().catch(e=>{}); }
 }
 
 const posterViewModal = document.getElementById('poster-view-modal'), posterEnlargedImage = document.getElementById('poster-enlarged-image');
 document.getElementById('close-poster-view').onclick = () => { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); };
 posterViewModal.onclick = (e) => { if (e.target === posterViewModal) { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); } };
+
 function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -581,18 +607,19 @@ renderer.domElement.addEventListener('pointerdown', (e) => {
     
     isLunariTargeted = false;
     
-  
     if (LunariSystem.currentState === 'idle' && LunariSystem.models.idle && LunariSystem.models.idle.visible) {
         if (raycaster.intersectObject(LunariSystem.models.idle, true).length > 0) {
             isLunariTargeted = true;
         }
     }
 });
+
 renderer.domElement.addEventListener('pointermove', (e) => { 
     const dx = e.clientX - pointerDownPos.x; 
     const dy = e.clientY - pointerDownPos.y; 
     if (Math.sqrt(dx * dx + dy * dy) > 5) isDragging = true; 
 });
+
 renderer.domElement.addEventListener('pointerup', (e) => { 
     if (!isDragging && !document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active') && !document.getElementById('pc-modal').classList.contains('visible')) {
         
@@ -601,7 +628,7 @@ renderer.domElement.addEventListener('pointerup', (e) => {
             const holdDuration = performance.now() - pointerDownTime;
             if (holdDuration >= 400) { 
                 LunariSystem.triggerHoldAnimation();
-     
+                window.startCameraZoom(); // MODIFICADO: Nos aseguramos de disparar la cámara aquí por si no estaba
             } else {
                 LunariSystem.triggerClickAnimation();
             }
@@ -610,15 +637,16 @@ renderer.domElement.addEventListener('pointerup', (e) => {
         
         if (!handledByLunari) {
             handleInteraction(e); 
-     
         }
   
     } 
     isDragging = false; 
     isLunariTargeted = false;
 });
+
 let then = performance.now(), frames = 0, lastFpsTime = then;
 let wasStarted = false;
+
 function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
@@ -651,6 +679,13 @@ function animate() {
                 // Mantener la cámara recta (1.5 seg)
                 camera.position.copy(zoomTargetPos);
                 controls.target.copy(zoomLookAt);
+
+                // NUEVO: GATILLAR EFECTO DE BESO AL FINALIZAR EL ACERCAMIENTO
+                if (!zoomEffectTriggered) {
+                    zoomEffectTriggered = true;
+                    showKissEffect();
+                }
+
             } else if (cameraZoomTimer < 3.5) {
                 // Alejamiento suave (1 seg)
                 t = cameraZoomTimer - 2.5;
