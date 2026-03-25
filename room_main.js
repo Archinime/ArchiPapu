@@ -22,7 +22,7 @@ const originalTarget = new THREE.Vector3();
 const zoomTargetPos = new THREE.Vector3();
 const zoomLookAt = new THREE.Vector3();
 
-// ALGORITMO CÁMARA RECTA Y EXACTA - CORREGIDO
+// ALGORITMO CÁMARA RECTA Y EXACTA - CORREGIDO (ALTURA MUNDO 3D)
 window.startCameraZoom = function() {
     if (isCameraZooming) return;
     isCameraZooming = true;
@@ -31,13 +31,13 @@ window.startCameraZoom = function() {
     originalCamPos.copy(camera.position);
     originalTarget.copy(controls.target);
 
-    // Fijamos una altura estable para la cara (Lunari mide ~1.6m, su cara está en ~1.45m).
-    // Evitamos usar Box3 porque la hitbox distorsiona el tamaño y manda la cámara al suelo.
+    // En tu escena, la cámara empieza en Y=6 y mira a Y=5. 
+    // Por lo tanto, la cara de Lunari está aproximadamente en Y=5.5
     let faceX = 0;
-    let faceY = 1.45; 
+    let faceY = 5.5; 
     let faceZ = 0;
 
-    // Tomamos la posición X y Z actual del modelo de Lunari por si cambia de lugar
+    // Detectamos la posición X y Z exacta de Lunari por si se ha movido
     if (LunariSystem.models.idle) {
         const pos = new THREE.Vector3();
         LunariSystem.models.idle.getWorldPosition(pos);
@@ -48,20 +48,18 @@ window.startCameraZoom = function() {
     // Miramos directamente a la cara
     zoomLookAt.set(faceX, faceY, faceZ);
 
-    // Dirección desde la cara HACIA la cámara actual
+    // Calculamos la dirección plana desde la cámara hacia la cara
     const dir = new THREE.Vector3().subVectors(originalCamPos, zoomLookAt);
-    dir.y = 0; // Obligamos a que el vector sea estrictamente plano horizontal
+    dir.y = 0; // Clave: Ignoramos la altura para que el acercamiento sea estrictamente recto
     
     if (dir.lengthSq() > 0.001) {
         dir.normalize();
     } else {
-        // Por si acaso la cámara estaba exactamente arriba
         dir.set(0, 0, 1);
     }
 
-    // Plantamos la cámara a 1.0 metros de su cara (antes 2.5, por eso se alejaba).
-    // Al poner la "y" de la cámara exactamente en faceY, forzamos un acercamiento 100% recto y sin inclinación.
-    zoomTargetPos.copy(zoomLookAt).addScaledVector(dir, 1.0);
+    // Plantamos la cámara a 1.2 metros de su cara (close-up perfecto), exactamente a su nivel horizontal
+    zoomTargetPos.copy(zoomLookAt).addScaledVector(dir, 1.2);
     zoomTargetPos.y = faceY; 
 };
 
