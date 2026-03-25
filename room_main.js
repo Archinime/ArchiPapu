@@ -168,8 +168,7 @@ function applyMaterialLogic(model, categoryKey) {
                 node.castShadow = nodeIsStructure ? false : allowShadows;
                 node.receiveShadow = allowShadows;
                 
-                // ARREGLO TECHO NEGRO: Iterar 
-                sobre el array para asegurar el DoubleSide en todos los materiales
+                // ARREGLO TECHO NEGRO: Iterar sobre el array para asegurar el DoubleSide en todos los materiales
                 if(node.material) {
                     let mats = Array.isArray(node.material) ?
                         node.material : [node.material];
