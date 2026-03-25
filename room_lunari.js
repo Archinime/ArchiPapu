@@ -113,7 +113,6 @@ export const LunariSystem = {
             const prevAction = this.activeAction;
             this.activeAction = randomHold;
             
-            // NUEVO: Asegurarnos de que el trigger esté reiniciado al reproducir
             if (this.activeAction.userData) this.activeAction.userData.triggered = false;
 
             this.activeAction.reset().play();
@@ -125,7 +124,6 @@ export const LunariSystem = {
     },
 
     onIdleFinished: (event) => {
-        // Reiniciamos la bandera de trigger en caso de que la animación la tuviera
         if (event.action && event.action.userData) {
             event.action.userData.triggered = false;
         }
@@ -156,9 +154,7 @@ export const LunariSystem = {
         }
     },
 
-    // --- NUEVO: EFECTO DE BESO VOLADO (CORAZONES NEÓN) ---
     createHeartsEffect() {
-        // Paleta de colores neón 
         const colors = ['#ff00ff', '#00ffff', '#ff1493', '#8a2be2'];
         
         for (let i = 0; i < 20; i++) {
@@ -166,10 +162,9 @@ export const LunariSystem = {
             heart.innerHTML = '❤️';
             heart.style.position = 'fixed'; 
             heart.style.left = '50%';
-            heart.style.top = '45%'; // Altura aproximada del rostro/pecho de Lunari
+            heart.style.top = '45%';
             heart.style.fontSize = `${Math.random() * 30 + 15}px`;
             
-            // Truco CSS para pintar el emoji con colores neón puros
             const color = colors[Math.floor(Math.random() * colors.length)];
             heart.style.color = 'transparent';  
             heart.style.textShadow = `0 0 0 ${color}, 0 0 15px ${color}`;
@@ -182,17 +177,15 @@ export const LunariSystem = {
 
             document.body.appendChild(heart);
 
-            // Animar dispersión
             setTimeout(() => {
                 const angle = Math.random() * Math.PI * 2;
                 const distance = Math.random() * 250 + 100;
                 const tx = Math.cos(angle) * distance;
-                const ty = Math.sin(angle) * distance - 150; // Tendencia a volar hacia arriba
+                const ty = Math.sin(angle) * distance - 150; 
                 heart.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(1.5) rotate(${Math.random() * 60 - 30}deg)`;
                 heart.style.opacity = '0';
             }, 50);
 
-            // Limpieza del DOM
             setTimeout(() => {
                 heart.remove();
             }, 2050);
@@ -239,16 +232,19 @@ export const LunariSystem = {
             }
         }
 
-        // --- NUEVO: VERIFICAR TIEMPO EXACTO PARA EFECTOS ---
         if (this.activeAction && this.activeAction.userData && this.activeAction.userData.fileName) {
-            // Disparar justo a los 2 segundos
-            if (this.activeAction.time >= 2.0 && !this.activeAction.userData.triggered) {
-                this.activeAction.userData.triggered = true; // Evitar que se llame múltiples veces
+            // DIFERENCIAR TIEMPOS: 1.5s para beso normal, 2.0s para beso volado
+            let triggerTime = 2.0;
+            if (this.activeAction.userData.fileName === 'lunari_beso.glb') {
+                triggerTime = 1.5;
+            }
+
+            if (this.activeAction.time >= triggerTime && !this.activeAction.userData.triggered) {
+                this.activeAction.userData.triggered = true; 
                 
                 if (this.activeAction.userData.fileName === 'lunari_beso_volado.glb') {
                     this.createHeartsEffect();
                 } else if (this.activeAction.userData.fileName === 'lunari_beso.glb') {
-                    // Llamar a la función global de cámara en room_main.js
                     if (window.startCameraZoom) window.startCameraZoom();
                 }
             }

@@ -15,7 +15,6 @@ const { scene, clock, camera, renderer, controls, ambient, hemiLight, mainLight 
 const loadedSlotMeshes = {};
 let switchMesh = null, focoMesh = null, focoDiaMesh = null, luzFocoDia = null;
 
-// --- VARIABLES GLOBALES PARA EL EFECTO DE ZOOM ---
 let isCameraZooming = false;
 let cameraZoomTimer = 0;
 const originalCamPos = new THREE.Vector3();
@@ -23,20 +22,51 @@ const originalTarget = new THREE.Vector3();
 const zoomTargetPos = new THREE.Vector3();
 const zoomLookAt = new THREE.Vector3();
 
+// ALGORITMO CÁMARA RECTA Y EXACTA
 window.startCameraZoom = function() {
     if (isCameraZooming) return;
     isCameraZooming = true;
     cameraZoomTimer = 0;
     
-    // Guardamos la posición actual exacta del usuario
     originalCamPos.copy(camera.position);
     originalTarget.copy(controls.target);
 
-    // Ajustar las coordenadas para apuntar y acercarse a la cara de Lunari
-    zoomLookAt.set(0, 1.4, 0); // Altura de la cabeza
-    zoomTargetPos.set(0, 1.4, 1.3); // La cámara se planta a 1.3m de frente
+    // Valores seguros por defecto
+    let faceY = 5.5; 
+    let faceZ = 0;
+    let faceX = 0;
+
+    // Detectamos la caja del modelo para encontrar la altura EXACTA de la cara
+    if (LunariSystem.models.idle) {
+        const box = new THREE.Box3().setFromObject(LunariSystem.models.idle);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        
+        // Asumimos que la cara está en el 15% superior de su altura total
+        faceY = box.max.y - (size.y * 0.15); 
+        faceX = center.x;
+        faceZ = center.z;
+    }
+
+    // Miramos directamente a la cara
+    zoomLookAt.set(faceX, faceY, faceZ);
+
+    // Calculamos de dónde viene la cámara para mantener la línea horizontal perfecta (recto)
+    const dir = new THREE.Vector3().subVectors(originalCamPos, zoomLookAt);
+    dir.y = 0; // Ignoramos la altura para que el acercamiento no se incline hacia abajo ni arriba
+    
+    if (dir.lengthSq() > 0) {
+        dir.normalize();
+    } else {
+        dir.set(0, 0, 1);
+    }
+
+    // Plantamos la cámara a 2.5 metros de su cara, exactamente a su nivel horizontal
+    zoomTargetPos.copy(zoomLookAt).addScaledVector(dir, 2.5);
+    zoomTargetPos.y = faceY; 
 };
-// ------------------------------------------------
 
 const audioPrenderLuz = new Audio('prender_luz.mp3');
 const audioApagarLuz = new Audio('apagar_luz.mp3');
@@ -141,21 +171,18 @@ function applyMaterialLogic(model, categoryKey) {
                 node.castShadow = nodeIsStructure ? false : allowShadows;
                 node.receiveShadow = allowShadows;
                 
+                // ARREGLO TECHO NEGRO: Iterar sobre el array para asegurar el DoubleSide en todos los materiales
                 if(node.material) {
-                    node.material.shadowSide = THREE.FrontSide;
-                    node.material.side = THREE.DoubleSide;
-                    
-                    if (isBaja) {
-                        let mats = Array.isArray(node.material) ?
-node.material : [node.material];
-                        mats.forEach(m => {
-                            if (m.isMeshStandardMaterial) {
-                                m.roughness = 1.0;
-                                m.metalness = 0.0;
-                            }
-                        });
-                    }
-                    node.material.needsUpdate = true;
+                    let mats = Array.isArray(node.material) ? node.material : [node.material];
+                    mats.forEach(m => {
+                        m.shadowSide = THREE.FrontSide;
+                        m.side = THREE.DoubleSide; // Aplica doble cara a estructuras multicapa
+                        if (isBaja && m.isMeshStandardMaterial) {
+                            m.roughness = 1.0;
+                            m.metalness = 0.0;
+                        }
+                        m.needsUpdate = true;
+                    });
                 }
             }
         }
@@ -301,7 +328,6 @@ loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
     pendingIdleClips.holds.forEach(clip => {
         const action = LunariSystem.mixers.idle.clipAction(clip);
         action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
-        // NUEVO: Transferir el userData si lo tenía como pendiente
         if (clip.userData) action.userData = clip.userData;
         LunariSystem.actions.idle_holds.push(action);
     });
@@ -336,11 +362,9 @@ holdFiles.forEach(file => {
             if (LunariSystem.mixers.idle) {
                 const action = LunariSystem.mixers.idle.clipAction(gltf.animations[0]);
                 action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
-                // NUEVO: Etiquetar el archivo y el trigger de tiempo
                 action.userData = { fileName: file, triggered: false };
                 LunariSystem.actions.idle_holds.push(action);
             } else { 
-                // NUEVO: Etiquetar el clip si el mixer aún no existe
                 gltf.animations[0].userData = { fileName: file, triggered: false };
                 pendingIdleClips.holds.push(gltf.animations[0]); 
             }
@@ -618,18 +642,17 @@ function animate() {
             delta = clock.getDelta();
         }
 
-        // --- NUEVO: INTERPOLACIÓN FLUIDA DE LA CÁMARA ---
         if (isCameraZooming) {
             cameraZoomTimer += delta;
             let t = 0;
             if (cameraZoomTimer < 1.0) {
-                // Acercamiento (1 seg) aplicando smoothstep
+                // Acercamiento (1 seg) 
                 t = cameraZoomTimer;
                 t = t * t * (3 - 2 * t);
                 camera.position.lerpVectors(originalCamPos, zoomTargetPos, t);
                 controls.target.lerpVectors(originalTarget, zoomLookAt, t);
             } else if (cameraZoomTimer < 2.5) {
-                // Mantener la cámara cerca por 1.5 seg
+                // Mantener la cámara recta (1.5 seg)
                 camera.position.copy(zoomTargetPos);
                 controls.target.copy(zoomLookAt);
             } else if (cameraZoomTimer < 3.5) {
@@ -648,7 +671,6 @@ function animate() {
         } else {
             controls.update(); 
         }
-        // ------------------------------------------------
 
         renderer.render(scene, camera);
         if (State.gameSettings.mostrarFps) { 
