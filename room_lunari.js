@@ -24,6 +24,10 @@ export const LunariSystem = {
     currentIdleIndex: 0,
     holdCooldown: 0, 
 
+    // NUEVO: Instancias de audio para los efectos especiales
+    audioBeso: new Audio('sonido_beso.mp3'),
+    audioCorazon: new Audio('sonido_corazon.mp3'),
+
     evaluateState(esDeDiaLocal, lastWeatherCode, intervalTick = false) {
         const hora = new Date().getHours();
         if (hora >= 22 || hora < 7) { 
@@ -112,6 +116,7 @@ export const LunariSystem = {
             const randomHold = this.actions.idle_holds[Math.floor(Math.random() * this.actions.idle_holds.length)];
             const prevAction = this.activeAction;
             
+            // Reiniciamos el estado por si la animación vuelve a salir elegida
             if (randomHold.userData) {
                 randomHold.userData.triggered = false;
             }
@@ -162,29 +167,43 @@ export const LunariSystem = {
             if (this.mixers[key]) this.mixers[key].update(delta);
         }
 
+        // --- SISTEMA DE TRIGGERS PARA ANIMACIONES ESPECÍFICAS ---
         if (this.currentState === 'idle' && this.activeAction && this.actions.idle_holds.includes(this.activeAction)) {
             if (this.activeAction.userData) {
                 const fileName = this.activeAction.userData.fileName;
                 const time = this.activeAction.time;
 
-                // 1. Beso normal: Zoom y corazón único rojo al SEGUNDO 2.0
+                // 1. Beso normal: Zoom, corazón y sonido al SEGUNDO 2.0
                 if (fileName === 'lunari_beso.glb') {
                     if (time >= 2.0 && !this.activeAction.userData.triggered) {
                         this.activeAction.userData.triggered = true;
-                        // Ajustado a 2.6 para que no se meta dentro del modelo
-                        if (window.startCameraZoom) window.startCameraZoom(2.6); 
+                        
+                        // Modificado: Ahora pasamos 2.0 para que la cámara no se acerque tanto
+                        if (window.startCameraZoom) window.startCameraZoom(2.0);
                         if (window.showHeartEffect) window.showHeartEffect();
+
+                        // Reproducir el sonido del beso respetando el volumen de efectos
+                        this.audioBeso.volume = (State.gameSettings.volumenEfectos || 50) / 100;
+                        this.audioBeso.currentTime = 0;
+                        this.audioBeso.play().catch(e => {});
                     }
                 }
-                // 2. Beso volado: Corazones múltiples al SEGUNDO 2.0
+                // 2. Beso volado: Corazones múltiples y sonido al SEGUNDO 2.0
                 else if (fileName === 'lunari_beso_volado.glb') {
                     if (time >= 2.0 && !this.activeAction.userData.triggered) {
                         this.activeAction.userData.triggered = true;
+                        
                         if (window.showMultiHeartEffect) window.showMultiHeartEffect();
+
+                        // Reproducir el sonido de corazones respetando el volumen de efectos
+                        this.audioCorazon.volume = (State.gameSettings.volumenEfectos || 50) / 100;
+                        this.audioCorazon.currentTime = 0;
+                        this.audioCorazon.play().catch(e => {});
                     }
                 }
             }
         }
+        // ----------------------------------------------
 
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base) {
             this.idleTimer += delta;
