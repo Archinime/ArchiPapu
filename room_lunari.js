@@ -112,7 +112,6 @@ export const LunariSystem = {
             const randomHold = this.actions.idle_holds[Math.floor(Math.random() * this.actions.idle_holds.length)];
             const prevAction = this.activeAction;
             
-            // Reiniciamos el estado por si la animación vuelve a salir elegida
             if (randomHold.userData) {
                 randomHold.userData.triggered = false;
             }
@@ -163,17 +162,17 @@ export const LunariSystem = {
             if (this.mixers[key]) this.mixers[key].update(delta);
         }
 
-        // --- SISTEMA DE TRIGGERS PARA ANIMACIONES ESPECÍFICAS ---
         if (this.currentState === 'idle' && this.activeAction && this.actions.idle_holds.includes(this.activeAction)) {
             if (this.activeAction.userData) {
                 const fileName = this.activeAction.userData.fileName;
                 const time = this.activeAction.time;
 
-                // 1. Beso normal: Zoom y corazón único rojo al SEGUNDO 1.0
+                // 1. Beso normal: Zoom y corazón único rojo al SEGUNDO 2.0
                 if (fileName === 'lunari_beso.glb') {
-                    if (time >= 1.0 && !this.activeAction.userData.triggered) {
+                    if (time >= 2.0 && !this.activeAction.userData.triggered) {
                         this.activeAction.userData.triggered = true;
-                        if (window.startCameraZoom) window.startCameraZoom(1.6);
+                        // Ajustado a 2.6 para que no se meta dentro del modelo
+                        if (window.startCameraZoom) window.startCameraZoom(2.6); 
                         if (window.showHeartEffect) window.showHeartEffect();
                     }
                 }
@@ -186,7 +185,6 @@ export const LunariSystem = {
                 }
             }
         }
-        // ----------------------------------------------
 
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base) {
             this.idleTimer += delta;
