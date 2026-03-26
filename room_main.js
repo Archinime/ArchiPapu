@@ -22,7 +22,7 @@ const originalTarget = new THREE.Vector3();
 const zoomTargetPos = new THREE.Vector3();
 const zoomLookAt = new THREE.Vector3();
 
-// ALGORITMO CÁMARA RECTA Y EXACTA - CORREGIDO (ALTURA MUNDO 3D)
+// ALGORITMO CÁMARA RECTA Y EXACTA
 window.startCameraZoom = function() {
     if (isCameraZooming) return;
     isCameraZooming = true;
@@ -31,13 +31,10 @@ window.startCameraZoom = function() {
     originalCamPos.copy(camera.position);
     originalTarget.copy(controls.target);
 
-    // En tu escena, la cámara empieza en Y=6 y mira a Y=5.
-    // MODIFICADO: Subimos la altura a 6.7 para apuntar a la cara en lugar del torso.
     let faceX = 0;
     let faceY = 8.2; 
     let faceZ = 0;
 
-    // Detectamos la posición X y Z exacta de Lunari por si se ha movido
     if (LunariSystem.models.idle) {
         const pos = new THREE.Vector3();
         LunariSystem.models.idle.getWorldPosition(pos);
@@ -45,11 +42,9 @@ window.startCameraZoom = function() {
         faceZ = pos.z;
     }
 
-    // Miramos directamente a la cara
     zoomLookAt.set(faceX, faceY, faceZ);
-    // Calculamos la dirección plana desde la cámara hacia la cara
     const dir = new THREE.Vector3().subVectors(originalCamPos, zoomLookAt);
-    dir.y = 0; // Clave: Ignoramos la altura para que el acercamiento sea estrictamente recto
+    dir.y = 0; 
     
     if (dir.lengthSq() > 0.001) {
         dir.normalize();
@@ -57,7 +52,6 @@ window.startCameraZoom = function() {
         dir.set(0, 0, 1);
     }
 
-    // ACTUALIZADO: Aumentamos la distancia de 1.2 a 1.6 metros para que no atraviese la cabeza
     zoomTargetPos.copy(zoomLookAt).addScaledVector(dir, 1.6);
     zoomTargetPos.y = faceY; 
 };
