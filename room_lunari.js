@@ -15,14 +15,14 @@ export const LunariSystem = {
         idle_base: null, 
         saluda: null, 
         idle_randoms: [],
-        idle_click: null, // Animación al hacer click (lunari_idle3)
-        idle_holds: []    // Animaciones al mantener presionado (besos)
+        idle_click: null,
+        idle_holds: []    
     },
     activeAction: null,
     idleTimer: 0,
     dormirTimer: 0,
     currentIdleIndex: 0,
-    holdCooldown: 0, // Enfriamiento de 15 segundos para las animaciones de mantener presionado
+    holdCooldown: 0, 
 
     evaluateState(esDeDiaLocal, lastWeatherCode, intervalTick = false) {
         const hora = new Date().getHours();
@@ -103,93 +103,26 @@ export const LunariSystem = {
         }
     },
 
-    // Efecto para lunari_beso.glb (Corazón único + cámara se acerca)
-    showHeartEffect() {
-        const heart = document.createElement('div');
-        heart.innerHTML = '❤️';
-        heart.style.position = 'absolute';
-        heart.style.left = '50%';
-        heart.style.top = '35%'; 
-        heart.style.transform = 'translate(-50%, -50%)';
-        heart.style.fontSize = '60px';
-        heart.style.pointerEvents = 'none';
-        heart.style.zIndex = '1000';
-        heart.style.animation = 'heartFloat 2s ease-out forwards';
-        heart.style.textShadow = '0 0 15px rgba(255, 0, 100, 0.8)';
-        document.body.appendChild(heart);
-
-        if (!document.getElementById('heart-anim-style')) {
-            const style = document.createElement('style');
-            style.id = 'heart-anim-style';
-            style.innerHTML = `
-                @keyframes heartFloat {
-                    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-                    15% { opacity: 1; transform: translate(-50%, -55%) scale(1.2); }
-                    100% { opacity: 0; transform: translate(-50%, -150%) scale(1.5); }
-                }
-            `;
-            document.head.appendChild(style);
-        }
-
-        setTimeout(() => { heart.remove(); }, 2000);
-    },
-
-    // Efecto para lunari_beso_volado.glb (Múltiples corazones, sin cámara)
-    showManyHeartsEffect() {
-        for (let i = 0; i < 15; i++) {
-            setTimeout(() => {
-                const heart = document.createElement('div');
-                heart.innerHTML = '💖';
-                heart.style.position = 'absolute';
-                // Posición aleatoria cerca del centro
-                heart.style.left = (40 + Math.random() * 20) + '%';
-                heart.style.top = (30 + Math.random() * 20) + '%';
-                heart.style.transform = 'translate(-50%, -50%)';
-                // Tamaños variados
-                heart.style.fontSize = (20 + Math.random() * 30) + 'px';
-                heart.style.pointerEvents = 'none';
-                heart.style.zIndex = '1000';
-                
-                const duration = 1.5 + Math.random(); // Entre 1.5 y 2.5 segundos
-                heart.style.animation = `heartFloat ${duration}s ease-out forwards`;
-                document.body.appendChild(heart);
-                
-                setTimeout(() => heart.remove(), duration * 1000);
-            }, i * 100); // Aparecen uno tras otro cada 100ms
-        }
-    },
-
     triggerHoldAnimation() {
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base && this.actions.idle_holds.length > 0) {
             if (this.holdCooldown > 0) {
                 console.log("Animación en enfriamiento. Faltan " + Math.ceil(this.holdCooldown) + "s");
-                return;
+                return; 
             }
-            
             const randomHold = this.actions.idle_holds[Math.floor(Math.random() * this.actions.idle_holds.length)];
             const prevAction = this.activeAction;
+            
+            // Reiniciamos el estado por si la animación vuelve a salir elegida
+            if (randomHold.userData) {
+                randomHold.userData.triggered = false;
+            }
+
             this.activeAction = randomHold;
             this.activeAction.reset().play();
             prevAction.crossFadeTo(this.activeAction, 0.8, false);
             this.idleTimer = 0;
             this.holdCooldown = 15;
             this.mixers.idle.addEventListener('finished', this.onIdleFinished);
-
-            // Verificamos qué animación es para aplicar el efecto correcto
-            const fileName = this.activeAction.userData?.fileName;
-
-            if (fileName === 'lunari_beso.glb') {
-                // Beso normal: Acerca cámara + 1 corazón grande
-                setTimeout(() => {
-                    if (window.startCameraZoom) window.startCameraZoom();
-                    this.showHeartEffect();
-                }, 2000);
-            } else if (fileName === 'lunari_beso_volado.glb') {
-                // Beso volado: NO mueve cámara + ráfaga de corazones
-                setTimeout(() => {
-                    this.showManyHeartsEffect();
-                }, 1500); // Lo lanzo a los 1.5s para que cuadre bien con el beso volado
-            }
         }
     },
 
@@ -230,6 +163,20 @@ export const LunariSystem = {
         for (let key in this.mixers) {
             if (this.mixers[key]) this.mixers[key].update(delta);
         }
+
+        // --- NUEVO: TRIGGER CÁMARA A LOS 2 SEGUNDOS ---
+        if (this.currentState === 'idle' && this.activeAction && this.actions.idle_holds.includes(this.activeAction)) {
+            // SOLO actuamos para lunari_beso.glb
+            if (this.activeAction.userData && this.activeAction.userData.fileName === 'lunari_beso.glb') {
+                if (this.activeAction.time >= 2.0 && !this.activeAction.userData.triggered) {
+                    this.activeAction.userData.triggered = true;
+                    // Mandamos la distancia de 1.6 para alejarla un poquito
+                    if (window.startCameraZoom) window.startCameraZoom(1.6);
+                    if (window.showHeartEffect) window.showHeartEffect();
+                }
+            }
+        }
+        // ----------------------------------------------
 
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base) {
             this.idleTimer += delta;

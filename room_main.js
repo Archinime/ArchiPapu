@@ -22,8 +22,8 @@ const originalTarget = new THREE.Vector3();
 const zoomTargetPos = new THREE.Vector3();
 const zoomLookAt = new THREE.Vector3();
 
-// ALGORITMO CÁMARA RECTA Y EXACTA
-window.startCameraZoom = function() {
+// ALGORITMO CÁMARA RECTA Y EXACTA - AHORA ACEPTA DISTANCIA PERSONALIZADA
+window.startCameraZoom = function(distance = 1.2) {
     if (isCameraZooming) return;
     isCameraZooming = true;
     cameraZoomTimer = 0;
@@ -31,10 +31,13 @@ window.startCameraZoom = function() {
     originalCamPos.copy(camera.position);
     originalTarget.copy(controls.target);
 
+    // En tu escena, la cámara empieza en Y=6 y mira a Y=5.
+    // MODIFICADO: Subimos la altura a 6.7 para apuntar a la cara en lugar del torso.
     let faceX = 0;
     let faceY = 8.2; 
     let faceZ = 0;
 
+    // Detectamos la posición X y Z exacta de Lunari por si se ha movido
     if (LunariSystem.models.idle) {
         const pos = new THREE.Vector3();
         LunariSystem.models.idle.getWorldPosition(pos);
@@ -42,9 +45,11 @@ window.startCameraZoom = function() {
         faceZ = pos.z;
     }
 
+    // Miramos directamente a la cara
     zoomLookAt.set(faceX, faceY, faceZ);
+    // Calculamos la dirección plana desde la cámara hacia la cara
     const dir = new THREE.Vector3().subVectors(originalCamPos, zoomLookAt);
-    dir.y = 0; 
+    dir.y = 0; // Clave: Ignoramos la altura para que el acercamiento sea estrictamente recto
     
     if (dir.lengthSq() > 0.001) {
         dir.normalize();
@@ -52,8 +57,38 @@ window.startCameraZoom = function() {
         dir.set(0, 0, 1);
     }
 
-    zoomTargetPos.copy(zoomLookAt).addScaledVector(dir, 1.6);
+    // Plantamos la cámara a la distancia requerida (1.2 por defecto, 1.6 para el beso normal)
+    zoomTargetPos.copy(zoomLookAt).addScaledVector(dir, distance);
     zoomTargetPos.y = faceY; 
+};
+
+// EFECTO DE BESO / CORAZÓN
+window.showHeartEffect = function() {
+    const heart = document.createElement('div');
+    heart.innerHTML = '❤️';
+    heart.style.position = 'absolute';
+    heart.style.left = '50%';
+    heart.style.top = '40%';
+    heart.style.transform = 'translate(-50%, -50%) scale(0)';
+    heart.style.fontSize = '80px';
+    heart.style.pointerEvents = 'none';
+    heart.style.zIndex = '1000';
+    heart.style.transition = 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 1.5s ease-out';
+    heart.style.opacity = '1';
+    heart.style.textShadow = '0 0 20px rgba(255, 0, 100, 0.8)';
+    document.body.appendChild(heart);
+
+    // Forzamos el reflow para que la animación aplique desde el principio
+    heart.getBoundingClientRect();
+
+    // Disparamos la animación visual
+    heart.style.transform = 'translate(-50%, -150px) scale(1.5)';
+
+    // Lo desvanecemos y eliminamos
+    setTimeout(() => {
+        heart.style.opacity = '0';
+        setTimeout(() => heart.remove(), 1500);
+    }, 1500);
 };
 
 const audioPrenderLuz = new Audio('prender_luz.mp3');
@@ -152,18 +187,18 @@ function applyMaterialLogic(model, categoryKey) {
                     if (isFoco) { node.material.emissive = new THREE.Color(0xffeedd); node.material.emissiveIntensity = State.lightOn ? 1.5 : 0; }
                     if (isFocoDia) node.material.emissive = new THREE.Color(0xffffff);
                 }
-            } else {
+             } else {
                let nodeIsStructure = isStructureCategory || node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo');
                 node.castShadow = nodeIsStructure ? false : allowShadows;
                 node.receiveShadow = allowShadows;
                 
-                if(node.material) {
+                 if(node.material) {
                     let mats = Array.isArray(node.material) ? node.material : [node.material];
                     mats.forEach(m => {
                         m.shadowSide = THREE.FrontSide;
                         m.side = THREE.DoubleSide;
                         if (isBaja && m.isMeshStandardMaterial) {
-                            m.roughness = 1.0;
+                             m.roughness = 1.0;
                             m.metalness = 0.0;
                         }
                         m.needsUpdate = true;
@@ -334,6 +369,7 @@ loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
     }
     checkLoading();
 }, undefined, () => checkLoading());
+
 const holdFiles = ['lunari_beso.glb', 'lunari_beso_volado.glb'];
 holdFiles.forEach(file => {
     loader.load(getFreshUrl(file), (gltf) => {
@@ -351,6 +387,7 @@ holdFiles.forEach(file => {
         checkLoading();
     }, undefined, () => checkLoading());
 });
+
 const idleRandomFiles = ['lunari_idle2.glb', 'lunari_idle4.glb', 'lunari_idle5.glb', 'lunari_idle6.glb'];
 idleRandomFiles.forEach(file => {
     loader.load(getFreshUrl(file), (gltf) => {
@@ -364,6 +401,7 @@ idleRandomFiles.forEach(file => {
         checkLoading();
     }, undefined, () => checkLoading());
 });
+
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
     focoDiaMesh = gltf.scene; applyMaterialLogic(focoDiaMesh, 'foco_dia'); luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
     const box = new THREE.Box3().setFromObject(focoDiaMesh); const center = new THREE.Vector3(); box.getCenter(center);
@@ -371,10 +409,12 @@ loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/fo
     scene.add(luzFocoDia); scene.add(focoDiaMesh); focoDiaMesh.visible = false; luzFocoDia.visible = true; 
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem); checkLoading();
 }, undefined, () => checkLoading());
+
 setInterval(() => {
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem);
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode, true);
 }, 60000);
+
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
     if (loadedSlotMeshes[categoryKey]) { 
@@ -451,6 +491,7 @@ for (let cat in State.inventoryData) {
 }
 
 WeatherSystem.setupWeatherVideo(loader, scene, applyMaterialLogic, loadedSlotMeshes, checkLoading);
+
 function updateLighting() {
     if (State.lightOn) {
         mainLight.visible = true;
@@ -476,6 +517,7 @@ function toggleLight() {
 const posterViewModal = document.getElementById('poster-view-modal'), posterEnlargedImage = document.getElementById('poster-enlarged-image');
 document.getElementById('close-poster-view').onclick = () => { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); };
 posterViewModal.onclick = (e) => { if (e.target === posterViewModal) { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); } };
+
 function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -564,11 +606,13 @@ renderer.domElement.addEventListener('pointerdown', (e) => {
         }
     }
 });
+
 renderer.domElement.addEventListener('pointermove', (e) => { 
     const dx = e.clientX - pointerDownPos.x; 
     const dy = e.clientY - pointerDownPos.y; 
     if (Math.sqrt(dx * dx + dy * dy) > 5) isDragging = true; 
 });
+
 renderer.domElement.addEventListener('pointerup', (e) => { 
     if (!isDragging && !document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active') && !document.getElementById('pc-modal').classList.contains('visible')) {
         
@@ -586,16 +630,20 @@ renderer.domElement.addEventListener('pointerup', (e) => {
         if (!handledByLunari) {
             handleInteraction(e); 
         }
+  
     } 
     isDragging = false; 
     isLunariTargeted = false;
 });
+
 let then = performance.now(), frames = 0, lastFpsTime = then;
 let wasStarted = false;
+
 function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
     const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
+    
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
         let delta = 0;
@@ -651,4 +699,5 @@ function animate() {
 }
 
 window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); applyCurrentSettings(); });
+
 applyCurrentSettings(); updateLighting(); animate();
