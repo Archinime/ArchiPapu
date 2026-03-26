@@ -24,7 +24,7 @@ export const LunariSystem = {
     currentIdleIndex: 0,
     holdCooldown: 0, 
 
-    // NUEVO: Instancias de audio para los efectos especiales
+    // Instancias de audio para los efectos especiales
     audioBeso: new Audio('sonido_beso.mp3'),
     audioCorazon: new Audio('sonido_corazon.mp3'),
 
@@ -173,12 +173,12 @@ export const LunariSystem = {
                 const fileName = this.activeAction.userData.fileName;
                 const time = this.activeAction.time;
 
-                // 1. Beso normal: Zoom, corazón y sonido al SEGUNDO 2.0
+                // 1. Beso normal: Zoom, corazón y sonido al SEGUNDO 1.0 (Actualizado)
                 if (fileName === 'lunari_beso.glb') {
-                    if (time >= 2.0 && !this.activeAction.userData.triggered) {
+                    if (time >= 1.0 && !this.activeAction.userData.triggered) {
                         this.activeAction.userData.triggered = true;
                         
-                        // Modificado: Ahora pasamos 2.0 para que la cámara no se acerque tanto
+                        // Mantenemos el acercamiento en 2.0 para que no atraviese el modelo
                         if (window.startCameraZoom) window.startCameraZoom(2.0);
                         if (window.showHeartEffect) window.showHeartEffect();
 
