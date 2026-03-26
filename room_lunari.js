@@ -1,35 +1,41 @@
 import * as THREE from 'three';
-import { TVManager } from './room_tv.js';
-import { PCManager } from './room_pc.js';
 import { State } from './room_state.js';
+import { LunariIdle } from './lunari_estado_idle.js';
+import { LunariDespertar } from './lunari_estado_despertar.js';
+import { LunariJugar } from './lunari_estado_jugar.js';
+import { LunariDormir } from './lunari_estado_dormir.js';
+
+// Mapa de los módulos de estados
+const statesMap = {
+    idle: LunariIdle,
+    despertar: LunariDespertar,
+    jugar: LunariJugar,
+    dormir: LunariDormir
+};
 
 export const LunariSystem = {
     currentState: null,
+    
+    // Contenedores de Three.js (No se tocan, room_main.js los llena)
     models: { dormir: null, despertar: null, jugar: null, idle: null },
     mixers: { dormir: null, despertar: null, jugar: null, idle: null },
     actions: { 
-        dormir_base: null, 
-        dormir_random: null, 
+        dormir_base: null, dormir_random: null, 
         despertar_base: null, 
         jugar_base: null, 
-        idle_base: null, 
-        saluda: null, 
-        idle_randoms: [],
-        idle_click: null,
-        idle_holds: []    
+        idle_base: null, saluda: null, idle_randoms: [], idle_click: null, idle_holds: []    
     },
+    
     activeAction: null,
     idleTimer: 0,
     dormirTimer: 0,
     currentIdleIndex: 0,
     holdCooldown: 0, 
     
-    // NUEVO: Variables para controlar el tiempo y auto-cambio de estado
     stateTimer: 0,
     lastIsDay: true,
     lastWeather: 0,
 
-    // Instancias de audio para los efectos especiales
     audioBeso: new Audio('sonido_beso.mp3'),
     audioCorazon: new Audio('sonido_corazon.mp3'),
 
@@ -38,112 +44,62 @@ export const LunariSystem = {
         this.lastWeather = lastWeatherCode;
         const hora = new Date().getHours();
         
-        // HORARIO ESTRICTO DE SUEÑO
         if (hora >= 22 || hora < 7) { 
             this.setState('dormir', esDeDiaLocal, lastWeatherCode);
         } else {
-            // VERIFICACIÓN INICIAL AL ENTRAR AL CUARTO
             if (!this.currentState || this.currentState === 'dormir') {
-                
-                // Leemos la memoria de lo que dejaste encendido
                 const tvWasOn = localStorage.getItem('room_tv_on') === 'true';
                 const pcWasOn = localStorage.getItem('room_pc_on') === 'true';
-
                 let chosenState = 'idle';
 
-                if (tvWasOn && pcWasOn) {
-                    chosenState = Math.random() < 0.5 ? 'despertar' : 'jugar';
-                } else if (tvWasOn) {
-                    chosenState = 'despertar';
-                } else if (pcWasOn) {
-                    chosenState = 'jugar';
-                } else {
-                    const states = ['idle', 'despertar', 'jugar'];
-                    chosenState = states[Math.floor(Math.random() * states.length)];
+                if (tvWasOn && pcWasOn) chosenState = Math.random() < 0.5 ? 'despertar' : 'jugar';
+                else if (tvWasOn) chosenState = 'despertar';
+                else if (pcWasOn) chosenState = 'jugar';
+                else {
+                    const statesList = ['idle', 'despertar', 'jugar'];
+                    chosenState = statesList[Math.floor(Math.random() * statesList.length)];
                 }
-
+                
                 this.setState(chosenState, esDeDiaLocal, lastWeatherCode);
             }
-            // El cambio de estado aleatorio durante el día ahora lo maneja el reloj interno en update()
         }
     },
 
     setState(newState, esDeDiaLocal, lastWeatherCode) {
         if (this.currentState === newState) return;
-        const oldState = this.currentState;
-        this.currentState = newState;
         
-        this.stateTimer = 0; // Reinicia el contador de 1 hora al cambiar de estado
+        // Ejecutamos la lógica de salida del estado anterior
+        if (this.currentState && statesMap[this.currentState].exit) {
+            statesMap[this.currentState].exit(this);
+        }
+
+        this.currentState = newState;
+        this.stateTimer = 0; 
         this.lastIsDay = esDeDiaLocal;
         this.lastWeather = lastWeatherCode;
 
         for (let key in this.models) {
             if (this.models[key]) this.models[key].visible = false;
         }
-        
         if (this.activeAction) this.activeAction.stop();
-        if (this.mixers.idle) this.mixers.idle.removeEventListener('finished', this.onIdleFinished);
-        if (this.mixers.dormir) this.mixers.dormir.removeEventListener('finished', this.onDormirFinished);
 
-        if (newState === 'dormir' && this.models.dormir) {
-            this.models.dormir.visible = true;
-            this.activeAction = this.actions.dormir_base;
-            if (this.activeAction) this.activeAction.reset().fadeIn(0.5).play();
-            this.dormirTimer = 0;
-        } 
-        else if (newState === 'despertar' && this.models.despertar) {
-            this.models.despertar.visible = true;
-            this.activeAction = this.actions.despertar_base;
-            if (this.activeAction) this.activeAction.reset().fadeIn(0.5).play();
-            if (State.isRoomStarted) TVManager.turnOnAutomatically(); 
+        // Vinculamos los eventos de animación una sola vez
+        if (!this.onIdleFinishedBound) {
+            this.onIdleFinishedBound = (e) => this.onIdleFinished(e);
+            this.onDormirFinishedBound = (e) => this.onDormirFinished(e);
         }
-        else if (newState === 'jugar' && this.models.jugar) {
-            this.models.jugar.visible = true;
-            this.activeAction = this.actions.jugar_base;
-            if (this.activeAction) this.activeAction.reset().fadeIn(0.5).play();
-            PCManager.setGamingMode(true);
-        }
-        else if (newState === 'idle' && this.models.idle) {
-            this.models.idle.visible = true;
-            this.idleTimer = 0;
-            if (this.actions.saluda) {
-                this.activeAction = this.actions.saluda;
-                this.activeAction.reset().fadeIn(0.5).play();
-                this.mixers.idle.addEventListener('finished', this.onIdleFinished);
-            } else {
-                this.activeAction = this.actions.idle_base;
-                if (this.activeAction) this.activeAction.reset().fadeIn(0.5).play();
-            }
-        }
-        
-        // APAGADO AUTOMÁTICO DE PC AL DEJAR DE JUGAR
-        if (oldState === 'jugar' && newState !== 'jugar') {
-            PCManager.setGamingMode(false);
-        }
-        
-        // APAGADO AUTOMÁTICO DE TV AL DEJAR DE VERLA
-        if (oldState === 'despertar' && newState !== 'despertar') {
-            if (TVManager.isTvOn && !TVManager.tvTransitioning) {
-                const tvPowerBtn = document.getElementById('tv-power');
-                if (tvPowerBtn) tvPowerBtn.click();
-            }
+
+        // Ejecutamos la lógica de entrada del nuevo estado
+        if (statesMap[newState].enter) {
+            statesMap[newState].enter(this);
         }
 
         this.updateLunariText(esDeDiaLocal, lastWeatherCode);
     },
 
-    // NUEVO: Función cuando intentas apagarle la TV
     complainAboutTV() {
-        const dialogBox = document.getElementById('dialogue-text');
-        if (dialogBox) {
-            dialogBox.innerHTML = "¡Oye! ¡Estoy viendo mi programa favorito!<br>Déjame ver la tele tranquila... 📺😠";
-            
-            // Restauramos el texto normal después de 4 segundos
-            setTimeout(() => {
-                if (this.currentState === 'despertar') {
-                    this.updateLunariText(this.lastIsDay, this.lastWeather);
-                }
-            }, 4000);
+        if (this.currentState === 'despertar' && statesMap.despertar.complainAboutTV) {
+            statesMap.despertar.complainAboutTV(this);
         }
     },
 
@@ -154,7 +110,6 @@ export const LunariSystem = {
             this.activeAction.reset().play();
             prevAction.crossFadeTo(this.activeAction, 0.8, false);
             this.idleTimer = 0;
-            this.mixers.idle.addEventListener('finished', this.onIdleFinished);
         }
     },
 
@@ -172,35 +127,15 @@ export const LunariSystem = {
             prevAction.crossFadeTo(this.activeAction, 0.8, false);
             this.idleTimer = 0;
             this.holdCooldown = 15;
-            this.mixers.idle.addEventListener('finished', this.onIdleFinished);
         }
     },
 
-    onIdleFinished: (event) => {
-        if (event.action === LunariSystem.actions.saluda || 
-            LunariSystem.actions.idle_randoms.includes(event.action) ||
-            event.action === LunariSystem.actions.idle_click ||
-            LunariSystem.actions.idle_holds.includes(event.action)) {
-           
-            const prevAction = event.action;
-            const nextAction = LunariSystem.actions.idle_base;
-            
-            LunariSystem.activeAction = nextAction;
-            if (LunariSystem.activeAction) {
-                LunariSystem.activeAction.reset().play();
-                prevAction.crossFadeTo(LunariSystem.activeAction, 0.8, false);
-            }
-            LunariSystem.idleTimer = 0;
-        }
+    onIdleFinished(event) {
+        if (statesMap.idle.onFinished) statesMap.idle.onFinished(this, event);
     },
 
-    onDormirFinished: (event) => {
-        if (event.action === LunariSystem.actions.dormir_random) {
-            event.action.fadeOut(0.5);
-            LunariSystem.activeAction = LunariSystem.actions.dormir_base;
-            if (LunariSystem.activeAction) LunariSystem.activeAction.reset().fadeIn(0.5).play();
-            LunariSystem.dormirTimer = 0;
-        }
+    onDormirFinished(event) {
+        if (statesMap.dormir.onFinished) statesMap.dormir.onFinished(this, event);
     },
 
     update(delta) {
@@ -217,70 +152,15 @@ export const LunariSystem = {
             this.stateTimer += delta;
             if (this.stateTimer >= 3600) { 
                 this.stateTimer = 0;
-                // Elegir un estado de día diferente al actual de forma aleatoria
                 const dayStates = ['idle', 'despertar', 'jugar'].filter(s => s !== this.currentState);
                 const randomState = dayStates[Math.floor(Math.random() * dayStates.length)];
                 this.setState(randomState, this.lastIsDay, this.lastWeather);
             }
         }
 
-        if (this.currentState === 'idle' && this.activeAction && this.actions.idle_holds.includes(this.activeAction)) {
-            if (this.activeAction.userData) {
-                const fileName = this.activeAction.userData.fileName;
-                const time = this.activeAction.time;
-
-                if (fileName === 'lunari_beso.glb') {
-                    if (time >= 1.0 && !this.activeAction.userData.triggered) {
-                        this.activeAction.userData.triggered = true;
-                        if (window.startCameraZoom) window.startCameraZoom(2.0);
-                        if (window.showHeartEffect) window.showHeartEffect();
-
-                        this.audioBeso.volume = (State.gameSettings.volumenEfectos || 50) / 100;
-                        this.audioBeso.currentTime = 0;
-                        this.audioBeso.play().catch(e => {});
-                    }
-                }
-                else if (fileName === 'lunari_beso_volado.glb') {
-                    if (time >= 2.0 && !this.activeAction.userData.triggered) {
-                        this.activeAction.userData.triggered = true;
-                        if (window.showMultiHeartEffect) window.showMultiHeartEffect();
-
-                        this.audioCorazon.volume = (State.gameSettings.volumenEfectos || 50) / 100;
-                        this.audioCorazon.currentTime = 0;
-                        this.audioCorazon.play().catch(e => {});
-                    }
-                }
-            }
-        }
-
-        if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base) {
-            this.idleTimer += delta;
-            if (this.idleTimer >= 30) {
-                this.idleTimer = 0;
-                if (this.actions.idle_randoms.length > 0) {
-                    const nextAction = this.actions.idle_randoms[this.currentIdleIndex];
-                    this.currentIdleIndex = (this.currentIdleIndex + 1) % this.actions.idle_randoms.length;
-
-                    const prevAction = this.activeAction;
-                    this.activeAction = nextAction;
-                    this.activeAction.reset().play();
-                    prevAction.crossFadeTo(this.activeAction, 0.8, false);
-                    this.mixers.idle.addEventListener('finished', this.onIdleFinished);
-                }
-            }
-        }
-
-        if (this.currentState === 'dormir' && this.activeAction === this.actions.dormir_base) {
-            this.dormirTimer += delta;
-            if (this.dormirTimer >= 60) {
-                this.dormirTimer = 0;
-                if (this.actions.dormir_random) {
-                    this.activeAction.fadeOut(0.5);
-                    this.activeAction = this.actions.dormir_random;
-                    this.activeAction.reset().fadeIn(0.5).play();
-                    this.mixers.dormir.addEventListener('finished', this.onDormirFinished);
-                }
-            }
+        // Delegamos el update al estado activo
+        if (this.currentState && statesMap[this.currentState].update) {
+            statesMap[this.currentState].update(this, delta);
         }
     },
 
@@ -288,25 +168,8 @@ export const LunariSystem = {
         const dialogBox = document.getElementById('dialogue-text');
         if(!dialogBox) return;
         
-        if (this.currentState === 'dormir') {
-            dialogBox.innerHTML = "Zzz...<br>(Lunari está profundamente dormida)";
-            return;
-        }
-        if (this.currentState === 'jugar') {
-            dialogBox.innerHTML = "¡Estoy en plena partida en Survev.io!<br>¡Cuidado, no me distraigas o perderé!";
-            return;
-        }
-        if (this.currentState === 'despertar') {
-            dialogBox.innerHTML = "Este anime está muy interesante.<br>¡Shhh! Estoy prestando atención.";
-            return;
-        }
-
-        if (!isDay) { 
-            dialogBox.innerHTML = "¡Qué noche tan tranquila!<br>¿Deberíamos dormir pronto?";
-        } else if ([51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99].includes(weatherCode)) {
-            dialogBox.innerHTML = "El clima está feo afuera.<br>¡Mejor nos quedamos viendo anime!";
-        } else {
-            dialogBox.innerHTML = "¡Buenos días!<br>Me quedaré aquí un ratito más...";
+        if (this.currentState && statesMap[this.currentState].getDialogue) {
+            dialogBox.innerHTML = statesMap[this.currentState].getDialogue(isDay, weatherCode);
         }
     }
 };
