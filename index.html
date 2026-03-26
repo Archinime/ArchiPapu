@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Habitación 3D - Inventario y Lunari</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="room_style.css">
 </head>
 <body>
@@ -125,9 +126,17 @@
         <img id="poster-enlarged-image" src="" alt="Póster">
     </div>
 
-    <div id="loading">
-        <div class="loading-text">Preparando habitación... <span id="loading-count">0/0</span></div>
-        <div id="loading-bar-container"><div id="loading-bar"></div></div>
+    <div id="cyber-loader">
+        <div class="loader-content">
+            <div class="loader-glitch-wrapper">
+                <div class="loader-glitch" data-text="LUNARI OS">LUNARI OS</div>
+            </div>
+            <div class="loader-sub">INICIALIZANDO ENTORNO 3D... <span id="loading-count">0/0</span></div>
+            <div class="loading-bar-container">
+                <div id="loading-bar"></div>
+            </div>
+            <button id="cyber-start-btn" style="display: none; opacity: 0;">▶ INICIAR ENLACE</button>
+        </div>
     </div>
     
     <div id="light-status">💡 Luz encendida</div>

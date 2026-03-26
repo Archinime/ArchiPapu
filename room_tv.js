@@ -52,7 +52,7 @@ export const TVManager = {
         this.tvEffectTextureOff.format = THREE.RGBAFormat;
 
         this.tvEffectTextureOn = new THREE.VideoTexture(this.tvEffectVideoOn);
-        this.tvEffectTextureOn.minFilter = THREE.LinearFilter; 
+        this.tvEffectTextureOn.minFilter = THREE.LinearFilter;
         this.tvEffectTextureOn.magFilter = THREE.LinearFilter;
         this.tvEffectTextureOn.format = THREE.RGBAFormat;
 
@@ -64,57 +64,17 @@ export const TVManager = {
                 this.playNextTv(false);
             }
         });
-        
+
         this.setupStartScreen();
     },
 
+    // --- NUEVA LÓGICA VINCULADA AL HTML CYBERPUNK ---
     setupStartScreen() {
-        const overlay = document.createElement('div');
-        overlay.id = 'start-interaction-overlay';
-        overlay.style.position = 'fixed';
-        overlay.style.top = '0';
-        overlay.style.left = '0';
-        overlay.style.width = '100vw';
-        overlay.style.height = '100vh';
-        overlay.style.background = 'rgba(10, 10, 15, 0.95)';
-        overlay.style.backdropFilter = 'blur(10px)';
-        overlay.style.display = 'flex';
-        overlay.style.flexDirection = 'column';
-        overlay.style.alignItems = 'center';
-        overlay.style.justifyContent = 'center';
-        overlay.style.zIndex = '99999';
-        overlay.style.transition = 'opacity 0.5s ease';
-        overlay.style.opacity = '0';
-        overlay.style.pointerEvents = 'none';
-        
-        const btn = document.createElement('button');
-        btn.innerHTML = '▶ INICIAR HABITACIÓN';
-        btn.style.background = 'linear-gradient(90deg, #80cbc4, #4db6ac)';
-        btn.style.color = '#111';
-        btn.style.padding = '15px 40px';
-        btn.style.borderRadius = '30px';
-        btn.style.border = 'none';
-        btn.style.fontSize = '22px';
-        btn.style.fontWeight = 'bold';
-        btn.style.cursor = 'pointer';
-        btn.style.boxShadow = '0 0 20px rgba(128, 203, 196, 0.6)';
-        btn.style.transition = 'transform 0.2s';
-        
-        btn.onmouseover = () => btn.style.transform = 'scale(1.05)';
-        btn.onmouseout = () => btn.style.transform = 'scale(1)';
+        const btn = document.getElementById('cyber-start-btn');
+        const loader = document.getElementById('cyber-loader');
 
-        overlay.appendChild(btn);
-        document.body.appendChild(overlay);
+        if(!btn || !loader) return;
 
-        const checkLoading = setInterval(() => {
-            const loadingDiv = document.getElementById('loading');
-            if (!loadingDiv || window.getComputedStyle(loadingDiv).display === 'none' || window.getComputedStyle(loadingDiv).opacity === '0') {
-                clearInterval(checkLoading);
-                overlay.style.opacity = '1';
-                overlay.style.pointerEvents = 'auto';
-            }
-        }, 500);
-        
         btn.addEventListener('click', () => {
             this.hasInteracted = true;
             State.isRoomStarted = true; 
@@ -137,8 +97,10 @@ export const TVManager = {
                 PCManager.survVideo.play().catch(()=>{});
             }
 
-            overlay.style.opacity = '0';
-            setTimeout(() => overlay.remove(), 500);
+            // Oculta el loader de forma suave
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 500);
+   
             if (this.pendingAutoTurnOn) {
                 this.turnOnAutomatically();
             }
@@ -176,36 +138,36 @@ export const TVManager = {
               tvPlayPauseBtn = document.getElementById('tv-play-pause'), 
               tvNextBtn = document.getElementById('tv-next'), 
               tvPowerBtn = document.getElementById('tv-power');
-              
+
         tvPrevBtn.onclick = () => { 
             this.playButtonSound();
-            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } // BLOQUEO
-            if (!this.isTvOn || this.tvTransitioning) return; 
+            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } 
+            if (!this.isTvOn || this.tvTransitioning) return;
             this.updatePlaylist(); 
             if(this.tvPlaylist.length===0)return;
             this.currentTvIndex = (this.currentTvIndex - 1 + this.tvPlaylist.length) % this.tvPlaylist.length; 
             this.tvVideo.src = this.tvPlaylist[this.currentTvIndex]; 
             this.tvVideo.play();
         };
-        
+
         tvPlayPauseBtn.onclick = () => { 
             this.playButtonSound();
-            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } // BLOQUEO
-            if (!this.isTvOn || this.tvTransitioning) return; 
+            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } 
+            if (!this.isTvOn || this.tvTransitioning) return;
             if(this.tvVideo.paused) this.tvVideo.play(); 
             else this.tvVideo.pause(); 
         };
         
         tvNextBtn.onclick = () => { 
             this.playButtonSound();
-            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } // BLOQUEO
-            if (this.isTvOn && !this.tvTransitioning) this.playNextTv(false); 
+            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } 
+            if (this.isTvOn && !this.tvTransitioning) this.playNextTv(false);
         };
 
         if (tvPowerBtn) {
             tvPowerBtn.addEventListener('click', () => {
                 this.playButtonSound();
-                if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } // BLOQUEO
+                if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } 
                 
                 if (this.tvTransitioning || !this.tvScreenMesh) return;
                 
@@ -220,7 +182,7 @@ export const TVManager = {
                     mat.map = effectTexture; 
                     mat.emissiveMap = effectTexture; 
                     mat.color.setHex(0xffffff); 
-                    mat.emissive.setHex(0xffffff); 
+                    mat.emissive.setHex(0xffffff);
                     mat.emissiveIntensity = 1.0; 
                     mat.needsUpdate = true; 
                 });
@@ -238,7 +200,7 @@ export const TVManager = {
                         tvPowerBtn.innerText = '🔴'; 
                         tvPowerBtn.style.color = 'red'; 
                         tvPowerBtn.style.textShadow = '0 0 5px red';
-                        
+
                         mats.forEach(mat => { 
                             mat.map = null; 
                             mat.emissiveMap = null; 
@@ -247,14 +209,13 @@ export const TVManager = {
                             mat.emissiveIntensity = 0; 
                             mat.needsUpdate = true; 
                         });
-                        
                     } else {
                         this.isTvOn = true;
                         localStorage.setItem('room_tv_on', 'true');
                         tvPowerBtn.innerText = '🟢'; 
                         tvPowerBtn.style.color = '#00ff00'; 
                         tvPowerBtn.style.textShadow = '0 0 5px #00ff00';
-                        
+
                         mats.forEach(mat => { 
                             mat.map = this.tvTexture; 
                             mat.emissiveMap = this.tvTexture; 
@@ -263,7 +224,7 @@ export const TVManager = {
                             mat.emissiveIntensity = 1.0; 
                             mat.needsUpdate = true; 
                         });
-                        
+
                         if (this.tvPlaylist.length > 0 && !this.tvVideo.src) {
                             this.playNextTv(true);
                         } else if (this.tvPlaylist.length > 0) {
@@ -272,7 +233,6 @@ export const TVManager = {
                         }
                     }
                 };
-                
                 effectVideo.addEventListener('ended', onEffectEnded, { once: true });
             });
         }
@@ -298,7 +258,8 @@ export const TVManager = {
         }
 
         if (this.tvScreenMesh) {
-            const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
+            const mats = Array.isArray(this.tvScreenMesh.material) ?
+            this.tvScreenMesh.material : [this.tvScreenMesh.material];
             mats.forEach(mat => { 
                 mat.map = this.tvTexture; 
                 mat.emissiveMap = this.tvTexture; 

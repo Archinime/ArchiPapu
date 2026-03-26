@@ -22,7 +22,7 @@ const originalTarget = new THREE.Vector3();
 const zoomTargetPos = new THREE.Vector3();
 const zoomLookAt = new THREE.Vector3();
 
-// ALGORITMO CÁMARA RECTA Y EXACTA - AHORA ACEPTA DISTANCIA PERSONALIZADA
+// ALGORITMO CÁMARA RECTA Y EXACTA
 window.startCameraZoom = function(distance = 1.2) {
     if (isCameraZooming) return;
     isCameraZooming = true;
@@ -31,13 +31,10 @@ window.startCameraZoom = function(distance = 1.2) {
     originalCamPos.copy(camera.position);
     originalTarget.copy(controls.target);
 
-    // En tu escena, la cámara empieza en Y=6 y mira a Y=5.
-    // MODIFICADO: Subimos la altura a 6.7 para apuntar a la cara en lugar del torso.
     let faceX = 0;
     let faceY = 8.8; 
     let faceZ = 0;
 
-    // Detectamos la posición X y Z exacta de Lunari por si se ha movido
     if (LunariSystem.models.idle) {
         const pos = new THREE.Vector3();
         LunariSystem.models.idle.getWorldPosition(pos);
@@ -45,11 +42,9 @@ window.startCameraZoom = function(distance = 1.2) {
         faceZ = pos.z;
     }
 
-    // Miramos directamente a la cara
     zoomLookAt.set(faceX, faceY, faceZ);
-    // Calculamos la dirección plana desde la cámara hacia la cara
     const dir = new THREE.Vector3().subVectors(originalCamPos, zoomLookAt);
-    dir.y = 0; // Clave: Ignoramos la altura para que el acercamiento sea estrictamente recto
+    dir.y = 0; 
     
     if (dir.lengthSq() > 0.001) {
         dir.normalize();
@@ -57,12 +52,10 @@ window.startCameraZoom = function(distance = 1.2) {
         dir.set(0, 0, 1);
     }
 
-    // Plantamos la cámara a la distancia requerida (1.2 por defecto, 1.6 para el beso normal)
     zoomTargetPos.copy(zoomLookAt).addScaledVector(dir, distance);
     zoomTargetPos.y = faceY; 
 };
 
-// EFECTO DE BESO / CORAZÓN
 window.showHeartEffect = function() {
     const heart = document.createElement('div');
     heart.innerHTML = '❤️';
@@ -77,21 +70,17 @@ window.showHeartEffect = function() {
     heart.style.opacity = '1';
     heart.style.textShadow = '0 0 20px rgba(255, 0, 100, 0.8)';
     document.body.appendChild(heart);
-    // Forzamos el reflow para que la animación aplique desde el principio
     heart.getBoundingClientRect();
-    // Disparamos la animación visual
     heart.style.transform = 'translate(-50%, -150px) scale(1.5)';
-    // Lo desvanecemos y eliminamos
     setTimeout(() => {
         heart.style.opacity = '0';
         setTimeout(() => heart.remove(), 1500);
     }, 1500);
 };
 
-// NUEVO EFECTO: MULTIPLES CORAZONES PARA BESO VOLADO
 window.showMultiHeartEffect = function() {
     const emojis = ['❤️', '💖', '💜', '💙', '💛', '💚', '✨'];
-    const numHearts = 8; // Cantidad de corazones
+    const numHearts = 8; 
     
     for (let i = 0; i < numHearts; i++) {
         setTimeout(() => {
@@ -103,7 +92,7 @@ window.showMultiHeartEffect = function() {
             heart.style.top = '40%';
             heart.style.transform = 'translate(-50%, -50%) scale(0)';
             
-            const size = Math.floor(Math.random() * 30) + 40; // 40px a 70px
+            const size = Math.floor(Math.random() * 30) + 40; 
             heart.style.fontSize = size + 'px';
             heart.style.pointerEvents = 'none';
             heart.style.zIndex = '1000';
@@ -112,18 +101,17 @@ window.showMultiHeartEffect = function() {
             heart.style.opacity = '1';
             
             document.body.appendChild(heart);
-            heart.getBoundingClientRect(); // Reflow
+            heart.getBoundingClientRect(); 
             
-            // Animación hacia arriba y a los lados de forma expansiva
-            const xOffset = (Math.random() - 0.5) * 300; // Propagación en X
-            const yOffset = -150 - Math.random() * 200; // Propagación en Y hacia arriba
-            const rotation = (Math.random() - 0.5) * 60; // Ligera rotación
+            const xOffset = (Math.random() - 0.5) * 300;
+            const yOffset = -150 - Math.random() * 200;
+            const rotation = (Math.random() - 0.5) * 60;
             
             heart.style.transform = `translate(calc(-50% + ${xOffset}px), ${yOffset}px) scale(1.2) rotate(${rotation}deg)`;
             heart.style.opacity = '0';
             
             setTimeout(() => heart.remove(), 1500);
-        }, i * 150); // Aparecen secuencialmente para efecto fuente
+        }, i * 150);
     }
 };
 
@@ -167,8 +155,7 @@ function applyCurrentSettings() {
     }
 
     let currentShadowType = renderer.shadowMap.type;
-    let newShadowType = State.gameSettings.sombras >= 2 ?
-THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+    let newShadowType = State.gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     
     if (currentShadowType !== newShadowType) {
         renderer.shadowMap.type = newShadowType;
@@ -187,14 +174,12 @@ THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     renderer.shadowMap.enabled = State.gameSettings.sombras > 0;
     mainLight.castShadow = State.gameSettings.sombras > 0;
     if (State.gameSettings.sombras > 0) {
-        let shadowRes = State.gameSettings.sombras === 2 ?
-(isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
+        let shadowRes = State.gameSettings.sombras === 2 ? (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
         if (mainLight.shadow.mapSize.width !== shadowRes) {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
         }
-        mainLight.shadow.radius = State.gameSettings.sombras >= 2 ?
-4 : 1; 
+        mainLight.shadow.radius = State.gameSettings.sombras >= 2 ? 4 : 1; 
     }
 
     for (let cat in loadedSlotMeshes) applyMaterialLogic(loadedSlotMeshes[cat], cat);
@@ -219,33 +204,27 @@ function applyMaterialLogic(model, categoryKey) {
             
             if (isFoco || isFocoDia) {
                 node.castShadow = false; node.receiveShadow = false;
-         
                 if (node.material) {
                     if (isFoco) { node.material.emissive = new THREE.Color(0xffeedd); node.material.emissiveIntensity = State.lightOn ? 1.5 : 0; }
                     if (isFocoDia) node.material.emissive = new THREE.Color(0xffffff);
                 }
-             } else {
- 
+            } else {
                let nodeIsStructure = isStructureCategory || node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo');
                 node.castShadow = nodeIsStructure ? false : allowShadows;
                 node.receiveShadow = allowShadows;
                 
-                 if(node.material) {
-   
-                  let mats = Array.isArray(node.material) ?
-node.material : [node.material];
+                if(node.material) {
+                  let mats = Array.isArray(node.material) ? node.material : [node.material];
                     mats.forEach(m => {
                         m.shadowSide = THREE.FrontSide;
                         m.side = THREE.DoubleSide;
                         if (isBaja && m.isMeshStandardMaterial) {
-               
                             m.roughness = 1.0;
                             m.metalness = 0.0;
                         }
                         m.needsUpdate = true;
-    
                  });
-}
+                }
             }
         }
     });
@@ -269,27 +248,47 @@ for (let cat in State.inventoryData) {
 
 totalModelsToLoad += 15; 
 
+// --- NUEVA LÓGICA DE CARGA CYBERPUNK Y ARREGLO DE RENDIMIENTO ---
 function checkLoading() {
     modelsLoaded++;
-    const loadingEl = document.getElementById('loading'), loadCount = document.getElementById('loading-count'), loadBar = document.getElementById('loading-bar');
+    const loadCount = document.getElementById('loading-count');
+    const loadBar = document.getElementById('loading-bar');
+    
     if(loadCount && loadBar) {
         loadCount.innerText = `${modelsLoaded}/${totalModelsToLoad}`;
         const percent = Math.min((modelsLoaded / totalModelsToLoad) * 100, 100);
         loadBar.style.width = `${percent}%`;
-        if (modelsLoaded >= totalModelsToLoad) { 
-            setTimeout(() => { if(loadingEl) loadingEl.style.opacity = '0'; setTimeout(()=> { if(loadingEl) loadingEl.style.display='none'; }, 500); }, 500);
+        
+        if (modelsLoaded >= totalModelsToLoad) {
+            // FORZAR COMPILACIÓN: Evita el stuttering de 2 segundos al presionar iniciar
+            renderer.compile(scene, camera);
+
+            // Muestra el botón Iniciar de la pantalla Cyberpunk
+            const startBtn = document.getElementById('cyber-start-btn');
+            if(startBtn) {
+                startBtn.style.display = 'block';
+                setTimeout(() => startBtn.style.opacity = '1', 50);
+            }
         }
     }
 }
 
+// Failsafe en caso de error de red
 setTimeout(() => {
-    const loadingEl = document.getElementById('loading');
-    if(loadingEl && loadingEl.style.display !== 'none') {
-        loadingEl.style.opacity = '0'; 
-        setTimeout(() => { if(loadingEl) loadingEl.style.display = 'none'; }, 500);
+    const startBtn = document.getElementById('cyber-start-btn');
+    if(startBtn && startBtn.style.display === 'none') {
+        startBtn.style.display = 'block';
+        setTimeout(() => startBtn.style.opacity = '1', 50);
     }
 }, 45000);
-if(totalModelsToLoad === 0 && document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
+
+if(totalModelsToLoad === 0) {
+    const startBtn = document.getElementById('cyber-start-btn');
+    if(startBtn) {
+        startBtn.style.display = 'block';
+        startBtn.style.opacity = '1';
+    }
+}
 
 const loader = new GLTFLoader();
 
@@ -306,6 +305,7 @@ loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     }
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0) { 
         if (LunariSystem.mixers.dormir) {
@@ -315,16 +315,19 @@ loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
     }
     checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.despertar = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.despertar = new THREE.AnimationMixer(model); LunariSystem.actions.despertar_base = LunariSystem.mixers.despertar.clipAction(gltf.animations[0]); }
     checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('lunari_jugando.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.jugar = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.jugar = new THREE.AnimationMixer(model); LunariSystem.actions.jugar_base = LunariSystem.mixers.jugar.clipAction(gltf.animations[0]); }
     checkLoading();
 }, undefined, () => checkLoading());
+
 const pendingIdleClips = { saluda: null, click: null, randoms: [], holds: [] };
 loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
     const model = gltf.scene; 
@@ -343,8 +346,7 @@ loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
     if (realY < 1.0) realY = 1.6; 
 
     const localSizeX = 0.55; 
-    const localSizeZ 
-= 0.55; 
+    const localSizeZ = 0.55; 
     const localSizeY = realY * 1.15; 
 
     const hitboxGeo = new THREE.BoxGeometry(localSizeX, localSizeY, localSizeZ);
@@ -403,6 +405,7 @@ loader.load(getFreshUrl('lunari_saluda.glb'), (gltf) => {
     }
     checkLoading();
 }, undefined, () => checkLoading());
+
 loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0) { 
         if (LunariSystem.mixers.idle) {
@@ -412,6 +415,7 @@ loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
     }
     checkLoading();
 }, undefined, () => checkLoading());
+
 const holdFiles = ['lunari_beso.glb', 'lunari_beso_volado.glb'];
 holdFiles.forEach(file => {
     loader.load(getFreshUrl(file), (gltf) => {
@@ -419,16 +423,14 @@ holdFiles.forEach(file => {
             if (LunariSystem.mixers.idle) {
                 const action = LunariSystem.mixers.idle.clipAction(gltf.animations[0]);
                 action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
-                action.userData = 
-{ fileName: file, triggered: false };
+                action.userData = { fileName: file, triggered: false };
                 LunariSystem.actions.idle_holds.push(action);
             } else { 
                 gltf.animations[0].userData = { fileName: file, triggered: false };
                 pendingIdleClips.holds.push(gltf.animations[0]); 
             }
         }
-    
-    checkLoading();
+        checkLoading();
     }, undefined, () => checkLoading());
 });
 
@@ -440,12 +442,12 @@ idleRandomFiles.forEach(file => {
                 const action = LunariSystem.mixers.idle.clipAction(gltf.animations[0]);
                 action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
                 LunariSystem.actions.idle_randoms.push(action);
-       
               } else { pendingIdleClips.randoms.push(gltf.animations[0]); }
         }
         checkLoading();
     }, undefined, () => checkLoading());
 });
+
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
     focoDiaMesh = gltf.scene; applyMaterialLogic(focoDiaMesh, 'foco_dia'); luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
     const box = new THREE.Box3().setFromObject(focoDiaMesh); const center = new THREE.Vector3(); box.getCenter(center);
@@ -453,10 +455,12 @@ loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/fo
     scene.add(luzFocoDia); scene.add(focoDiaMesh); focoDiaMesh.visible = false; luzFocoDia.visible = true; 
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem); checkLoading();
 }, undefined, () => checkLoading());
+
 setInterval(() => {
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem);
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode, true);
 }, 60000);
+
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
     if (loadedSlotMeshes[categoryKey]) { 
@@ -477,18 +481,15 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
         if (categoryKey === 'pantalla_tv') {
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
-                  
                     TVManager.tvScreenMesh = node; 
                     let mats = Array.isArray(node.material) ? node.material : [node.material];
                     mats.forEach(mat => { 
                         if (!TVManager.isTvOn) { 
-                  
                            mat.map = null; mat.emissiveMap = null; mat.color = new THREE.Color(0x000000); mat.emissive = new THREE.Color(0x000000); mat.emissiveIntensity = 0; } 
                         else { mat.map = TVManager.tvTexture; mat.emissiveMap = TVManager.tvTexture; mat.color = new THREE.Color(0xffffff); mat.emissive = new THREE.Color(0xffffff); mat.emissiveIntensity = 1.0; }
                         mat.needsUpdate = true;
-   
-                 });
-}
+                    });
+                }
              });
             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
@@ -499,13 +500,11 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                 if (node.isMesh && node.material) {
                     if (categoryKey === 'pantalla_pc') node.userData.isMainVideoScreen = true;
                     if (!node.userData.originalMaterials) {
-                        const mats = Array.isArray(node.material) ? node.material 
-: [node.material];
+                        const mats = Array.isArray(node.material) ? node.material : [node.material];
                         node.userData.originalMaterials = mats.map(m => m.clone());
                     }
                     if (!PCManager.pcScreenMeshes.includes(node)) {
                         PCManager.pcScreenMeshes.push(node);
-     
                     }
                 }
             });
@@ -538,6 +537,7 @@ for (let cat in State.inventoryData) {
 }
 
 WeatherSystem.setupWeatherVideo(loader, scene, applyMaterialLogic, loadedSlotMeshes, checkLoading);
+
 function updateLighting() {
     if (State.lightOn) {
         mainLight.visible = true;
@@ -563,12 +563,13 @@ function toggleLight() {
 const posterViewModal = document.getElementById('poster-view-modal'), posterEnlargedImage = document.getElementById('poster-enlarged-image');
 document.getElementById('close-poster-view').onclick = () => { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); };
 posterViewModal.onclick = (e) => { if (e.target === posterViewModal) { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); } };
+
 function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera);
-    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return;
-    }
+
+    if (switchMesh && raycaster.intersectObject(switchMesh, true).length > 0) { toggleLight(); return; }
     
     const pantallaMesh = loadedSlotMeshes['pantalla_tv'];
     if (pantallaMesh && raycaster.intersectObject(pantallaMesh, true).length > 0) {
@@ -645,18 +646,19 @@ renderer.domElement.addEventListener('pointerdown', (e) => {
     
     isLunariTargeted = false;
     
-  
     if (LunariSystem.currentState === 'idle' && LunariSystem.models.idle && LunariSystem.models.idle.visible) {
         if (raycaster.intersectObject(LunariSystem.models.idle, true).length > 0) {
             isLunariTargeted = true;
         }
     }
 });
+
 renderer.domElement.addEventListener('pointermove', (e) => { 
     const dx = e.clientX - pointerDownPos.x; 
     const dy = e.clientY - pointerDownPos.y; 
     if (Math.sqrt(dx * dx + dy * dy) > 5) isDragging = true; 
 });
+
 renderer.domElement.addEventListener('pointerup', (e) => { 
     if (!isDragging && !document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active') && !document.getElementById('pc-modal').classList.contains('visible')) {
         
@@ -665,7 +667,6 @@ renderer.domElement.addEventListener('pointerup', (e) => {
             const holdDuration = performance.now() - pointerDownTime;
             if (holdDuration >= 400) { 
                 LunariSystem.triggerHoldAnimation();
-     
             } else {
                 LunariSystem.triggerClickAnimation();
             }
@@ -675,13 +676,14 @@ renderer.domElement.addEventListener('pointerup', (e) => {
         if (!handledByLunari) {
             handleInteraction(e); 
         }
-  
     } 
     isDragging = false; 
     isLunariTargeted = false;
 });
+
 let then = performance.now(), frames = 0, lastFpsTime = then;
 let wasStarted = false;
+
 function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
@@ -705,23 +707,19 @@ function animate() {
             cameraZoomTimer += delta;
             let t = 0;
             if (cameraZoomTimer < 1.0) {
-                // Acercamiento (1 seg) 
                 t = cameraZoomTimer;
                 t = t * t * (3 - 2 * t);
                 camera.position.lerpVectors(originalCamPos, zoomTargetPos, t);
                 controls.target.lerpVectors(originalTarget, zoomLookAt, t);
             } else if (cameraZoomTimer < 2.5) {
-                // Mantener la cámara recta (1.5 seg)
                 camera.position.copy(zoomTargetPos);
                 controls.target.copy(zoomLookAt);
             } else if (cameraZoomTimer < 3.5) {
-                // Alejamiento suave (1 seg)
                 t = cameraZoomTimer - 2.5;
                 t = t * t * (3 - 2 * t);
                 camera.position.lerpVectors(zoomTargetPos, originalCamPos, t);
                 controls.target.lerpVectors(zoomLookAt, originalTarget, t);
             } else {
-                // Finalizar ciclo
                 isCameraZooming = false;
                 camera.position.copy(originalCamPos);
                 controls.target.copy(originalTarget);
@@ -734,8 +732,7 @@ function animate() {
         renderer.render(scene, camera);
         if (State.gameSettings.mostrarFps) { 
             frames++;
-            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now;
-            } 
+            if (now - lastFpsTime >= 1000) { document.querySelector('#fps-counter span').innerText = frames; frames = 0; lastFpsTime = now; } 
         }
     }
 }
