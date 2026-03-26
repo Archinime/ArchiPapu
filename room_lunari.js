@@ -23,14 +23,22 @@ export const LunariSystem = {
     dormirTimer: 0,
     currentIdleIndex: 0,
     holdCooldown: 0, 
+    
+    // NUEVO: Variables para controlar el tiempo y auto-cambio de estado
+    stateTimer: 0,
+    lastIsDay: true,
+    lastWeather: 0,
 
     // Instancias de audio para los efectos especiales
     audioBeso: new Audio('sonido_beso.mp3'),
     audioCorazon: new Audio('sonido_corazon.mp3'),
 
     evaluateState(esDeDiaLocal, lastWeatherCode, intervalTick = false) {
+        this.lastIsDay = esDeDiaLocal;
+        this.lastWeather = lastWeatherCode;
         const hora = new Date().getHours();
         
+        // HORARIO ESTRICTO DE SUEÑO
         if (hora >= 22 || hora < 7) { 
             this.setState('dormir', esDeDiaLocal, lastWeatherCode);
         } else {
@@ -44,30 +52,19 @@ export const LunariSystem = {
                 let chosenState = 'idle';
 
                 if (tvWasOn && pcWasOn) {
-                    // Si dejaste ambas encendidas, 50% de probabilidad para cada una
                     chosenState = Math.random() < 0.5 ? 'despertar' : 'jugar';
                 } else if (tvWasOn) {
-                    // Si solo la TV estaba prendida
                     chosenState = 'despertar';
                 } else if (pcWasOn) {
-                    // Si solo la PC estaba prendida
                     chosenState = 'jugar';
                 } else {
-                    // Si todo estaba apagado, 33.3% de probabilidad equitativa para las 3 animaciones
                     const states = ['idle', 'despertar', 'jugar'];
                     chosenState = states[Math.floor(Math.random() * states.length)];
                 }
 
                 this.setState(chosenState, esDeDiaLocal, lastWeatherCode);
-
-            } else if (intervalTick && State.isRoomStarted) {
-                // Ticks aleatorios durante el día (mantiene la probabilidad del 33.3% para cambiar)
-                if (Math.random() < 0.20) {
-                    const dayStates = ['idle', 'despertar', 'jugar'];
-                    const randomState = dayStates[Math.floor(Math.random() * dayStates.length)];
-                    this.setState(randomState, esDeDiaLocal, lastWeatherCode);
-                }
             }
+            // El cambio de estado aleatorio durante el día ahora lo maneja el reloj interno en update()
         }
     },
 
@@ -75,6 +72,10 @@ export const LunariSystem = {
         if (this.currentState === newState) return;
         const oldState = this.currentState;
         this.currentState = newState;
+        
+        this.stateTimer = 0; // Reinicia el contador de 1 hora al cambiar de estado
+        this.lastIsDay = esDeDiaLocal;
+        this.lastWeather = lastWeatherCode;
 
         for (let key in this.models) {
             if (this.models[key]) this.models[key].visible = false;
@@ -131,6 +132,21 @@ export const LunariSystem = {
         this.updateLunariText(esDeDiaLocal, lastWeatherCode);
     },
 
+    // NUEVO: Función cuando intentas apagarle la TV
+    complainAboutTV() {
+        const dialogBox = document.getElementById('dialogue-text');
+        if (dialogBox) {
+            dialogBox.innerHTML = "¡Oye! ¡Estoy viendo mi programa favorito!<br>Déjame ver la tele tranquila... 📺😠";
+            
+            // Restauramos el texto normal después de 4 segundos
+            setTimeout(() => {
+                if (this.currentState === 'despertar') {
+                    this.updateLunariText(this.lastIsDay, this.lastWeather);
+                }
+            }, 4000);
+        }
+    },
+
     triggerClickAnimation() {
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base && this.actions.idle_click) {
             const prevAction = this.activeAction;
@@ -144,16 +160,12 @@ export const LunariSystem = {
 
     triggerHoldAnimation() {
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base && this.actions.idle_holds.length > 0) {
-            if (this.holdCooldown > 0) {
-                console.log("Animación en enfriamiento. Faltan " + Math.ceil(this.holdCooldown) + "s");
-                return; 
-            }
+            if (this.holdCooldown > 0) return; 
+            
             const randomHold = this.actions.idle_holds[Math.floor(Math.random() * this.actions.idle_holds.length)];
             const prevAction = this.activeAction;
             
-            if (randomHold.userData) {
-                randomHold.userData.triggered = false;
-            }
+            if (randomHold.userData) randomHold.userData.triggered = false;
 
             this.activeAction = randomHold;
             this.activeAction.reset().play();
@@ -194,12 +206,22 @@ export const LunariSystem = {
     update(delta) {
         if (!State.isRoomStarted) return;
         
-        if (this.holdCooldown > 0) {
-            this.holdCooldown -= delta;
-        }
+        if (this.holdCooldown > 0) this.holdCooldown -= delta;
 
         for (let key in this.mixers) {
             if (this.mixers[key]) this.mixers[key].update(delta);
+        }
+
+        // CONTROL DE TIEMPO: 1 Hora exacta (3600 segundos) para cambiar animaciones de día
+        if (this.currentState && this.currentState !== 'dormir') {
+            this.stateTimer += delta;
+            if (this.stateTimer >= 3600) { 
+                this.stateTimer = 0;
+                // Elegir un estado de día diferente al actual de forma aleatoria
+                const dayStates = ['idle', 'despertar', 'jugar'].filter(s => s !== this.currentState);
+                const randomState = dayStates[Math.floor(Math.random() * dayStates.length)];
+                this.setState(randomState, this.lastIsDay, this.lastWeather);
+            }
         }
 
         if (this.currentState === 'idle' && this.activeAction && this.actions.idle_holds.includes(this.activeAction)) {
@@ -274,8 +296,8 @@ export const LunariSystem = {
             dialogBox.innerHTML = "¡Estoy en plena partida en Survev.io!<br>¡Cuidado, no me distraigas o perderé!";
             return;
         }
-        if (this.currentState === 'idle') {
-            dialogBox.innerHTML = "¡Hola!<br>Qué bueno verte por aquí.<br>¿Qué hacemos hoy?";
+        if (this.currentState === 'despertar') {
+            dialogBox.innerHTML = "Este anime está muy interesante.<br>¡Shhh! Estoy prestando atención.";
             return;
         }
 
@@ -284,7 +306,7 @@ export const LunariSystem = {
         } else if ([51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99].includes(weatherCode)) {
             dialogBox.innerHTML = "El clima está feo afuera.<br>¡Mejor nos quedamos viendo anime!";
         } else {
-            dialogBox.innerHTML = "¡Buenos días!<br>Me quedaré en la cama un ratito más...";
+            dialogBox.innerHTML = "¡Buenos días!<br>Me quedaré aquí un ratito más...";
         }
     }
 };

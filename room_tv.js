@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { State } from './room_state.js';
 import { PCManager } from './room_pc.js';
+import { LunariSystem } from './room_lunari.js';
 
 export const TVManager = {
     isTvOn: false,
@@ -178,6 +179,7 @@ export const TVManager = {
               
         tvPrevBtn.onclick = () => { 
             this.playButtonSound();
+            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } // BLOQUEO
             if (!this.isTvOn || this.tvTransitioning) return; 
             this.updatePlaylist(); 
             if(this.tvPlaylist.length===0)return;
@@ -188,6 +190,7 @@ export const TVManager = {
         
         tvPlayPauseBtn.onclick = () => { 
             this.playButtonSound();
+            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } // BLOQUEO
             if (!this.isTvOn || this.tvTransitioning) return; 
             if(this.tvVideo.paused) this.tvVideo.play(); 
             else this.tvVideo.pause(); 
@@ -195,13 +198,15 @@ export const TVManager = {
         
         tvNextBtn.onclick = () => { 
             this.playButtonSound();
+            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } // BLOQUEO
             if (this.isTvOn && !this.tvTransitioning) this.playNextTv(false); 
         };
 
         if (tvPowerBtn) {
-            tvPowerBtn.innerText = this.isTvOn ? '🟢' : '🔴';
             tvPowerBtn.addEventListener('click', () => {
                 this.playButtonSound();
+                if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } // BLOQUEO
+                
                 if (this.tvTransitioning || !this.tvScreenMesh) return;
                 
                 this.tvTransitioning = true; 
@@ -229,7 +234,7 @@ export const TVManager = {
 
                     if (this.isTvOn) {
                         this.isTvOn = false;
-                        localStorage.setItem('room_tv_on', 'false'); // GUARDADO DE ESTADO
+                        localStorage.setItem('room_tv_on', 'false');
                         tvPowerBtn.innerText = '🔴'; 
                         tvPowerBtn.style.color = 'red'; 
                         tvPowerBtn.style.textShadow = '0 0 5px red';
@@ -245,7 +250,7 @@ export const TVManager = {
                         
                     } else {
                         this.isTvOn = true;
-                        localStorage.setItem('room_tv_on', 'true'); // GUARDADO DE ESTADO
+                        localStorage.setItem('room_tv_on', 'true');
                         tvPowerBtn.innerText = '🟢'; 
                         tvPowerBtn.style.color = '#00ff00'; 
                         tvPowerBtn.style.textShadow = '0 0 5px #00ff00';
@@ -283,7 +288,7 @@ export const TVManager = {
         if (this.isTvOn || this.tvTransitioning) return;
         
         this.isTvOn = true;
-        localStorage.setItem('room_tv_on', 'true'); // GUARDADO DE ESTADO
+        localStorage.setItem('room_tv_on', 'true');
         
         const tvPowerBtn = document.getElementById('tv-power');
         if (tvPowerBtn) {
