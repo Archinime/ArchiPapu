@@ -15,14 +15,14 @@ export const LunariSystem = {
         idle_base: null, 
         saluda: null, 
         idle_randoms: [],
-        idle_click: null,
-        idle_holds: []    
+        idle_click: null, // Animación al hacer click (lunari_idle3)
+        idle_holds: []    // Animaciones al mantener presionado (besos)
     },
     activeAction: null,
     idleTimer: 0,
     dormirTimer: 0,
     currentIdleIndex: 0,
-    holdCooldown: 0, 
+    holdCooldown: 0, // Enfriamiento de 15 segundos para las animaciones de mantener presionado
 
     evaluateState(esDeDiaLocal, lastWeatherCode, intervalTick = false) {
         const hora = new Date().getHours();
@@ -92,13 +92,14 @@ export const LunariSystem = {
         this.updateLunariText(esDeDiaLocal, lastWeatherCode);
     },
 
+    // --- NUEVAS FUNCIONES DE INTERACCIÓN DIRECTA ---
     triggerClickAnimation() {
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base && this.actions.idle_click) {
             const prevAction = this.activeAction;
             this.activeAction = this.actions.idle_click;
             this.activeAction.reset().play();
             prevAction.crossFadeTo(this.activeAction, 0.8, false);
-            this.idleTimer = 0;
+            this.idleTimer = 0; // Reinicia el temporizador para que no la interrumpa un random pronto
             this.mixers.idle.addEventListener('finished', this.onIdleFinished);
         }
     },
@@ -107,30 +108,27 @@ export const LunariSystem = {
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base && this.actions.idle_holds.length > 0) {
             if (this.holdCooldown > 0) {
                 console.log("Animación en enfriamiento. Faltan " + Math.ceil(this.holdCooldown) + "s");
-                return; 
+                return; // Bloqueado por el límite de 15 segundos
             }
             const randomHold = this.actions.idle_holds[Math.floor(Math.random() * this.actions.idle_holds.length)];
             const prevAction = this.activeAction;
-            
-            if (randomHold.userData) {
-                randomHold.userData.triggered = false;
-            }
-
             this.activeAction = randomHold;
             this.activeAction.reset().play();
             prevAction.crossFadeTo(this.activeAction, 0.8, false);
             this.idleTimer = 0;
-            this.holdCooldown = 15;
+            this.holdCooldown = 15; // Aplica el enfriamiento de 15 segundos
             this.mixers.idle.addEventListener('finished', this.onIdleFinished);
         }
     },
+    // ------------------------------------------------
 
     onIdleFinished: (event) => {
+        // Verifica si la animación que terminó es alguna de las posibles
         if (event.action === LunariSystem.actions.saluda || 
             LunariSystem.actions.idle_randoms.includes(event.action) ||
             event.action === LunariSystem.actions.idle_click ||
             LunariSystem.actions.idle_holds.includes(event.action)) {
-           
+            
             const prevAction = event.action;
             const nextAction = LunariSystem.actions.idle_base;
             
@@ -154,7 +152,8 @@ export const LunariSystem = {
 
     update(delta) {
         if (!State.isRoomStarted) return;
-        
+
+        // Reduce el contador de enfriamiento si está activo
         if (this.holdCooldown > 0) {
             this.holdCooldown -= delta;
         }
@@ -162,28 +161,6 @@ export const LunariSystem = {
         for (let key in this.mixers) {
             if (this.mixers[key]) this.mixers[key].update(delta);
         }
-
-        // --- SISTEMA CORREGIDO: TRIGGERS EXACTOS DE EFECTOS ---
-        if (this.currentState === 'idle' && this.activeAction && this.actions.idle_holds.includes(this.activeAction)) {
-            if (this.activeAction.userData) {
-                // 1. Efecto Beso Normal (Zoom a 1.0s)
-                if (this.activeAction.userData.fileName === 'lunari_beso.glb') {
-                    if (this.activeAction.time >= 1.0 && !this.activeAction.userData.triggered) {
-                        this.activeAction.userData.triggered = true;
-                        if (window.startCameraZoom) window.startCameraZoom(1.6);
-                        if (window.showHeartEffect) window.showHeartEffect();
-                    }
-                }
-                // 2. Efecto Beso Volado (Corazones múltiples a 1.5s)
-                else if (this.activeAction.userData.fileName === 'lunari_beso_volado.glb') {
-                    if (this.activeAction.time >= 1.5 && !this.activeAction.userData.triggered) {
-                        this.activeAction.userData.triggered = true;
-                        if (window.showFloatingHeartsEffect) window.showFloatingHeartsEffect();
-                    }
-                }
-            }
-        }
-        // --------------------------------------------------------
 
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base) {
             this.idleTimer += delta;
