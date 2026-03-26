@@ -17,23 +17,22 @@ let switchMesh = null, focoMesh = null, focoDiaMesh = null, luzFocoDia = null;
 
 let isCameraZooming = false;
 let cameraZoomTimer = 0;
-let zoomEffectTriggered = false; // NUEVO: Bandera para controlar que el efecto salga una sola vez
 const originalCamPos = new THREE.Vector3();
 const originalTarget = new THREE.Vector3();
 const zoomTargetPos = new THREE.Vector3();
 const zoomLookAt = new THREE.Vector3();
 
-// ALGORITMO CÁMARA RECTA Y EXACTA
+// ALGORITMO CÁMARA RECTA Y EXACTA - CORREGIDO (ALTURA MUNDO 3D)
 window.startCameraZoom = function() {
     if (isCameraZooming) return;
     isCameraZooming = true;
     cameraZoomTimer = 0;
-    zoomEffectTriggered = false; // Reiniciamos el efecto
     
     originalCamPos.copy(camera.position);
     originalTarget.copy(controls.target);
 
     // En tu escena, la cámara empieza en Y=6 y mira a Y=5.
+    // MODIFICADO: Subimos la altura a 6.7 para apuntar a la cara en lugar del torso.
     let faceX = 0;
     let faceY = 8.2; 
     let faceZ = 0;
@@ -58,40 +57,10 @@ window.startCameraZoom = function() {
         dir.set(0, 0, 1);
     }
 
-    // MODIFICADO: Cambiamos de 1.2 a 1.5 para no atravesar la cabeza del personaje
-    zoomTargetPos.copy(zoomLookAt).addScaledVector(dir, 1.5);
+    // ACTUALIZADO: Aumentamos la distancia de 1.2 a 1.6 metros para que no atraviese la cabeza
+    zoomTargetPos.copy(zoomLookAt).addScaledVector(dir, 1.6);
     zoomTargetPos.y = faceY; 
 };
-
-// NUEVO: Función para mostrar el efecto de beso/corazón
-function showKissEffect() {
-    const heart = document.createElement('div');
-    heart.innerHTML = '💖'; // Puedes cambiarlo por '💋' si prefieres un beso literal
-    heart.style.position = 'absolute';
-    heart.style.left = '50%';
-    heart.style.top = '50%';
-    heart.style.transform = 'translate(-50%, -50%) scale(0)';
-    heart.style.fontSize = '80px';
-    heart.style.pointerEvents = 'none'; // Para que no bloquee clicks
-    heart.style.zIndex = '9999';
-    heart.style.textShadow = '0 0 20px rgba(255, 105, 180, 0.8)';
-    heart.style.transition = 'transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 1s ease-out';
-    heart.style.opacity = '1';
-
-    document.body.appendChild(heart);
-
-    // Forzar un reflow para que la animación inicie correctamente
-    void heart.offsetWidth;
-
-    // Animar: Sube un poco y crece al tamaño final
-    heart.style.transform = 'translate(-50%, -150%) scale(1.5)';
-
-    // Desvanecer suavemente y eliminar del DOM
-    setTimeout(() => {
-        heart.style.opacity = '0';
-        setTimeout(() => heart.remove(), 1000);
-    }, 1000);
-}
 
 const audioPrenderLuz = new Audio('prender_luz.mp3');
 const audioApagarLuz = new Audio('apagar_luz.mp3');
@@ -266,7 +235,6 @@ loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     }
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode); checkLoading();
 }, undefined, () => checkLoading());
-
 loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0) { 
         if (LunariSystem.mixers.dormir) {
@@ -276,19 +244,16 @@ loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
     }
     checkLoading();
 }, undefined, () => checkLoading());
-
 loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.despertar = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.despertar = new THREE.AnimationMixer(model); LunariSystem.actions.despertar_base = LunariSystem.mixers.despertar.clipAction(gltf.animations[0]); }
     checkLoading();
 }, undefined, () => checkLoading());
-
 loader.load(getFreshUrl('lunari_jugando.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.jugar = model;
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.mixers.jugar = new THREE.AnimationMixer(model); LunariSystem.actions.jugar_base = LunariSystem.mixers.jugar.clipAction(gltf.animations[0]); }
     checkLoading();
 }, undefined, () => checkLoading());
-
 const pendingIdleClips = { saluda: null, click: null, randoms: [], holds: [] };
 loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
     const model = gltf.scene; 
@@ -366,7 +331,6 @@ loader.load(getFreshUrl('lunari_saluda.glb'), (gltf) => {
     }
     checkLoading();
 }, undefined, () => checkLoading());
-
 loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
     if (gltf.animations && gltf.animations.length > 0) { 
         if (LunariSystem.mixers.idle) {
@@ -376,7 +340,6 @@ loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
     }
     checkLoading();
 }, undefined, () => checkLoading());
-
 const holdFiles = ['lunari_beso.glb', 'lunari_beso_volado.glb'];
 holdFiles.forEach(file => {
     loader.load(getFreshUrl(file), (gltf) => {
@@ -394,7 +357,6 @@ holdFiles.forEach(file => {
         checkLoading();
     }, undefined, () => checkLoading());
 });
-
 const idleRandomFiles = ['lunari_idle2.glb', 'lunari_idle4.glb', 'lunari_idle5.glb', 'lunari_idle6.glb'];
 idleRandomFiles.forEach(file => {
     loader.load(getFreshUrl(file), (gltf) => {
@@ -408,7 +370,6 @@ idleRandomFiles.forEach(file => {
         checkLoading();
     }, undefined, () => checkLoading());
 });
-
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
     focoDiaMesh = gltf.scene; applyMaterialLogic(focoDiaMesh, 'foco_dia'); luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
     const box = new THREE.Box3().setFromObject(focoDiaMesh); const center = new THREE.Vector3(); box.getCenter(center);
@@ -416,12 +377,10 @@ loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/fo
     scene.add(luzFocoDia); scene.add(focoDiaMesh); focoDiaMesh.visible = false; luzFocoDia.visible = true; 
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem); checkLoading();
 }, undefined, () => checkLoading());
-
 setInterval(() => {
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem);
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode, true);
 }, 60000);
-
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
     if (loadedSlotMeshes[categoryKey]) { 
@@ -498,7 +457,6 @@ for (let cat in State.inventoryData) {
 }
 
 WeatherSystem.setupWeatherVideo(loader, scene, applyMaterialLogic, loadedSlotMeshes, checkLoading);
-
 function updateLighting() {
     if (State.lightOn) {
         mainLight.visible = true;
@@ -524,7 +482,6 @@ function toggleLight() {
 const posterViewModal = document.getElementById('poster-view-modal'), posterEnlargedImage = document.getElementById('poster-enlarged-image');
 document.getElementById('close-poster-view').onclick = () => { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); };
 posterViewModal.onclick = (e) => { if (e.target === posterViewModal) { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); } };
-
 function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -613,13 +570,11 @@ renderer.domElement.addEventListener('pointerdown', (e) => {
         }
     }
 });
-
 renderer.domElement.addEventListener('pointermove', (e) => { 
     const dx = e.clientX - pointerDownPos.x; 
     const dy = e.clientY - pointerDownPos.y; 
     if (Math.sqrt(dx * dx + dy * dy) > 5) isDragging = true; 
 });
-
 renderer.domElement.addEventListener('pointerup', (e) => { 
     if (!isDragging && !document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active') && !document.getElementById('pc-modal').classList.contains('visible')) {
         
@@ -628,7 +583,6 @@ renderer.domElement.addEventListener('pointerup', (e) => {
             const holdDuration = performance.now() - pointerDownTime;
             if (holdDuration >= 400) { 
                 LunariSystem.triggerHoldAnimation();
-                window.startCameraZoom(); // MODIFICADO: Nos aseguramos de disparar la cámara aquí por si no estaba
             } else {
                 LunariSystem.triggerClickAnimation();
             }
@@ -638,15 +592,12 @@ renderer.domElement.addEventListener('pointerup', (e) => {
         if (!handledByLunari) {
             handleInteraction(e); 
         }
-  
     } 
     isDragging = false; 
     isLunariTargeted = false;
 });
-
 let then = performance.now(), frames = 0, lastFpsTime = then;
 let wasStarted = false;
-
 function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
@@ -679,13 +630,6 @@ function animate() {
                 // Mantener la cámara recta (1.5 seg)
                 camera.position.copy(zoomTargetPos);
                 controls.target.copy(zoomLookAt);
-
-                // NUEVO: GATILLAR EFECTO DE BESO AL FINALIZAR EL ACERCAMIENTO
-                if (!zoomEffectTriggered) {
-                    zoomEffectTriggered = true;
-                    showKissEffect();
-                }
-
             } else if (cameraZoomTimer < 3.5) {
                 // Alejamiento suave (1 seg)
                 t = cameraZoomTimer - 2.5;
