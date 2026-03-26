@@ -22,7 +22,7 @@ const originalTarget = new THREE.Vector3();
 const zoomTargetPos = new THREE.Vector3();
 const zoomLookAt = new THREE.Vector3();
 
-// ALGORITMO CÁMARA RECTA Y EXACTA - AHORA ACEPTA DISTANCIA PERSONALIZADA
+// ALGORITMO CÁMARA RECTA Y EXACTA
 window.startCameraZoom = function(distance = 1.2) {
     if (isCameraZooming) return;
     isCameraZooming = true;
@@ -31,13 +31,10 @@ window.startCameraZoom = function(distance = 1.2) {
     originalCamPos.copy(camera.position);
     originalTarget.copy(controls.target);
 
-    // En tu escena, la cámara empieza en Y=6 y mira a Y=5.
-    // MODIFICADO: Subimos la altura a 6.7 para apuntar a la cara en lugar del torso.
     let faceX = 0;
     let faceY = 8.2; 
     let faceZ = 0;
 
-    // Detectamos la posición X y Z exacta de Lunari por si se ha movido
     if (LunariSystem.models.idle) {
         const pos = new THREE.Vector3();
         LunariSystem.models.idle.getWorldPosition(pos);
@@ -45,11 +42,9 @@ window.startCameraZoom = function(distance = 1.2) {
         faceZ = pos.z;
     }
 
-    // Miramos directamente a la cara
     zoomLookAt.set(faceX, faceY, faceZ);
-    // Calculamos la dirección plana desde la cámara hacia la cara
     const dir = new THREE.Vector3().subVectors(originalCamPos, zoomLookAt);
-    dir.y = 0; // Clave: Ignoramos la altura para que el acercamiento sea estrictamente recto
+    dir.y = 0; 
     
     if (dir.lengthSq() > 0.001) {
         dir.normalize();
@@ -57,12 +52,11 @@ window.startCameraZoom = function(distance = 1.2) {
         dir.set(0, 0, 1);
     }
 
-    // Plantamos la cámara a la distancia requerida (1.2 por defecto, 1.6 para el beso normal)
     zoomTargetPos.copy(zoomLookAt).addScaledVector(dir, distance);
     zoomTargetPos.y = faceY; 
 };
 
-// EFECTO DE BESO / CORAZÓN
+// EFECTO 1: UN SOLO CORAZÓN GRANDE (Para lunari_beso.glb)
 window.showHeartEffect = function() {
     const heart = document.createElement('div');
     heart.innerHTML = '❤️';
@@ -78,17 +72,54 @@ window.showHeartEffect = function() {
     heart.style.textShadow = '0 0 20px rgba(255, 0, 100, 0.8)';
     document.body.appendChild(heart);
 
-    // Forzamos el reflow para que la animación aplique desde el principio
     heart.getBoundingClientRect();
 
-    // Disparamos la animación visual
     heart.style.transform = 'translate(-50%, -150px) scale(1.5)';
 
-    // Lo desvanecemos y eliminamos
     setTimeout(() => {
         heart.style.opacity = '0';
         setTimeout(() => heart.remove(), 1500);
     }, 1500);
+};
+
+// EFECTO 2: MUCHOS CORAZONES DE COLORES (Para lunari_beso_volado.glb)
+window.showFloatingHeartsEffect = function() {
+    const colors = ['#ff4d4d', '#ff80df', '#b366ff', '#ffb366', '#66ccff', '#ff99cc'];
+    for (let i = 0; i < 15; i++) {
+        setTimeout(() => {
+            const heart = document.createElement('div');
+            heart.innerHTML = '❤'; 
+            heart.style.position = 'absolute';
+            // Aparecen un poco dispersos desde el centro
+            heart.style.left = (48 + (Math.random() * 4 - 2)) + '%';
+            heart.style.top = (45 + (Math.random() * 4 - 2)) + '%';
+            heart.style.transform = `scale(${0.5 + Math.random() * 0.8})`;
+            heart.style.fontSize = '40px';
+            heart.style.pointerEvents = 'none';
+            heart.style.zIndex = '1000';
+            heart.style.opacity = '1';
+            heart.style.transition = 'transform 1.5s ease-out, opacity 1.5s ease-out, left 1.5s ease-out, top 1.5s ease-out';
+            
+            // Asignamos color aleatorio
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            heart.style.color = color;
+            heart.style.textShadow = `0 0 10px ${color}`;
+
+            document.body.appendChild(heart);
+            heart.getBoundingClientRect();
+
+            // Vuelan hacia arriba y se esparcen hacia los lados
+            const endLeft = (20 + Math.random() * 60) + '%';
+            const endTop = (10 + Math.random() * 20) + '%';
+            
+            heart.style.top = endTop;
+            heart.style.left = endLeft;
+            heart.style.transform = `scale(${0.3 + Math.random() * 0.5}) rotate(${(Math.random() - 0.5) * 45}deg)`;
+            heart.style.opacity = '0';
+
+            setTimeout(() => heart.remove(), 1500);
+        }, i * 80); // Aparecen rápidamente uno tras otro
+    }
 };
 
 const audioPrenderLuz = new Audio('prender_luz.mp3');
@@ -663,23 +694,19 @@ function animate() {
             cameraZoomTimer += delta;
             let t = 0;
             if (cameraZoomTimer < 1.0) {
-                // Acercamiento (1 seg) 
                 t = cameraZoomTimer;
                 t = t * t * (3 - 2 * t);
                 camera.position.lerpVectors(originalCamPos, zoomTargetPos, t);
                 controls.target.lerpVectors(originalTarget, zoomLookAt, t);
             } else if (cameraZoomTimer < 2.5) {
-                // Mantener la cámara recta (1.5 seg)
                 camera.position.copy(zoomTargetPos);
                 controls.target.copy(zoomLookAt);
             } else if (cameraZoomTimer < 3.5) {
-                // Alejamiento suave (1 seg)
                 t = cameraZoomTimer - 2.5;
                 t = t * t * (3 - 2 * t);
                 camera.position.lerpVectors(zoomTargetPos, originalCamPos, t);
                 controls.target.lerpVectors(zoomLookAt, originalTarget, t);
             } else {
-                // Finalizar ciclo
                 isCameraZooming = false;
                 camera.position.copy(originalCamPos);
                 controls.target.copy(originalTarget);

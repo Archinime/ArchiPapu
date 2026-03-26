@@ -112,7 +112,6 @@ export const LunariSystem = {
             const randomHold = this.actions.idle_holds[Math.floor(Math.random() * this.actions.idle_holds.length)];
             const prevAction = this.activeAction;
             
-            // Reiniciamos el estado por si la animación vuelve a salir elegida
             if (randomHold.userData) {
                 randomHold.userData.triggered = false;
             }
@@ -164,19 +163,27 @@ export const LunariSystem = {
             if (this.mixers[key]) this.mixers[key].update(delta);
         }
 
-        // --- NUEVO: TRIGGER CÁMARA A LOS 2 SEGUNDOS ---
+        // --- SISTEMA CORREGIDO: TRIGGERS EXACTOS DE EFECTOS ---
         if (this.currentState === 'idle' && this.activeAction && this.actions.idle_holds.includes(this.activeAction)) {
-            // SOLO actuamos para lunari_beso.glb
-            if (this.activeAction.userData && this.activeAction.userData.fileName === 'lunari_beso.glb') {
-                if (this.activeAction.time >= 2.0 && !this.activeAction.userData.triggered) {
-                    this.activeAction.userData.triggered = true;
-                    // Mandamos la distancia de 1.6 para alejarla un poquito
-                    if (window.startCameraZoom) window.startCameraZoom(1.6);
-                    if (window.showHeartEffect) window.showHeartEffect();
+            if (this.activeAction.userData) {
+                // 1. Efecto Beso Normal (Zoom a 1.0s)
+                if (this.activeAction.userData.fileName === 'lunari_beso.glb') {
+                    if (this.activeAction.time >= 1.0 && !this.activeAction.userData.triggered) {
+                        this.activeAction.userData.triggered = true;
+                        if (window.startCameraZoom) window.startCameraZoom(1.6);
+                        if (window.showHeartEffect) window.showHeartEffect();
+                    }
+                }
+                // 2. Efecto Beso Volado (Corazones múltiples a 1.5s)
+                else if (this.activeAction.userData.fileName === 'lunari_beso_volado.glb') {
+                    if (this.activeAction.time >= 1.5 && !this.activeAction.userData.triggered) {
+                        this.activeAction.userData.triggered = true;
+                        if (window.showFloatingHeartsEffect) window.showFloatingHeartsEffect();
+                    }
                 }
             }
         }
-        // ----------------------------------------------
+        // --------------------------------------------------------
 
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base) {
             this.idleTimer += delta;
