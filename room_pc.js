@@ -24,14 +24,14 @@ export const PCManager = {
         
         document.body.appendChild(this.survVideo);
         this.survVideo.style.display = 'none';
-
+        
         this.survVideoTexture = new THREE.VideoTexture(this.survVideo);
         this.survVideoTexture.minFilter = THREE.LinearFilter;
         this.survVideoTexture.magFilter = THREE.LinearFilter;
         this.survVideoTexture.format = THREE.RGBAFormat;
         this.survVideoTexture.wrapS = THREE.RepeatWrapping;
         this.survVideoTexture.repeat.x = -1;
-
+        
         const textureLoader = new THREE.TextureLoader();
         this.logoTexture = textureLoader.load('logo.avif');
         this.logoTexture.flipY = false;
@@ -44,24 +44,22 @@ export const PCManager = {
         this.audioBotonPC.play().catch(e=>{});
     },
 
-    // NUEVO: Secuencia de encendido
     turnOnSequence() {
         if (this.pcTransitioning || this.isPcOn) return;
         this.pcTransitioning = true;
         this.isPcOn = true;
+        localStorage.setItem('room_pc_on', 'true'); // GUARDADO DE ESTADO
         
-        // Ejecutamos updateScreens para que muestre el brillo de "arranque"
-        this.updateScreens(); 
-
+        this.updateScreens();
+        
         setTimeout(() => {
             this.pcTransitioning = false;
             if (this.isGamingMode) {
                 if (this.canPlayAudio) this.survVideo.muted = false;
                 this.survVideo.play().catch(e=>{});
             }
-            // Muestra texturas normales o juego tras la transición
             this.updateScreens(); 
-        }, 800); // 800 milisegundos de transición de encendido
+        }, 800);
     },
     
     setGamingMode(active) {
@@ -88,7 +86,15 @@ export const PCManager = {
             }
         } else {
             this.survVideo.pause();
+            this.isPcOn = false; 
+            localStorage.setItem('room_pc_on', 'false'); // APAGA LA PC CUANDO LUNARI DEJA DE JUGAR
             this.updateScreens();
+            
+            if (pcPowerBtn) {
+                pcPowerBtn.innerText = '🔴';
+                pcPowerBtn.style.color = 'red';
+                pcPowerBtn.style.textShadow = '0 0 5px red';
+            }
         }
     },
 
@@ -148,28 +154,27 @@ export const PCManager = {
         const pcModal = document.getElementById('pc-modal');
         const closePcBtn = document.getElementById('close-pc');
         const pcIframe = document.getElementById('pc-iframe');
-
+        
         if (pcPowerBtn) {
             pcPowerBtn.onclick = () => {
                 this.playButtonSound();
                 if (this.pcTransitioning || this.pcScreenMeshes.length === 0) return;
                 
                 if (!this.isPcOn) {
-                    // Inicia la animación de encendido
                     this.turnOnSequence();
                     pcPowerBtn.innerText = '🟢';
                     pcPowerBtn.style.color = '#00ff00';
                     pcPowerBtn.style.textShadow = '0 0 5px #00ff00';
                 } else {
-                    // Apaga inmediatamente
                     this.isPcOn = false;
+                    localStorage.setItem('room_pc_on', 'false'); // GUARDADO DE ESTADO
                     this.survVideo.pause();
                     this.updateScreens();
                     
                     pcPowerBtn.innerText = '🔴';
                     pcPowerBtn.style.color = 'red';
                     pcPowerBtn.style.textShadow = '0 0 5px red';
-
+                    
                     if (pcModal.classList.contains('visible')) {
                         pcModal.classList.remove('visible');
                         pcIframe.src = ''; 

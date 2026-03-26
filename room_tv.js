@@ -38,6 +38,7 @@ export const TVManager = {
         this.tvVideo.playsInline = true;
         this.tvVideo.setAttribute('playsinline', '');
         this.tvVideo.setAttribute('webkit-playsinline', '');
+        
         this.tvTexture = new THREE.VideoTexture(this.tvVideo); 
         this.tvTexture.minFilter = THREE.LinearFilter; 
         this.tvTexture.magFilter = THREE.LinearFilter;
@@ -62,6 +63,7 @@ export const TVManager = {
                 this.playNextTv(false);
             }
         });
+        
         this.setupStartScreen();
     },
 
@@ -114,7 +116,7 @@ export const TVManager = {
         
         btn.addEventListener('click', () => {
             this.hasInteracted = true;
-            State.isRoomStarted = true; // Habilita el bucle en room_main
+            State.isRoomStarted = true; 
             
             this.tvVideo.muted = false;
             this.tvVideo.play().catch(()=>{});
@@ -227,6 +229,7 @@ export const TVManager = {
 
                     if (this.isTvOn) {
                         this.isTvOn = false;
+                        localStorage.setItem('room_tv_on', 'false'); // GUARDADO DE ESTADO
                         tvPowerBtn.innerText = '🔴'; 
                         tvPowerBtn.style.color = 'red'; 
                         tvPowerBtn.style.textShadow = '0 0 5px red';
@@ -239,8 +242,10 @@ export const TVManager = {
                             mat.emissiveIntensity = 0; 
                             mat.needsUpdate = true; 
                         });
+                        
                     } else {
                         this.isTvOn = true;
+                        localStorage.setItem('room_tv_on', 'true'); // GUARDADO DE ESTADO
                         tvPowerBtn.innerText = '🟢'; 
                         tvPowerBtn.style.color = '#00ff00'; 
                         tvPowerBtn.style.textShadow = '0 0 5px #00ff00';
@@ -262,6 +267,7 @@ export const TVManager = {
                         }
                     }
                 };
+                
                 effectVideo.addEventListener('ended', onEffectEnded, { once: true });
             });
         }
@@ -277,6 +283,8 @@ export const TVManager = {
         if (this.isTvOn || this.tvTransitioning) return;
         
         this.isTvOn = true;
+        localStorage.setItem('room_tv_on', 'true'); // GUARDADO DE ESTADO
+        
         const tvPowerBtn = document.getElementById('tv-power');
         if (tvPowerBtn) {
             tvPowerBtn.innerText = '🟢';

@@ -30,12 +30,38 @@ export const LunariSystem = {
 
     evaluateState(esDeDiaLocal, lastWeatherCode, intervalTick = false) {
         const hora = new Date().getHours();
+        
         if (hora >= 22 || hora < 7) { 
             this.setState('dormir', esDeDiaLocal, lastWeatherCode);
         } else {
+            // VERIFICACIÓN INICIAL AL ENTRAR AL CUARTO
             if (!this.currentState || this.currentState === 'dormir') {
-                this.setState('idle', esDeDiaLocal, lastWeatherCode);
+                
+                // Leemos la memoria de lo que dejaste encendido
+                const tvWasOn = localStorage.getItem('room_tv_on') === 'true';
+                const pcWasOn = localStorage.getItem('room_pc_on') === 'true';
+
+                let chosenState = 'idle';
+
+                if (tvWasOn && pcWasOn) {
+                    // Si dejaste ambas encendidas, 50% de probabilidad para cada una
+                    chosenState = Math.random() < 0.5 ? 'despertar' : 'jugar';
+                } else if (tvWasOn) {
+                    // Si solo la TV estaba prendida
+                    chosenState = 'despertar';
+                } else if (pcWasOn) {
+                    // Si solo la PC estaba prendida
+                    chosenState = 'jugar';
+                } else {
+                    // Si todo estaba apagado, 33.3% de probabilidad equitativa para las 3 animaciones
+                    const states = ['idle', 'despertar', 'jugar'];
+                    chosenState = states[Math.floor(Math.random() * states.length)];
+                }
+
+                this.setState(chosenState, esDeDiaLocal, lastWeatherCode);
+
             } else if (intervalTick && State.isRoomStarted) {
+                // Ticks aleatorios durante el día (mantiene la probabilidad del 33.3% para cambiar)
                 if (Math.random() < 0.20) {
                     const dayStates = ['idle', 'despertar', 'jugar'];
                     const randomState = dayStates[Math.floor(Math.random() * dayStates.length)];
@@ -89,10 +115,19 @@ export const LunariSystem = {
             }
         }
         
+        // APAGADO AUTOMÁTICO DE PC AL DEJAR DE JUGAR
         if (oldState === 'jugar' && newState !== 'jugar') {
             PCManager.setGamingMode(false);
         }
         
+        // APAGADO AUTOMÁTICO DE TV AL DEJAR DE VERLA
+        if (oldState === 'despertar' && newState !== 'despertar') {
+            if (TVManager.isTvOn && !TVManager.tvTransitioning) {
+                const tvPowerBtn = document.getElementById('tv-power');
+                if (tvPowerBtn) tvPowerBtn.click();
+            }
+        }
+
         this.updateLunariText(esDeDiaLocal, lastWeatherCode);
     },
 
@@ -116,7 +151,6 @@ export const LunariSystem = {
             const randomHold = this.actions.idle_holds[Math.floor(Math.random() * this.actions.idle_holds.length)];
             const prevAction = this.activeAction;
             
-            // Reiniciamos el estado por si la animación vuelve a salir elegida
             if (randomHold.userData) {
                 randomHold.userData.triggered = false;
             }
@@ -159,6 +193,7 @@ export const LunariSystem = {
 
     update(delta) {
         if (!State.isRoomStarted) return;
+        
         if (this.holdCooldown > 0) {
             this.holdCooldown -= delta;
         }
@@ -167,35 +202,27 @@ export const LunariSystem = {
             if (this.mixers[key]) this.mixers[key].update(delta);
         }
 
-        // --- SISTEMA DE TRIGGERS PARA ANIMACIONES ESPECÍFICAS ---
         if (this.currentState === 'idle' && this.activeAction && this.actions.idle_holds.includes(this.activeAction)) {
             if (this.activeAction.userData) {
                 const fileName = this.activeAction.userData.fileName;
                 const time = this.activeAction.time;
 
-                // 1. Beso normal: Zoom, corazón y sonido al SEGUNDO 1.0 (Actualizado)
                 if (fileName === 'lunari_beso.glb') {
                     if (time >= 1.0 && !this.activeAction.userData.triggered) {
                         this.activeAction.userData.triggered = true;
-                        
-                        // Mantenemos el acercamiento en 2.0 para que no atraviese el modelo
                         if (window.startCameraZoom) window.startCameraZoom(2.0);
                         if (window.showHeartEffect) window.showHeartEffect();
 
-                        // Reproducir el sonido del beso respetando el volumen de efectos
                         this.audioBeso.volume = (State.gameSettings.volumenEfectos || 50) / 100;
                         this.audioBeso.currentTime = 0;
                         this.audioBeso.play().catch(e => {});
                     }
                 }
-                // 2. Beso volado: Corazones múltiples y sonido al SEGUNDO 2.0
                 else if (fileName === 'lunari_beso_volado.glb') {
                     if (time >= 2.0 && !this.activeAction.userData.triggered) {
                         this.activeAction.userData.triggered = true;
-                        
                         if (window.showMultiHeartEffect) window.showMultiHeartEffect();
 
-                        // Reproducir el sonido de corazones respetando el volumen de efectos
                         this.audioCorazon.volume = (State.gameSettings.volumenEfectos || 50) / 100;
                         this.audioCorazon.currentTime = 0;
                         this.audioCorazon.play().catch(e => {});
@@ -203,7 +230,6 @@ export const LunariSystem = {
                 }
             }
         }
-        // ----------------------------------------------
 
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base) {
             this.idleTimer += delta;
