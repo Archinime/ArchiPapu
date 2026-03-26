@@ -34,7 +34,7 @@ window.startCameraZoom = function(distance = 1.2) {
     // En tu escena, la cámara empieza en Y=6 y mira a Y=5.
     // MODIFICADO: Subimos la altura a 6.7 para apuntar a la cara en lugar del torso.
     let faceX = 0;
-    let faceY = 8.2; 
+    let faceY = 8.5; 
     let faceZ = 0;
 
     // Detectamos la posición X y Z exacta de Lunari por si se ha movido
