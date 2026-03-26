@@ -9,6 +9,21 @@
 <body>
     <video id="tv-video" style="display:none;" crossorigin="anonymous" playsinline></video>
 
+    <!-- NUEVO LOADING CYBERPUNK -->
+    <div id="loading">
+        <div class="cyber-grid"></div>
+        <div class="loading-content">
+            <div class="glitch-text" data-text="INICIALIZANDO">INICIALIZANDO</div>
+            <div class="loading-bar-container">
+                <div class="loading-bar" id="loading-bar"></div>
+            </div>
+            <div class="loading-stats">
+                <span id="loading-count">0/0</span> <span class="blink">_</span>
+            </div>
+            <div class="loading-sub">> CARGANDO RECURSOS...</div>
+        </div>
+    </div>
+
     <div id="fps-counter" style="display: none;">FPS: <span>60</span></div>
     <div id="coin-display" title="Tus Monedas">🪙 <span id="coin-amount">0</span></div>
     <div id="weather-status">🌍 Detectando clima...</div>
@@ -125,13 +140,7 @@
         <img id="poster-enlarged-image" src="" alt="Póster">
     </div>
 
-    <div id="loading">
-        <div class="loading-text">Preparando habitación... <span id="loading-count">0/0</span></div>
-        <div id="loading-bar-container"><div id="loading-bar"></div></div>
-    </div>
-    
     <div id="light-status">💡 Luz encendida</div>
-    
     <div id="daily-reward-toast" style="display:none;">¡Has ganado 100🪙 por entrar hoy!</div>
 
     <script type="importmap">

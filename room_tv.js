@@ -68,6 +68,18 @@ export const TVManager = {
         this.setupStartScreen();
     },
 
+    // Llamado cuando todos los modelos críticos están cargados
+    criticalModelsReady() {
+        if (this.startOverlay) {
+            // Mostrar el botón de inicio con un pequeño retraso para que la UI se vea bien
+            setTimeout(() => {
+                this.startOverlay.style.opacity = '1';
+                this.startOverlay.style.pointerEvents = 'auto';
+                this.startOverlay.querySelector('button').style.transform = 'scale(1)';
+            }, 200);
+        }
+    },
+
     setupStartScreen() {
         const overlay = document.createElement('div');
         overlay.id = 'start-interaction-overlay';
@@ -99,25 +111,21 @@ export const TVManager = {
         btn.style.cursor = 'pointer';
         btn.style.boxShadow = '0 0 20px rgba(128, 203, 196, 0.6)';
         btn.style.transition = 'transform 0.2s';
+        btn.style.transform = 'scale(0.95)';
         
         btn.onmouseover = () => btn.style.transform = 'scale(1.05)';
         btn.onmouseout = () => btn.style.transform = 'scale(1)';
 
         overlay.appendChild(btn);
         document.body.appendChild(overlay);
+        this.startOverlay = overlay;
 
-        const checkLoading = setInterval(() => {
-            const loadingDiv = document.getElementById('loading');
-            if (!loadingDiv || window.getComputedStyle(loadingDiv).display === 'none' || window.getComputedStyle(loadingDiv).opacity === '0') {
-                clearInterval(checkLoading);
-                overlay.style.opacity = '1';
-                overlay.style.pointerEvents = 'auto';
-            }
-        }, 500);
-        
         btn.addEventListener('click', () => {
             this.hasInteracted = true;
             State.isRoomStarted = true; 
+            
+            // Forzar visibilidad de modelos críticos
+            if (window.forceCriticalModelsVisible) window.forceCriticalModelsVisible();
             
             this.tvVideo.muted = false;
             this.tvVideo.play().catch(()=>{});
@@ -179,7 +187,7 @@ export const TVManager = {
               
         tvPrevBtn.onclick = () => { 
             this.playButtonSound();
-            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } // BLOQUEO
+            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; }
             if (!this.isTvOn || this.tvTransitioning) return; 
             this.updatePlaylist(); 
             if(this.tvPlaylist.length===0)return;
@@ -190,7 +198,7 @@ export const TVManager = {
         
         tvPlayPauseBtn.onclick = () => { 
             this.playButtonSound();
-            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } // BLOQUEO
+            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; }
             if (!this.isTvOn || this.tvTransitioning) return; 
             if(this.tvVideo.paused) this.tvVideo.play(); 
             else this.tvVideo.pause(); 
@@ -198,14 +206,14 @@ export const TVManager = {
         
         tvNextBtn.onclick = () => { 
             this.playButtonSound();
-            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } // BLOQUEO
+            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; }
             if (this.isTvOn && !this.tvTransitioning) this.playNextTv(false); 
         };
 
         if (tvPowerBtn) {
             tvPowerBtn.addEventListener('click', () => {
                 this.playButtonSound();
-                if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } // BLOQUEO
+                if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; }
                 
                 if (this.tvTransitioning || !this.tvScreenMesh) return;
                 

@@ -2,7 +2,7 @@
 
 /* --- 1. REGLAS GLOBALES Y RESET --- */
 *, *::before, *::after {
-    box-sizing: border-box; /* Fundamental: evita que el padding expanda el tamaño de las cajas */
+    box-sizing: border-box;
 }
 
 body { 
@@ -13,12 +13,10 @@ body {
     width: 100%;
     height: 100%; 
     background-color: #111; 
-    /* Soporte para notch en móviles */
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Scrollbars personalizados más sutiles */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.1); border-radius: 10px; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
@@ -576,16 +574,78 @@ input:checked + .ff-slider-round:before { transform: translateX(22px); backgroun
     border-radius: 50%; transition: 0.2s; display: flex; align-items: center; justify-content: center;
 }
 
-/* --- 8. LOADING --- */
+/* --- 8. LOADING CYBERPUNK --- */
 #loading { 
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-    background: #111; z-index: 9999;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; 
-    color: white; transition: opacity 0.5s; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: radial-gradient(circle at center, #0a0a0f, #030305);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #0ff;
+    font-family: 'Courier New', monospace;
+    transition: opacity 0.5s;
+    overflow: hidden;
 }
-.loading-text { font-size: 18px; margin-bottom: 20px; color: #80cbc4; letter-spacing: 1px; }
-#loading-bar-container { width: 60%; max-width: 400px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
-#loading-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #80cbc4, #4db6ac); transition: width 0.3s ease; }
+#loading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #0ff, #f0f, transparent);
+    animation: scanline 3s linear infinite;
+}
+@keyframes scanline {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+.loading-text {
+    font-size: 28px;
+    margin-bottom: 30px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    font-weight: bold;
+    text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
+    animation: glitch 2s infinite;
+}
+@keyframes glitch {
+    0%, 100% { text-shadow: 0 0 5px #0ff, 0 0 10px #0ff; transform: skew(0deg); }
+    50% { text-shadow: -2px 0 #f0f, 2px 0 #0ff; transform: skew(1deg); }
+}
+#loading-count {
+    font-family: monospace;
+    font-size: 18px;
+    background: rgba(0,0,0,0.7);
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid #0ff;
+    display: inline-block;
+    margin-left: 10px;
+}
+#loading-bar-container {
+    width: 60%;
+    max-width: 500px;
+    height: 8px;
+    background: rgba(0,255,255,0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(0,255,255,0.3);
+    border: 1px solid rgba(0,255,255,0.3);
+}
+#loading-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #0ff, #f0f);
+    transition: width 0.3s ease;
+    box-shadow: 0 0 8px #0ff;
+}
 
 /* Animaciones Clave */
 @keyframes slideDownToast { from { opacity: 0; transform: translate(-50%, -20px); } to { opacity: 1; transform: translate(-50%, 0); } }
@@ -612,7 +672,7 @@ input:checked + .ff-slider-round:before { transform: translateX(22px); backgroun
         padding: 8px 15px;
     }
     
-    /* MODALES A PANTALLA COMPLETA EN MÓVIL (Adiós desbordamientos) */
+    /* MODALES A PANTALLA COMPLETA EN MÓVIL */
     #inventory-modal, .ff-modal-content, .pc-modal-content { 
         width: 100%; 
         height: 100%; 
@@ -641,14 +701,14 @@ input:checked + .ff-slider-round:before { transform: translateX(22px); backgroun
         border-bottom: 1px solid rgba(255,255,255,0.05); 
         padding-right: 0; 
         padding-bottom: 10px; 
-        max-height: 35vh; /* El sidebar ocupa el 35% de la pantalla */
+        max-height: 35vh;
     }
     #inv-content { 
         width: 100%; 
         padding-right: 0; 
         grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); 
         padding-bottom: 20px;
-        max-height: 50vh; /* El contenido usa el resto */
+        max-height: 50vh;
     }
     .item-preview { height: 100px; }
     .item-card { padding: 10px; }
