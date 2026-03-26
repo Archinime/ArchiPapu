@@ -1,7 +1,7 @@
 export const LunariAfuera = {
     enter(system) {
         // Aseguramos que no haya ninguna animación activa
-        system.activeAction = null; 
+        system.activeAction = null;
         
         // Revisamos si ya tenía un tiempo de regreso guardado en la memoria
         let returnTime = localStorage.getItem('room_lunari_return_time');
@@ -17,6 +17,10 @@ export const LunariAfuera = {
     exit(system) {
         // Cuando por fin regresa, borramos la memoria de que estaba afuera
         localStorage.removeItem('room_lunari_return_time');
+        
+        // --- NUEVO: Aplicamos un descanso obligatorio de 2 horas antes de que pueda salir otra vez ---
+        const cooldownTime = Date.now() + (2 * 3600 * 1000); 
+        localStorage.setItem('room_lunari_cooldown', cooldownTime.toString());
     },
 
     update(system, delta) {
@@ -35,8 +39,7 @@ export const LunariAfuera = {
         // 1h (80), 2h (60), 3h (40), 4h (20), 5h (10). Suma total = 210
         const weights = [80, 60, 40, 20, 10];
         const hours = [1, 2, 3, 4, 5];
-        const totalWeight = weights.reduce((a, b) => a + b, 0); 
-        
+        const totalWeight = weights.reduce((a, b) => a + b, 0);
         let randomNum = Math.random() * totalWeight;
         
         for (let i = 0; i < weights.length; i++) {
