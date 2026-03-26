@@ -155,7 +155,6 @@ export const LunariSystem = {
 
     update(delta) {
         if (!State.isRoomStarted) return;
-        
         if (this.holdCooldown > 0) {
             this.holdCooldown -= delta;
         }
@@ -164,15 +163,26 @@ export const LunariSystem = {
             if (this.mixers[key]) this.mixers[key].update(delta);
         }
 
-        // --- NUEVO: TRIGGER CÁMARA A LOS 2 SEGUNDOS ---
+        // --- SISTEMA DE TRIGGERS PARA ANIMACIONES ESPECÍFICAS ---
         if (this.currentState === 'idle' && this.activeAction && this.actions.idle_holds.includes(this.activeAction)) {
-            // SOLO actuamos para lunari_beso.glb
-            if (this.activeAction.userData && this.activeAction.userData.fileName === 'lunari_beso.glb') {
-                if (this.activeAction.time >= 2.0 && !this.activeAction.userData.triggered) {
-                    this.activeAction.userData.triggered = true;
-                    // Mandamos la distancia de 1.6 para alejarla un poquito
-                    if (window.startCameraZoom) window.startCameraZoom(1.6);
-                    if (window.showHeartEffect) window.showHeartEffect();
+            if (this.activeAction.userData) {
+                const fileName = this.activeAction.userData.fileName;
+                const time = this.activeAction.time;
+
+                // 1. Beso normal: Zoom y corazón único rojo al SEGUNDO 1.0
+                if (fileName === 'lunari_beso.glb') {
+                    if (time >= 1.0 && !this.activeAction.userData.triggered) {
+                        this.activeAction.userData.triggered = true;
+                        if (window.startCameraZoom) window.startCameraZoom(1.6);
+                        if (window.showHeartEffect) window.showHeartEffect();
+                    }
+                }
+                // 2. Beso volado: Corazones múltiples al SEGUNDO 2.0
+                else if (fileName === 'lunari_beso_volado.glb') {
+                    if (time >= 2.0 && !this.activeAction.userData.triggered) {
+                        this.activeAction.userData.triggered = true;
+                        if (window.showMultiHeartEffect) window.showMultiHeartEffect();
+                    }
                 }
             }
         }

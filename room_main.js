@@ -77,18 +77,54 @@ window.showHeartEffect = function() {
     heart.style.opacity = '1';
     heart.style.textShadow = '0 0 20px rgba(255, 0, 100, 0.8)';
     document.body.appendChild(heart);
-
     // Forzamos el reflow para que la animación aplique desde el principio
     heart.getBoundingClientRect();
-
     // Disparamos la animación visual
     heart.style.transform = 'translate(-50%, -150px) scale(1.5)';
-
     // Lo desvanecemos y eliminamos
     setTimeout(() => {
         heart.style.opacity = '0';
         setTimeout(() => heart.remove(), 1500);
     }, 1500);
+};
+
+// NUEVO EFECTO: MULTIPLES CORAZONES PARA BESO VOLADO
+window.showMultiHeartEffect = function() {
+    const emojis = ['❤️', '💖', '💜', '💙', '💛', '💚', '✨'];
+    const numHearts = 8; // Cantidad de corazones
+    
+    for (let i = 0; i < numHearts; i++) {
+        setTimeout(() => {
+            const heart = document.createElement('div');
+            const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+            heart.innerHTML = randomEmoji;
+            heart.style.position = 'absolute';
+            heart.style.left = '50%';
+            heart.style.top = '40%';
+            heart.style.transform = 'translate(-50%, -50%) scale(0)';
+            
+            const size = Math.floor(Math.random() * 30) + 40; // 40px a 70px
+            heart.style.fontSize = size + 'px';
+            heart.style.pointerEvents = 'none';
+            heart.style.zIndex = '1000';
+            
+            heart.style.transition = 'transform 1.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 1.5s ease-out';
+            heart.style.opacity = '1';
+            
+            document.body.appendChild(heart);
+            heart.getBoundingClientRect(); // Reflow
+            
+            // Animación hacia arriba y a los lados de forma expansiva
+            const xOffset = (Math.random() - 0.5) * 300; // Propagación en X
+            const yOffset = -150 - Math.random() * 200; // Propagación en Y hacia arriba
+            const rotation = (Math.random() - 0.5) * 60; // Ligera rotación
+            
+            heart.style.transform = `translate(calc(-50% + ${xOffset}px), ${yOffset}px) scale(1.2) rotate(${rotation}deg)`;
+            heart.style.opacity = '0';
+            
+            setTimeout(() => heart.remove(), 1500);
+        }, i * 150); // Aparecen secuencialmente para efecto fuente
+    }
 };
 
 const audioPrenderLuz = new Audio('prender_luz.mp3');
@@ -132,7 +168,7 @@ function applyCurrentSettings() {
 
     let currentShadowType = renderer.shadowMap.type;
     let newShadowType = State.gameSettings.sombras >= 2 ?
-        THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     
     if (currentShadowType !== newShadowType) {
         renderer.shadowMap.type = newShadowType;
@@ -152,13 +188,13 @@ function applyCurrentSettings() {
     mainLight.castShadow = State.gameSettings.sombras > 0;
     if (State.gameSettings.sombras > 0) {
         let shadowRes = State.gameSettings.sombras === 2 ?
-            (isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
+(isMobileUA ? 2048 : 4096) : (isMobileUA ? 512 : 1024);
         if (mainLight.shadow.mapSize.width !== shadowRes) {
             mainLight.shadow.mapSize.set(shadowRes, shadowRes);
             if (mainLight.shadow.map) { mainLight.shadow.map.dispose(); mainLight.shadow.map = null; }
         }
         mainLight.shadow.radius = State.gameSettings.sombras >= 2 ?
-            4 : 1; 
+4 : 1; 
     }
 
     for (let cat in loadedSlotMeshes) applyMaterialLogic(loadedSlotMeshes[cat], cat);
@@ -183,27 +219,33 @@ function applyMaterialLogic(model, categoryKey) {
             
             if (isFoco || isFocoDia) {
                 node.castShadow = false; node.receiveShadow = false;
+         
                 if (node.material) {
                     if (isFoco) { node.material.emissive = new THREE.Color(0xffeedd); node.material.emissiveIntensity = State.lightOn ? 1.5 : 0; }
                     if (isFocoDia) node.material.emissive = new THREE.Color(0xffffff);
                 }
              } else {
+ 
                let nodeIsStructure = isStructureCategory || node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo');
                 node.castShadow = nodeIsStructure ? false : allowShadows;
                 node.receiveShadow = allowShadows;
                 
                  if(node.material) {
-                    let mats = Array.isArray(node.material) ? node.material : [node.material];
+   
+                  let mats = Array.isArray(node.material) ?
+node.material : [node.material];
                     mats.forEach(m => {
                         m.shadowSide = THREE.FrontSide;
                         m.side = THREE.DoubleSide;
                         if (isBaja && m.isMeshStandardMaterial) {
-                             m.roughness = 1.0;
+               
+                            m.roughness = 1.0;
                             m.metalness = 0.0;
                         }
                         m.needsUpdate = true;
-                    });
-                }
+    
+                 });
+}
             }
         }
     });
@@ -301,7 +343,8 @@ loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
     if (realY < 1.0) realY = 1.6; 
 
     const localSizeX = 0.55; 
-    const localSizeZ = 0.55; 
+    const localSizeZ 
+= 0.55; 
     const localSizeY = realY * 1.15; 
 
     const hitboxGeo = new THREE.BoxGeometry(localSizeX, localSizeY, localSizeZ);
@@ -369,7 +412,6 @@ loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
     }
     checkLoading();
 }, undefined, () => checkLoading());
-
 const holdFiles = ['lunari_beso.glb', 'lunari_beso_volado.glb'];
 holdFiles.forEach(file => {
     loader.load(getFreshUrl(file), (gltf) => {
@@ -377,14 +419,16 @@ holdFiles.forEach(file => {
             if (LunariSystem.mixers.idle) {
                 const action = LunariSystem.mixers.idle.clipAction(gltf.animations[0]);
                 action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
-                action.userData = { fileName: file, triggered: false };
+                action.userData = 
+{ fileName: file, triggered: false };
                 LunariSystem.actions.idle_holds.push(action);
             } else { 
                 gltf.animations[0].userData = { fileName: file, triggered: false };
                 pendingIdleClips.holds.push(gltf.animations[0]); 
             }
         }
-        checkLoading();
+    
+    checkLoading();
     }, undefined, () => checkLoading());
 });
 
@@ -396,12 +440,12 @@ idleRandomFiles.forEach(file => {
                 const action = LunariSystem.mixers.idle.clipAction(gltf.animations[0]);
                 action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
                 LunariSystem.actions.idle_randoms.push(action);
-             } else { pendingIdleClips.randoms.push(gltf.animations[0]); }
+       
+              } else { pendingIdleClips.randoms.push(gltf.animations[0]); }
         }
         checkLoading();
     }, undefined, () => checkLoading());
 });
-
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
     focoDiaMesh = gltf.scene; applyMaterialLogic(focoDiaMesh, 'foco_dia'); luzFocoDia = new THREE.PointLight(0xffffff, 1, 50);
     const box = new THREE.Box3().setFromObject(focoDiaMesh); const center = new THREE.Vector3(); box.getCenter(center);
@@ -409,12 +453,10 @@ loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/fo
     scene.add(luzFocoDia); scene.add(focoDiaMesh); focoDiaMesh.visible = false; luzFocoDia.visible = true; 
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem); checkLoading();
 }, undefined, () => checkLoading());
-
 setInterval(() => {
     WeatherSystem.actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, LunariSystem);
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode, true);
 }, 60000);
-
 function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
     if (!itemFile) return;
     if (loadedSlotMeshes[categoryKey]) { 
@@ -435,15 +477,18 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
         if (categoryKey === 'pantalla_tv') {
             model.traverse((node) => {
                 if (node.isMesh && node.material) {
+                  
                     TVManager.tvScreenMesh = node; 
                     let mats = Array.isArray(node.material) ? node.material : [node.material];
                     mats.forEach(mat => { 
                         if (!TVManager.isTvOn) { 
-                            mat.map = null; mat.emissiveMap = null; mat.color = new THREE.Color(0x000000); mat.emissive = new THREE.Color(0x000000); mat.emissiveIntensity = 0; } 
+                  
+                           mat.map = null; mat.emissiveMap = null; mat.color = new THREE.Color(0x000000); mat.emissive = new THREE.Color(0x000000); mat.emissiveIntensity = 0; } 
                         else { mat.map = TVManager.tvTexture; mat.emissiveMap = TVManager.tvTexture; mat.color = new THREE.Color(0xffffff); mat.emissive = new THREE.Color(0xffffff); mat.emissiveIntensity = 1.0; }
                         mat.needsUpdate = true;
-                    });
-                }
+   
+                 });
+}
              });
             if (!TVManager.isTvOn) TVManager.tvVideo.pause();
         }
@@ -454,11 +499,13 @@ function loadItemForSlot(categoryKey, itemFile, isInitialLoad = false) {
                 if (node.isMesh && node.material) {
                     if (categoryKey === 'pantalla_pc') node.userData.isMainVideoScreen = true;
                     if (!node.userData.originalMaterials) {
-                        const mats = Array.isArray(node.material) ? node.material : [node.material];
+                        const mats = Array.isArray(node.material) ? node.material 
+: [node.material];
                         node.userData.originalMaterials = mats.map(m => m.clone());
                     }
                     if (!PCManager.pcScreenMeshes.includes(node)) {
                         PCManager.pcScreenMeshes.push(node);
+     
                     }
                 }
             });
@@ -491,7 +538,6 @@ for (let cat in State.inventoryData) {
 }
 
 WeatherSystem.setupWeatherVideo(loader, scene, applyMaterialLogic, loadedSlotMeshes, checkLoading);
-
 function updateLighting() {
     if (State.lightOn) {
         mainLight.visible = true;
@@ -517,7 +563,6 @@ function toggleLight() {
 const posterViewModal = document.getElementById('poster-view-modal'), posterEnlargedImage = document.getElementById('poster-enlarged-image');
 document.getElementById('close-poster-view').onclick = () => { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); };
 posterViewModal.onclick = (e) => { if (e.target === posterViewModal) { posterViewModal.classList.remove('visible'); audioCerrarPoster.currentTime = 0; audioCerrarPoster.play().catch(e=>{}); } };
-
 function handleInteraction(event) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -600,19 +645,18 @@ renderer.domElement.addEventListener('pointerdown', (e) => {
     
     isLunariTargeted = false;
     
+  
     if (LunariSystem.currentState === 'idle' && LunariSystem.models.idle && LunariSystem.models.idle.visible) {
         if (raycaster.intersectObject(LunariSystem.models.idle, true).length > 0) {
             isLunariTargeted = true;
         }
     }
 });
-
 renderer.domElement.addEventListener('pointermove', (e) => { 
     const dx = e.clientX - pointerDownPos.x; 
     const dy = e.clientY - pointerDownPos.y; 
     if (Math.sqrt(dx * dx + dy * dy) > 5) isDragging = true; 
 });
-
 renderer.domElement.addEventListener('pointerup', (e) => { 
     if (!isDragging && !document.getElementById('inventory-modal').classList.contains('visible') && !document.getElementById('ff-settings-modal').classList.contains('active') && !document.getElementById('pc-modal').classList.contains('visible')) {
         
@@ -621,6 +665,7 @@ renderer.domElement.addEventListener('pointerup', (e) => {
             const holdDuration = performance.now() - pointerDownTime;
             if (holdDuration >= 400) { 
                 LunariSystem.triggerHoldAnimation();
+     
             } else {
                 LunariSystem.triggerClickAnimation();
             }
@@ -635,15 +680,12 @@ renderer.domElement.addEventListener('pointerup', (e) => {
     isDragging = false; 
     isLunariTargeted = false;
 });
-
 let then = performance.now(), frames = 0, lastFpsTime = then;
 let wasStarted = false;
-
 function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
     const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
-    
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
         let delta = 0;
@@ -699,5 +741,4 @@ function animate() {
 }
 
 window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); applyCurrentSettings(); });
-
 applyCurrentSettings(); updateLighting(); animate();
