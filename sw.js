@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'room-cache-v12'; 
+const CACHE_NAME = 'room-cache-v13'; 
 const urlsToCache = [
     './',
     './index.html',

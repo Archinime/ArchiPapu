@@ -44,8 +44,7 @@ let baseTier = 'alta';
 if (isMobileUA || deviceMemory <= 4 || cpuCores <= 4) baseTier = 'media';
 if (isMobileUA && (deviceMemory <= 2 || cpuCores <= 2)) baseTier = 'baja';
 
-State.gameSettings = JSON.parse(localStorage.getItem('ff_settings')) ||
-{
+State.gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
     calidad: baseTier, 
     sombras: baseTier === 'baja' ? 0 : (baseTier === 'media' ? 1 : 2),
     fps: baseTier === 'baja' ? 30 : 60,
@@ -77,10 +76,12 @@ export function checkDailyReward() {
     if (coinAmt) coinAmt.innerText = State.playerCoins;
 }
 
+// OPTIMIZACIÓN EXTREMA: Ya no usamos Date.now() para permitir que el Service Worker y el caché del navegador hagan que cargue al instante.
+export const GAME_VERSION = 'v1.1'; // Solo cambia este número si subes modelos 3D nuevos a tu GitHub.
 export function getFreshUrl(url) {
     if (!url) return url;
     const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}nocache=${Date.now()}`;
+    return `${url}${separator}v=${GAME_VERSION}`;
 }
 
 export function disposeThreeJSObject(node) {

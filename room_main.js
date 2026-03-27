@@ -196,11 +196,18 @@ function applyMaterialLogic(model, categoryKey) {
     const allowShadows = State.gameSettings.sombras > 0;
     const isStructureCategory = ['paredes', 'piso', 'techo', 'puerta'].includes(categoryKey);
     const isBaja = State.gameSettings.calidad === 'baja';
+    
     model.traverse((node) => {
         if (node.isMesh) {
             if (node.name === 'LunariHitbox') return;
 
-            node.frustumCulled = false;
+            // OPTIMIZACIÓN DE RENDIMIENTO: Frustum Culling activado.
+            // Esto le dice a la gráfica que NO renderice los objetos que están detrás de la cámara.
+            if (categoryKey !== 'cuadro' && node.name !== 'LunariHitbox') {
+                node.frustumCulled = true; 
+            } else {
+                node.frustumCulled = false;
+            }
             
             if (isFoco || isFocoDia) {
                 node.castShadow = false; node.receiveShadow = false;
@@ -248,19 +255,26 @@ for (let cat in State.inventoryData) {
 
 totalModelsToLoad += 15; 
 
-// --- NUEVA LÓGICA DE CARGA CYBERPUNK Y ARREGLO DE RENDIMIENTO ---
+// Control estricto para evitar doble ejecución
+let isCompilationDone = false; 
+
 function checkLoading() {
     modelsLoaded++;
     const loadCount = document.getElementById('loading-count');
     const loadBar = document.getElementById('loading-bar');
     
     if(loadCount && loadBar) {
-        loadCount.innerText = `${modelsLoaded}/${totalModelsToLoad}`;
-        const percent = Math.min((modelsLoaded / totalModelsToLoad) * 100, 100);
+        // CORRECCIÓN VISUAL: Asegura que nunca muestre un número mayor al total (ej. 48/47)
+        const displayLoaded = Math.min(modelsLoaded, totalModelsToLoad);
+        loadCount.innerText = `${displayLoaded}/${totalModelsToLoad}`;
+        
+        const percent = (displayLoaded / totalModelsToLoad) * 100;
         loadBar.style.width = `${percent}%`;
         
-        if (modelsLoaded >= totalModelsToLoad) {
-            // FORZAR COMPILACIÓN: Evita el stuttering de 2 segundos al presionar iniciar
+        if (modelsLoaded >= totalModelsToLoad && !isCompilationDone) {
+            isCompilationDone = true; // Bloqueamos para que no pase dos veces
+            
+            // FORZAR COMPILACIÓN: Evita el lag de 2 segundos al presionar iniciar
             renderer.compile(scene, camera);
 
             // Muestra el botón Iniciar de la pantalla Cyberpunk
@@ -273,12 +287,16 @@ function checkLoading() {
     }
 }
 
-// Failsafe en caso de error de red
+// Failsafe en caso de error de red o timeout
 setTimeout(() => {
     const startBtn = document.getElementById('cyber-start-btn');
     if(startBtn && startBtn.style.display === 'none') {
         startBtn.style.display = 'block';
         setTimeout(() => startBtn.style.opacity = '1', 50);
+        if(!isCompilationDone) {
+            isCompilationDone = true;
+            renderer.compile(scene, camera);
+        }
     }
 }, 45000);
 
