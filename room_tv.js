@@ -21,7 +21,7 @@ export const TVManager = {
     hasInteracted: false, 
     pendingAutoTurnOn: false, 
 
-init() {
+    init() {
         this.tvEffectVideoOff.src = 'efecto_tele.mp4';
         this.tvEffectVideoOff.crossOrigin = 'anonymous'; 
         this.tvEffectVideoOff.playsInline = true;
@@ -45,19 +45,19 @@ init() {
         this.tvTexture.magFilter = THREE.LinearFilter;
         this.tvTexture.format = THREE.RGBAFormat;
         this.tvTexture.encoding = THREE.sRGBEncoding;
-        this.tvTexture.generateMipmaps = false; // OPTIMIZACIÓN
+        this.tvTexture.generateMipmaps = false; 
 
         this.tvEffectTextureOff = new THREE.VideoTexture(this.tvEffectVideoOff);
         this.tvEffectTextureOff.minFilter = THREE.LinearFilter; 
         this.tvEffectTextureOff.magFilter = THREE.LinearFilter; 
         this.tvEffectTextureOff.format = THREE.RGBAFormat;
-        this.tvEffectTextureOff.generateMipmaps = false; // OPTIMIZACIÓN
+        this.tvEffectTextureOff.generateMipmaps = false; 
 
         this.tvEffectTextureOn = new THREE.VideoTexture(this.tvEffectVideoOn);
         this.tvEffectTextureOn.minFilter = THREE.LinearFilter;
         this.tvEffectTextureOn.magFilter = THREE.LinearFilter;
         this.tvEffectTextureOn.format = THREE.RGBAFormat;
-        this.tvEffectTextureOn.generateMipmaps = false; // OPTIMIZACIÓN
+        this.tvEffectTextureOn.generateMipmaps = false; 
 
         this.setupControls();
         this.updatePlaylist();
@@ -80,9 +80,6 @@ init() {
         btn.addEventListener('click', () => {
             this.hasInteracted = true;
             State.isRoomStarted = true; 
-            
-            // Llama a la carga en segundo plano para que Lunari no te congele la página al inicio
-            if (window.loadDeferredModels) window.loadDeferredModels();
             
             this.tvVideo.muted = false;
             this.tvVideo.play().catch(()=>{});
@@ -120,10 +117,7 @@ init() {
         this.updatePlaylist();
         if(this.tvPlaylist.length === 0) return;
         
-        this.currentTvIndex = random 
-            ? Math.floor(Math.random() * this.tvPlaylist.length) 
-            : (this.currentTvIndex + 1) % this.tvPlaylist.length;
-            
+        this.currentTvIndex = random ? Math.floor(Math.random() * this.tvPlaylist.length) : (this.currentTvIndex + 1) % this.tvPlaylist.length;
         this.tvVideo.src = this.tvPlaylist[this.currentTvIndex];
         this.tvVideo.volume = State.gameSettings.volumenTV / 100;
         
@@ -142,7 +136,7 @@ init() {
               tvPlayPauseBtn = document.getElementById('tv-play-pause'), 
               tvNextBtn = document.getElementById('tv-next'), 
               tvPowerBtn = document.getElementById('tv-power');
-
+              
         tvPrevBtn.onclick = () => { 
             this.playButtonSound();
             if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } 
@@ -153,7 +147,7 @@ init() {
             this.tvVideo.src = this.tvPlaylist[this.currentTvIndex]; 
             this.tvVideo.play();
         };
-
+        
         tvPlayPauseBtn.onclick = () => { 
             this.playButtonSound();
             if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } 
@@ -193,7 +187,7 @@ init() {
                 
                 effectVideo.currentTime = 0;
                 effectVideo.play().catch(e=>{});
-
+                
                 const onEffectEnded = () => {
                     effectVideo.removeEventListener('ended', onEffectEnded);
                     this.tvTransitioning = false; 
@@ -204,7 +198,7 @@ init() {
                         tvPowerBtn.innerText = '🔴'; 
                         tvPowerBtn.style.color = 'red'; 
                         tvPowerBtn.style.textShadow = '0 0 5px red';
-
+                        
                         mats.forEach(mat => { 
                             mat.map = null; 
                             mat.emissiveMap = null; 
@@ -219,7 +213,7 @@ init() {
                         tvPowerBtn.innerText = '🟢'; 
                         tvPowerBtn.style.color = '#00ff00'; 
                         tvPowerBtn.style.textShadow = '0 0 5px #00ff00';
-
+                        
                         mats.forEach(mat => { 
                             mat.map = this.tvTexture; 
                             mat.emissiveMap = this.tvTexture; 
@@ -228,7 +222,7 @@ init() {
                             mat.emissiveIntensity = 1.0; 
                             mat.needsUpdate = true; 
                         });
-
+                        
                         if (this.tvPlaylist.length > 0 && !this.tvVideo.src) {
                             this.playNextTv(true);
                         } else if (this.tvPlaylist.length > 0) {
@@ -237,6 +231,7 @@ init() {
                         }
                     }
                 };
+                
                 effectVideo.addEventListener('ended', onEffectEnded, { once: true });
             });
         }
@@ -262,8 +257,7 @@ init() {
         }
 
         if (this.tvScreenMesh) {
-            const mats = Array.isArray(this.tvScreenMesh.material) ?
-            this.tvScreenMesh.material : [this.tvScreenMesh.material];
+            const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
             mats.forEach(mat => { 
                 mat.map = this.tvTexture; 
                 mat.emissiveMap = this.tvTexture; 

@@ -116,6 +116,7 @@ const audioPrenderLuz = new Audio('prender_luz.mp3');
 const audioApagarLuz = new Audio('apagar_luz.mp3');
 const audioAbrirPoster = new Audio('abrir_poster.mp3');
 const audioCerrarPoster = new Audio('guardar_poster.mp3');
+
 TVManager.init();
 PCManager.init();
 
@@ -194,11 +195,10 @@ function applyMaterialLogic(model, categoryKey) {
     const isBaja = State.gameSettings.calidad === 'baja';
     model.traverse((node) => {
         if (node.isMesh) {
-            if (node.name === 'LunariHitbox') {
-                node.frustumCulled = false;
-            } else {
-                node.frustumCulled = true; // OPTIMIZACIÓN: Culling activado para GPU
-            }
+            if (node.name === 'LunariHitbox') return;
+            
+            // CORRECCIÓN ROPA INVISIBLE: Evitamos que el motor oculte la malla de Lunari por error
+            node.frustumCulled = false; 
             
             if (isFoco || isFocoDia) {
                 node.castShadow = false; node.receiveShadow = false;
@@ -228,28 +228,23 @@ function applyMaterialLogic(model, categoryKey) {
     });
 }
 
-// --- SISTEMA OPTIMIZADO DE CARGA ---
+// --- SISTEMA OPTIMIZADO DE CARGA DINÁMICA ---
 const loader = new GLTFLoader();
 let totalModelsToLoad = 0, modelsLoaded = 0;
-let isInitialLoadPhase = true;
 
+// Interceptamos la carga para contar exactamente los archivos solicitados (Llegará a 47)
 const originalLoad = loader.load.bind(loader);
 loader.load = function(url, onLoad, onProgress, onError) {
-    if (isInitialLoadPhase) {
-        totalModelsToLoad++;
-        checkLoadingState();
-    }
+    totalModelsToLoad++;
+    checkLoadingState();
+    
     originalLoad(url, (gltf) => {
-        if (isInitialLoadPhase) {
-            modelsLoaded++;
-            checkLoadingState();
-        }
+        modelsLoaded++;
+        checkLoadingState();
         if(onLoad) onLoad(gltf);
     }, onProgress, (err) => {
-        if (isInitialLoadPhase) {
-            modelsLoaded++;
-            checkLoadingState();
-        }
+        modelsLoaded++;
+        checkLoadingState();
         if(onError) onError(err);
     });
 };
@@ -263,7 +258,8 @@ function checkLoadingState() {
         const percent = Math.min((modelsLoaded / totalModelsToLoad) * 100, 100);
         loadBar.style.width = `${percent}%`;
         
-        if (modelsLoaded >= totalModelsToLoad && isInitialLoadPhase) {
+        if (modelsLoaded >= totalModelsToLoad) {
+            // FORZAR COMPILACIÓN: Evita el lagazo al presionar iniciar
             renderer.compile(scene, camera);
             const startBtn = document.getElementById('cyber-start-btn');
             if(startBtn && startBtn.style.display !== 'block') {
@@ -274,10 +270,10 @@ function checkLoadingState() {
     }
 }
 
-// Stub para llamadas antiguas
+// Stub para la función antigua del clima
 function checkLoading() {}
 
-// Failsafe
+// Failsafe por si algún modelo falla en red
 setTimeout(() => {
     const startBtn = document.getElementById('cyber-start-btn');
     if(startBtn && startBtn.style.display === 'none') {
@@ -289,14 +285,27 @@ setTimeout(() => {
 let pendingDormirRandom = null;
 const pendingIdleClips = { saluda: null, click: null, randoms: [], holds: [] };
 
-// CARGA INICIAL (Solo lo crucial)
+// CARGA DE ANIMACIONES Y MODELOS (Todos regresaron al inicio para el 47/47)
 loader.load(getFreshUrl('lunari_durmiendo1.glb'), (gltf) => {
     const model = gltf.scene; model.visible = false; applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.dormir = model;
     LunariSystem.mixers.dormir = new THREE.AnimationMixer(model);
     if (gltf.animations && gltf.animations.length > 0) { 
         LunariSystem.actions.dormir_base = LunariSystem.mixers.dormir.clipAction(gltf.animations[0]); 
     }
+    if (pendingDormirRandom) {
+        LunariSystem.actions.dormir_random = LunariSystem.mixers.dormir.clipAction(pendingDormirRandom); 
+        LunariSystem.actions.dormir_random.loop = THREE.LoopOnce; LunariSystem.actions.dormir_random.clampWhenFinished = true; 
+    }
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode);
+});
+
+loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
+    if (gltf.animations && gltf.animations.length > 0) { 
+        if (LunariSystem.mixers.dormir) {
+            LunariSystem.actions.dormir_random = LunariSystem.mixers.dormir.clipAction(gltf.animations[0]); 
+            LunariSystem.actions.dormir_random.loop = THREE.LoopOnce; LunariSystem.actions.dormir_random.clampWhenFinished = true; 
+        } else { pendingDormirRandom = gltf.animations[0]; }
+    }
 });
 
 loader.load(getFreshUrl('lunari_esta_despierta.glb'), (gltf) => {
@@ -333,6 +342,27 @@ loader.load(getFreshUrl('lunari_idle.glb'), (gltf) => {
     applyMaterialLogic(model, 'lunari'); scene.add(model); LunariSystem.models.idle = model;
     LunariSystem.mixers.idle = new THREE.AnimationMixer(model);
     if (gltf.animations && gltf.animations.length > 0) { LunariSystem.actions.idle_base = LunariSystem.mixers.idle.clipAction(gltf.animations[0]); }
+    
+    if (pendingIdleClips.saluda) {
+        LunariSystem.actions.saluda = LunariSystem.mixers.idle.clipAction(pendingIdleClips.saluda);
+        LunariSystem.actions.saluda.loop = THREE.LoopOnce; LunariSystem.actions.saluda.clampWhenFinished = true;
+    }
+    if (pendingIdleClips.click) {
+        LunariSystem.actions.idle_click = LunariSystem.mixers.idle.clipAction(pendingIdleClips.click);
+        LunariSystem.actions.idle_click.loop = THREE.LoopOnce; LunariSystem.actions.idle_click.clampWhenFinished = true;
+    }
+    pendingIdleClips.randoms.forEach(clip => {
+        const action = LunariSystem.mixers.idle.clipAction(clip);
+        action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
+        LunariSystem.actions.idle_randoms.push(action);
+    });
+    pendingIdleClips.holds.forEach(clip => {
+        const action = LunariSystem.mixers.idle.clipAction(clip);
+        action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
+        if (clip.userData) action.userData = clip.userData;
+        LunariSystem.actions.idle_holds.push(action);
+    });
+    
     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode);
 });
 
@@ -343,6 +373,45 @@ loader.load(getFreshUrl('lunari_saluda.glb'), (gltf) => {
             LunariSystem.actions.saluda.loop = THREE.LoopOnce; LunariSystem.actions.saluda.clampWhenFinished = true;
         } else { pendingIdleClips.saluda = gltf.animations[0]; }
     }
+});
+
+loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
+    if (gltf.animations && gltf.animations.length > 0) { 
+        if (LunariSystem.mixers.idle) {
+            LunariSystem.actions.idle_click = LunariSystem.mixers.idle.clipAction(gltf.animations[0]); 
+            LunariSystem.actions.idle_click.loop = THREE.LoopOnce; LunariSystem.actions.idle_click.clampWhenFinished = true;
+        } else { pendingIdleClips.click = gltf.animations[0]; }
+    }
+});
+
+const holdFiles = ['lunari_beso.glb', 'lunari_beso_volado.glb'];
+holdFiles.forEach(file => {
+    loader.load(getFreshUrl(file), (gltf) => {
+        if (gltf.animations && gltf.animations.length > 0) {
+            if (LunariSystem.mixers.idle) {
+                const action = LunariSystem.mixers.idle.clipAction(gltf.animations[0]);
+                action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
+                action.userData = { fileName: file, triggered: false };
+                LunariSystem.actions.idle_holds.push(action);
+            } else { 
+                gltf.animations[0].userData = { fileName: file, triggered: false };
+                pendingIdleClips.holds.push(gltf.animations[0]); 
+            }
+        }
+    });
+});
+
+const idleRandomFiles = ['lunari_idle2.glb', 'lunari_idle4.glb', 'lunari_idle5.glb', 'lunari_idle6.glb'];
+idleRandomFiles.forEach(file => {
+    loader.load(getFreshUrl(file), (gltf) => {
+        if (gltf.animations && gltf.animations.length > 0) {
+            if (LunariSystem.mixers.idle) {
+                const action = LunariSystem.mixers.idle.clipAction(gltf.animations[0]);
+                action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
+                LunariSystem.actions.idle_randoms.push(action);
+            } else { pendingIdleClips.randoms.push(gltf.animations[0]); }
+        }
+    });
 });
 
 loader.load(getFreshUrl('https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/foco_dia.glb'), (gltf) => {
@@ -573,55 +642,3 @@ function animate() {
 
 window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); applyCurrentSettings(); });
 applyCurrentSettings(); updateLighting(); animate();
-
-// --- CARGA DIFERIDA DE ANIMACIONES SECUNDARIAS ---
-window.loadDeferredModels = function() {
-    isInitialLoadPhase = false; // Detiene el contador de UI para que no vuelva a cargar la barra
-    
-    loader.load(getFreshUrl('Lunari_Duerme_2.glb'), (gltf) => {
-        if (gltf.animations && gltf.animations.length > 0) { 
-            if (LunariSystem.mixers.dormir) {
-                LunariSystem.actions.dormir_random = LunariSystem.mixers.dormir.clipAction(gltf.animations[0]); 
-                LunariSystem.actions.dormir_random.loop = THREE.LoopOnce; LunariSystem.actions.dormir_random.clampWhenFinished = true; 
-            } else { pendingDormirRandom = gltf.animations[0]; }
-        }
-    });
-
-    loader.load(getFreshUrl('lunari_idle3.glb'), (gltf) => {
-        if (gltf.animations && gltf.animations.length > 0) { 
-            if (LunariSystem.mixers.idle) {
-                LunariSystem.actions.idle_click = LunariSystem.mixers.idle.clipAction(gltf.animations[0]); 
-                LunariSystem.actions.idle_click.loop = THREE.LoopOnce; LunariSystem.actions.idle_click.clampWhenFinished = true;
-            } else { pendingIdleClips.click = gltf.animations[0]; }
-        }
-    });
-
-    const holdFiles = ['lunari_beso.glb', 'lunari_beso_volado.glb'];
-    holdFiles.forEach(file => {
-        loader.load(getFreshUrl(file), (gltf) => {
-            if (gltf.animations && gltf.animations.length > 0) {
-                if (LunariSystem.mixers.idle) {
-                    const action = LunariSystem.mixers.idle.clipAction(gltf.animations[0]);
-                    action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
-                    action.userData = { fileName: file, triggered: false };
-                    LunariSystem.actions.idle_holds.push(action);
-                } else { 
-                    gltf.animations[0].userData = { fileName: file, triggered: false }; pendingIdleClips.holds.push(gltf.animations[0]); 
-                }
-            }
-        });
-    });
-
-    const idleRandomFiles = ['lunari_idle2.glb', 'lunari_idle4.glb', 'lunari_idle5.glb', 'lunari_idle6.glb'];
-    idleRandomFiles.forEach(file => {
-        loader.load(getFreshUrl(file), (gltf) => {
-            if (gltf.animations && gltf.animations.length > 0) {
-                if (LunariSystem.mixers.idle) {
-                    const action = LunariSystem.mixers.idle.clipAction(gltf.animations[0]);
-                    action.loop = THREE.LoopOnce; action.clampWhenFinished = true;
-                    LunariSystem.actions.idle_randoms.push(action);
-                } else { pendingIdleClips.randoms.push(gltf.animations[0]); }
-            }
-        });
-    });
-};
