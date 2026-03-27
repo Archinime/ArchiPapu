@@ -21,7 +21,7 @@ export const TVManager = {
     hasInteracted: false, 
     pendingAutoTurnOn: false, 
 
-    init() {
+init() {
         this.tvEffectVideoOff.src = 'efecto_tele.mp4';
         this.tvEffectVideoOff.crossOrigin = 'anonymous'; 
         this.tvEffectVideoOff.playsInline = true;
@@ -45,16 +45,19 @@ export const TVManager = {
         this.tvTexture.magFilter = THREE.LinearFilter;
         this.tvTexture.format = THREE.RGBAFormat;
         this.tvTexture.encoding = THREE.sRGBEncoding;
+        this.tvTexture.generateMipmaps = false; // OPTIMIZACIÓN
 
         this.tvEffectTextureOff = new THREE.VideoTexture(this.tvEffectVideoOff);
         this.tvEffectTextureOff.minFilter = THREE.LinearFilter; 
         this.tvEffectTextureOff.magFilter = THREE.LinearFilter; 
         this.tvEffectTextureOff.format = THREE.RGBAFormat;
+        this.tvEffectTextureOff.generateMipmaps = false; // OPTIMIZACIÓN
 
         this.tvEffectTextureOn = new THREE.VideoTexture(this.tvEffectVideoOn);
         this.tvEffectTextureOn.minFilter = THREE.LinearFilter;
         this.tvEffectTextureOn.magFilter = THREE.LinearFilter;
         this.tvEffectTextureOn.format = THREE.RGBAFormat;
+        this.tvEffectTextureOn.generateMipmaps = false; // OPTIMIZACIÓN
 
         this.setupControls();
         this.updatePlaylist();
@@ -68,7 +71,6 @@ export const TVManager = {
         this.setupStartScreen();
     },
 
-    // --- NUEVA LÓGICA VINCULADA AL HTML CYBERPUNK ---
     setupStartScreen() {
         const btn = document.getElementById('cyber-start-btn');
         const loader = document.getElementById('cyber-loader');
@@ -78,6 +80,9 @@ export const TVManager = {
         btn.addEventListener('click', () => {
             this.hasInteracted = true;
             State.isRoomStarted = true; 
+            
+            // Llama a la carga en segundo plano para que Lunari no te congele la página al inicio
+            if (window.loadDeferredModels) window.loadDeferredModels();
             
             this.tvVideo.muted = false;
             this.tvVideo.play().catch(()=>{});
@@ -97,10 +102,9 @@ export const TVManager = {
                 PCManager.survVideo.play().catch(()=>{});
             }
 
-            // Oculta el loader de forma suave
             loader.style.opacity = '0';
             setTimeout(() => loader.style.display = 'none', 500);
-   
+
             if (this.pendingAutoTurnOn) {
                 this.turnOnAutomatically();
             }

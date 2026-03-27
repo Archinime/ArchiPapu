@@ -13,7 +13,7 @@ export const PCManager = {
     survVideoTexture: null,
     logoTexture: null, 
     
-    init() {
+init() {
         this.survVideo.src = 'surv.mp4';
         this.survVideo.loop = true;
         this.survVideo.muted = true; 
@@ -24,14 +24,15 @@ export const PCManager = {
         
         document.body.appendChild(this.survVideo);
         this.survVideo.style.display = 'none';
-        
+
         this.survVideoTexture = new THREE.VideoTexture(this.survVideo);
         this.survVideoTexture.minFilter = THREE.LinearFilter;
         this.survVideoTexture.magFilter = THREE.LinearFilter;
         this.survVideoTexture.format = THREE.RGBAFormat;
         this.survVideoTexture.wrapS = THREE.RepeatWrapping;
         this.survVideoTexture.repeat.x = -1;
-        
+        this.survVideoTexture.generateMipmaps = false; // OPTIMIZACIÓN
+
         const textureLoader = new THREE.TextureLoader();
         this.logoTexture = textureLoader.load('logo.avif');
         this.logoTexture.flipY = false;

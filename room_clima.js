@@ -135,14 +135,19 @@ export const WeatherSystem = {
         this.loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, videoFile);
     },
 
-    loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, videoFile) {
+loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, videoFile) {
         const video = document.createElement('video');
         video.loop = true; video.muted = true; video.crossOrigin = 'anonymous'; video.playsInline = true;
         video.src = videoFile; 
         video.play().catch(e => console.log('Autoplay blocked'));
-        
-        const videoTexture = new THREE.VideoTexture(video); videoTexture.minFilter = THREE.LinearFilter; videoTexture.magFilter = THREE.LinearFilter; videoTexture.format = THREE.RGBAFormat; videoTexture.encoding = THREE.sRGBEncoding;
-        
+
+        const videoTexture = new THREE.VideoTexture(video); 
+        videoTexture.minFilter = THREE.LinearFilter; 
+        videoTexture.magFilter = THREE.LinearFilter; 
+        videoTexture.format = THREE.RGBAFormat; 
+        videoTexture.encoding = THREE.sRGBEncoding;
+        videoTexture.generateMipmaps = false; // OPTIMIZACIÓN VRAM
+
         loader.load(getFreshUrl('cuadro.glb'), (gltf) => {
             const cuadroModel = gltf.scene;
             cuadroModel.traverse((node) => {
