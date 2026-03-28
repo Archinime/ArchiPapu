@@ -5,9 +5,9 @@ export const LunariDespertar = {
     enter(system) {
         if (system.models.despertar) system.models.despertar.visible = true;
         system.activeAction = system.actions.despertar_base;
-        // Inicia directamente sin transición desde la Pose T
-        if (system.activeAction) system.activeAction.reset().play();
-        if (State.isRoomStarted) TVManager.turnOnAutomatically(); 
+        if (system.activeAction) system.activeAction.reset().play(); // Sin fadeIn para evitar Pose T
+        
+        TVManager.turnOnAutomatically(); // La TV ahora se pre-enciende incluso en la carga
     },
 
     exit(system) {

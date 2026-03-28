@@ -36,9 +36,9 @@ body {
     align-items: center; gap: 8px; transition: opacity 0.3s;
 }
 
-/* FPS (Debajo del Clima) */
+/* FPS (Debajo del Clima con espacio uniforme) */
 #fps-counter { 
-    position: absolute; top: max(65px, env(safe-area-inset-top) + 45px); left: max(20px, env(safe-area-inset-left));
+    position: absolute; top: max(75px, env(safe-area-inset-top) + 55px); left: max(20px, env(safe-area-inset-left));
     background: rgba(0,255,100,0.1); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
     color: #69f0ae; border: 1px solid rgba(105,240,174,0.3); padding: 5px 10px; border-radius: 8px; 
     font-weight: bold; font-family: monospace; z-index: 300; pointer-events: none;
@@ -46,7 +46,7 @@ body {
 
 /* MONEDAS (Debajo de los FPS) */
 #coin-display { 
-    position: absolute; top: max(110px, env(safe-area-inset-top) + 90px); left: max(20px, env(safe-area-inset-left));
+    position: absolute; top: max(120px, env(safe-area-inset-top) + 100px); left: max(20px, env(safe-area-inset-left));
     background: rgba(20,20,30,0.75); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
     border: 1px solid rgba(255,215,0,0.3); color: #ffe066; padding: 10px 15px; border-radius: 20px;
     font-weight: bold; font-size: 16px; z-index: 300; user-select: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: transform 0.3s; 

@@ -4,8 +4,7 @@ export const LunariJugar = {
     enter(system) {
         if (system.models.jugar) system.models.jugar.visible = true;
         system.activeAction = system.actions.jugar_base;
-        // Inicia la animación instantáneamente
-        if (system.activeAction) system.activeAction.reset().play();
+        if (system.activeAction) system.activeAction.reset().play(); // Sin fadeIn para evitar Pose T
         PCManager.setGamingMode(true);
     },
 
