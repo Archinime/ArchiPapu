@@ -50,20 +50,6 @@ export const LunariSystem = {
             return;
         }
 
-        // --- NUEVO: Control de primera vez en la página ---
-        const firstVisit = localStorage.getItem('room_lunari_first_visit');
-        if (!firstVisit) {
-            // Marcamos que el usuario ya entró por primera vez
-            localStorage.setItem('room_lunari_first_visit', 'true');
-            
-            // Como ya pasó la verificación de sueño, forzamos el estado 'idle' 
-            // y lo guardamos para que dure al menos su primera hora de sesión
-            localStorage.setItem('room_lunari_saved_state', 'idle');
-            localStorage.setItem('room_lunari_state_until', (Date.now() + 3600000).toString()); // +1 hora
-            this.setState('idle', esDeDiaLocal, lastWeatherCode);
-            return;
-        }
-
         // 2. Verificamos si YA estaba afuera en una sesión anterior y aún no regresa
         const returnTime = parseInt(localStorage.getItem('room_lunari_return_time') || '0');
         if (returnTime > Date.now()) {
@@ -71,7 +57,7 @@ export const LunariSystem = {
             return;
         }
 
-        // 3. Verificamos persistencia de actividad (mínimo 1 hora)
+        // --- NUEVO: 3. Verificamos persistencia de actividad (mínimo 1 hora) ---
         const savedState = localStorage.getItem('room_lunari_saved_state');
         const stateUntil = parseInt(localStorage.getItem('room_lunari_state_until') || '0');
 
@@ -86,13 +72,13 @@ export const LunariSystem = {
         // 4. Evaluamos si decidirá salir o cambiar de actividad AHORA mismo
         if (!this.currentState || this.currentState === 'dormir' || this.currentState === 'afuera' || intervalTick) {
             
-            // Verificamos el descanso/cooldown de 2 horas
+            // --- NUEVO: Verificamos el descanso/cooldown de 2 horas ---
             const cooldownUntil = parseInt(localStorage.getItem('room_lunari_cooldown') || '0');
             let probSalir = 0;
 
             // Solo tiene probabilidad de salir si ya pasó su descanso
             if (Date.now() >= cooldownUntil) {
-                if (hora >= 7 && hora < 12) probSalir = 0.10; // Mañana: 10%
+                if (hora >= 7 && hora < 12) probSalir = 0.10;      // Mañana: 10%
                 else if (hora >= 12 && hora < 19) probSalir = 0.50; // Tarde: 50%
                 else if (hora >= 19 && hora < 22) probSalir = 0.05; // Noche: 5%
             }
@@ -125,7 +111,7 @@ export const LunariSystem = {
                 }
             }
             
-            // Guardamos la actividad elegida por 1 hora
+            // --- NUEVO: Guardamos la actividad elegida por 1 hora ---
             localStorage.setItem('room_lunari_saved_state', chosenState);
             localStorage.setItem('room_lunari_state_until', (Date.now() + 3600000).toString()); // +1 hora
 
@@ -135,7 +121,7 @@ export const LunariSystem = {
 
     setState(newState, esDeDiaLocal, lastWeatherCode) {
         if (this.currentState === newState) return;
-
+        
         // Lógica de salida del estado actual
         if (this.currentState && statesMap[this.currentState].exit) {
             statesMap[this.currentState].exit(this);
@@ -145,13 +131,13 @@ export const LunariSystem = {
         this.stateTimer = 0; 
         this.lastIsDay = esDeDiaLocal;
         this.lastWeather = lastWeatherCode;
-
+        
         // Ocultamos todos los modelos. El nuevo estado activará el suyo si lo necesita.
         for (let key in this.models) {
             if (this.models[key]) this.models[key].visible = false;
         }
         if (this.activeAction) this.activeAction.stop();
-
+        
         if (!this.onIdleFinishedBound) {
             this.onIdleFinishedBound = (e) => this.onIdleFinished(e);
             this.onDormirFinishedBound = (e) => this.onDormirFinished(e);
@@ -184,7 +170,6 @@ export const LunariSystem = {
     triggerHoldAnimation() {
         if (this.currentState === 'idle' && this.activeAction === this.actions.idle_base && this.actions.idle_holds.length > 0) {
             if (this.holdCooldown > 0) return;
-
             const randomHold = this.actions.idle_holds[Math.floor(Math.random() * this.actions.idle_holds.length)];
             const prevAction = this.activeAction;
             
@@ -208,7 +193,6 @@ export const LunariSystem = {
 
     update(delta) {
         if (!State.isRoomStarted) return;
-
         if (this.holdCooldown > 0) this.holdCooldown -= delta;
 
         for (let key in this.mixers) {
@@ -218,7 +202,8 @@ export const LunariSystem = {
         // CONTROL DE TIEMPO: 1 Hora exacta para cambiar animaciones
         if (this.currentState && this.currentState !== 'dormir' && this.currentState !== 'afuera') {
             this.stateTimer += delta;
-            // Delegamos la evaluación completa para limpiar la lógica
+            
+            // --- ACTUALIZADO: Delegamos la evaluación completa para limpiar la lógica ---
             if (this.stateTimer >= 3600) { 
                 this.stateTimer = 0;
                 this.evaluateState(this.lastIsDay, this.lastWeather, true);
