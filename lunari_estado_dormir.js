@@ -2,7 +2,7 @@ export const LunariDormir = {
     enter(system) {
         if (system.models.dormir) system.models.dormir.visible = true;
         system.activeAction = system.actions.dormir_base;
-        if (system.activeAction) system.activeAction.reset().play(); // Sin fadeIn para evitar Pose T
+        if (system.activeAction) system.activeAction.reset().fadeIn(0.5).play();
         system.dormirTimer = 0;
         
         if (system.mixers.dormir) system.mixers.dormir.addEventListener('finished', system.onDormirFinishedBound);
@@ -38,4 +38,4 @@ export const LunariDormir = {
     getDialogue(isDay, weatherCode) {
         return "Zzz...<br>(Lunari está profundamente dormida)";
     }
-}; 
+};
