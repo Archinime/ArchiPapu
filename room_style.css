@@ -27,7 +27,7 @@ body {
 #settings-button { right: max(20px, env(safe-area-inset-right)); }
 #inventory-button { right: max(75px, env(safe-area-inset-right) + 55px); }
 
-/* CLIMA SUBIDO A LA POSICIÓN 20px */
+/* CLIMA (Arriba) */
 #weather-status { 
     position: absolute; top: max(20px, env(safe-area-inset-top)); left: max(20px, env(safe-area-inset-left)); 
     background: rgba(20,20,30,0.75); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
@@ -36,21 +36,22 @@ body {
     align-items: center; gap: 8px; transition: opacity 0.3s;
 }
 
-/* MONEDAS BAJADAS A LA POSICIÓN 70px */
+/* FPS (Debajo del Clima) */
+#fps-counter { 
+    position: absolute; top: max(65px, env(safe-area-inset-top) + 45px); left: max(20px, env(safe-area-inset-left));
+    background: rgba(0,255,100,0.1); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+    color: #69f0ae; border: 1px solid rgba(105,240,174,0.3); padding: 5px 10px; border-radius: 8px; 
+    font-weight: bold; font-family: monospace; z-index: 300; pointer-events: none;
+}
+
+/* MONEDAS (Debajo de los FPS) */
 #coin-display { 
-    position: absolute; top: max(70px, env(safe-area-inset-top) + 50px); left: max(20px, env(safe-area-inset-left));
+    position: absolute; top: max(110px, env(safe-area-inset-top) + 90px); left: max(20px, env(safe-area-inset-left));
     background: rgba(20,20,30,0.75); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
     border: 1px solid rgba(255,215,0,0.3); color: #ffe066; padding: 10px 15px; border-radius: 20px;
     font-weight: bold; font-size: 16px; z-index: 300; user-select: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: transform 0.3s; 
 }
 #coin-display:hover { transform: scale(1.05); }
-
-#fps-counter { 
-    position: absolute; top: max(120px, env(safe-area-inset-top) + 100px); left: max(20px, env(safe-area-inset-left));
-    background: rgba(0,255,100,0.1); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
-    color: #69f0ae; border: 1px solid rgba(105,240,174,0.3); padding: 5px 10px; border-radius: 8px; 
-    font-weight: bold; font-family: monospace; z-index: 300; pointer-events: none;
-}
 
 #light-status { 
     position: absolute; bottom: max(80px, env(safe-area-inset-bottom) + 60px); left: max(20px, env(safe-area-inset-left)); 
@@ -118,7 +119,7 @@ body {
 
 #inv-body { display: flex; flex: 1; margin-top: 20px; gap: 20px; overflow: hidden; }
 
-/* NUEVO DISEÑO BASE PARA INVENTARIO (PC) */
+/* INVENTARIO PC */
 #inv-sidebar { display: flex; flex-direction: column; width: 250px; border-right: 1px solid rgba(255,255,255,0.05); overflow-y: auto; padding-right: 15px; flex-shrink: 0; gap: 15px; }
 .groups-container { display: flex; flex-direction: column; gap: 8px; }
 .cats-container { display: flex; flex-direction: column; gap: 5px; padding-left: 10px; border-left: 2px solid rgba(255,255,255,0.05); animation: slideDown 0.3s ease; }

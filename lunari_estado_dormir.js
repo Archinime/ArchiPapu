@@ -2,7 +2,8 @@ export const LunariDormir = {
     enter(system) {
         if (system.models.dormir) system.models.dormir.visible = true;
         system.activeAction = system.actions.dormir_base;
-        if (system.activeAction) system.activeAction.reset().fadeIn(0.5).play();
+        // QUITAMOS .fadeIn(0.5) para que empiece de golpe al cargar y no se vea la Pose T
+        if (system.activeAction) system.activeAction.reset().play();
         system.dormirTimer = 0;
         
         if (system.mixers.dormir) system.mixers.dormir.addEventListener('finished', system.onDormirFinishedBound);

@@ -5,7 +5,8 @@ export const LunariDespertar = {
     enter(system) {
         if (system.models.despertar) system.models.despertar.visible = true;
         system.activeAction = system.actions.despertar_base;
-        if (system.activeAction) system.activeAction.reset().fadeIn(0.5).play();
+        // Inicia directamente sin transición desde la Pose T
+        if (system.activeAction) system.activeAction.reset().play();
         if (State.isRoomStarted) TVManager.turnOnAutomatically(); 
     },
 
@@ -30,7 +31,6 @@ export const LunariDespertar = {
         const dialogBox = document.getElementById('dialogue-text');
         if (dialogBox) {
             dialogBox.innerHTML = "¡Oye! ¡Estoy viendo mi programa favorito!<br>Déjame ver la tele tranquila... 📺😠";
-            
             setTimeout(() => {
                 if (system.currentState === 'despertar') {
                     system.updateLunariText(system.lastIsDay, system.lastWeather);

@@ -619,7 +619,6 @@ renderer.domElement.addEventListener('pointerup', (e) => {
 
 let then = performance.now(), frames = 0, lastFpsTime = then; let wasStarted = false;
 
-// --- NUEVO CICLO DE ANIMACIÓN DE LUNARI ---
 function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
