@@ -6,11 +6,11 @@
     <title>Habitación 3D - Inventario y Lunari</title>
     <link rel="stylesheet" href="room_style.css">
 </head>
-<body class="no-coins"> <video id="tv-video" style="display:none;" crossorigin="anonymous" playsinline></video>
+<body>
+    <video id="tv-video" style="display:none;" crossorigin="anonymous" playsinline></video>
 
     <div id="fps-counter" style="display: none;">FPS: <span>60</span></div>
-    
-    <div id="coin-display" title="Tus Monedas" style="display: none;">🪙 <span id="coin-amount">0</span></div>
+    <div id="coin-display" title="Tus Monedas">🪙 <span id="coin-amount">0</span></div>
     <div id="weather-status">🌍 Detectando clima...</div>
     
     <div id="inventory-button" class="top-btn" title="Inventario y Tienda">🎒</div>
@@ -71,15 +71,6 @@
                                 <span class="ff-slider-round"></span>
                             </label>
                         </div>
-                        
-                        <div class="ff-setting-group">
-                            <label>Mostrar Monedas en Pantalla</label>
-                            <label class="ff-switch">
-                                <input type="checkbox" id="setting-showcoins">
-                                <span class="ff-slider-round"></span>
-                            </label>
-                        </div>
-
                         <div class="ff-setting-group" style="margin-top: 20px; color: #a5d6a7; font-size: 12px;">
                             <i>*Los cambios gráficos se ajustan automáticamente según tu dispositivo para evitar sobrecalentamiento.</i>
                         </div>

@@ -44,20 +44,16 @@ let baseTier = 'alta';
 if (isMobileUA || deviceMemory <= 4 || cpuCores <= 4) baseTier = 'media';
 if (isMobileUA && (deviceMemory <= 2 || cpuCores <= 2)) baseTier = 'baja';
 
-State.gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
+State.gameSettings = JSON.parse(localStorage.getItem('ff_settings')) ||
+{
     calidad: baseTier, 
     sombras: baseTier === 'baja' ? 0 : (baseTier === 'media' ? 1 : 2),
     fps: baseTier === 'baja' ? 30 : 60,
     volumenTV: 50,
     volumenEfectos: 50,
     volumenPC: 50,
-    mostrarFps: false,
-    mostrarMonedas: false // NUEVO: Moneda oculta por defecto
+    mostrarFps: false
 };
-
-// Evita errores si se carga configuración vieja que no tenía el botón de monedas
-if (State.gameSettings.mostrarMonedas === undefined) State.gameSettings.mostrarMonedas = false;
-
 if(State.gameSettings.volumen) { 
     State.gameSettings.volumenTV = State.gameSettings.volumen; 
     State.gameSettings.volumenEfectos = State.gameSettings.volumen; 
