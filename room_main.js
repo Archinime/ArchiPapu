@@ -182,6 +182,7 @@ function applyCurrentSettings() {
     
     document.getElementById('fps-counter').style.display = State.gameSettings.mostrarFps ? 'block' : 'none';
     
+    // APLICACIÓN DE MONEDAS
     const coinDisplay = document.getElementById('coin-display');
     if (coinDisplay) coinDisplay.style.display = State.gameSettings.mostrarMonedas ? 'flex' : 'none';
 
@@ -537,8 +538,10 @@ function handleInteraction(event) {
         TVManager.lastTvClickTime = currentTime; return;
     }
 
+    // --- CORRECCIÓN LÓGICA DE CLIC EN LA PC ---
     const pcScreenMesh = loadedSlotMeshes['pantalla_pc2'];
     if (pcScreenMesh && raycaster.intersectObject(pcScreenMesh, true).length > 0) {
+        // 1. Si está apagada, solo mostramos los controles para que pueda prenderla
         if (!PCManager.isPcOn) {
             document.getElementById('tv-controls').style.display = 'none';
             const pcControls = document.getElementById('pc-controls');
@@ -546,6 +549,7 @@ function handleInteraction(event) {
             return;
         }
 
+        // 2. Si está prendida, ejecuta la lógica normal de enlaces
         if (LunariSystem.currentState === 'jugar') { 
             window.open('https://archinime.github.io/-Archinime-', '_blank');
         } else {
@@ -559,6 +563,7 @@ function handleInteraction(event) {
 
     const pc2ScreenMesh = loadedSlotMeshes['pantalla_pc'];
     if (pc2ScreenMesh && raycaster.intersectObject(pc2ScreenMesh, true).length > 0) {
+        // 1. Si está apagada, mostramos controles y terminamos
         if (!PCManager.isPcOn) {
             document.getElementById('tv-controls').style.display = 'none';
             const pcControls = document.getElementById('pc-controls');
@@ -566,6 +571,7 @@ function handleInteraction(event) {
             return;
         }
 
+        // 2. Si está prendida, abre el enlace
         document.getElementById('tv-controls').style.display = 'none';
         const pcControls = document.getElementById('pc-controls'); pcControls.style.display = 'none';
         if (LunariSystem.currentState === 'jugar') { window.open('https://survev.io', '_blank');
@@ -618,31 +624,18 @@ renderer.domElement.addEventListener('pointerup', (e) => {
 });
 
 let then = performance.now(), frames = 0, lastFpsTime = then; let wasStarted = false;
-
-// --- NUEVO CICLO DE ANIMACIÓN DE LUNARI ---
 function animate() {
     requestAnimationFrame(animate);
     const now = performance.now(); const elapsed = now - then;
     const fpsInterval = State.gameSettings.fps > 0 ? 1000 / State.gameSettings.fps : 0;
-    
     if (fpsInterval === 0 || elapsed > fpsInterval) {
         if (fpsInterval > 0) then = now - (elapsed % fpsInterval);
         let delta = clock.getDelta();
-        
-        if (!State.isRoomStarted) {
-            // Animación en segundo plano durante la carga (EXCEPTO IDLE)
-            if (LunariSystem.currentState && LunariSystem.currentState !== 'idle') {
-                LunariSystem.update(delta);
-            }
-        } else {
-            // Animación normal una vez que le diste a iniciar
+        if (State.isRoomStarted) {
             if (!wasStarted) {
                 wasStarted = true;
-                // Si justo le tocó 'idle', reseteamos para que te salude desde cero.
-                if (LunariSystem.currentState === 'idle' || !LunariSystem.currentState) {
-                     LunariSystem.currentState = null;
-                     LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode);
-                }
+                LunariSystem.currentState = null;
+                LunariSystem.evaluateState(WeatherSystem.esDeDiaLocal, WeatherSystem.lastWeatherCode);
             }
             LunariSystem.update(delta);
         }
