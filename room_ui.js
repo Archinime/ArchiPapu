@@ -5,7 +5,6 @@ import { TVManager } from './room_tv.js';
 export const UIManager = {
     currentCategory: 'cama', openGroup: 'muebles', applySettingsCallback: null, applyAudioCallback: null, loadItemCallback: null,
 
-    // ACTUALIZADO: Recibimos la nueva función de audio
     init(applySettingsCallback, applyAudioCallback, loadItemCallback) {
         this.applySettingsCallback = applySettingsCallback;
         this.applyAudioCallback = applyAudioCallback; 
@@ -32,7 +31,6 @@ export const UIManager = {
                 tab.classList.add('active'); document.getElementById(tab.dataset.target).classList.add('active'); 
             };
         });
-
         document.getElementById('inventory-button').onclick = () => { document.getElementById('inventory-modal').classList.add('visible'); this.renderInventory(); };
         document.getElementById('close-inv').onclick = () => { document.getElementById('inventory-modal').classList.remove('visible'); };
     },
@@ -61,54 +59,56 @@ export const UIManager = {
             };
         });
 
-        // ---- SISTEMA OPTIMIZADO DE AUDIO ----
-        // TV
-        const volTV = document.getElementById('setting-volumen-tv'); 
+        // AUDIO
+        const volTV = document.getElementById('setting-volumen-tv');
         volTV.value = State.gameSettings.volumenTV; 
         document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`;
-        
-        // oninput = actualiza en tiempo real solo el audio sin guardar en disco (muy rápido)
         volTV.oninput = (e) => { 
             State.gameSettings.volumenTV = parseInt(e.target.value);
             document.getElementById('vol-tv-val').innerText = `${State.gameSettings.volumenTV}%`; 
             if(this.applyAudioCallback) this.applyAudioCallback(); 
         };
-        // onchange = guarda cuando el usuario suelta el click de la barra
         volTV.onchange = () => { localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); };
         
-        // PC
         const volPC = document.getElementById('setting-volumen-pc');
         if(volPC) {
             volPC.value = State.gameSettings.volumenPC; 
             document.getElementById('vol-pc-val').innerText = `${State.gameSettings.volumenPC}%`;
-            
             volPC.oninput = (e) => { 
-                State.gameSettings.volumenPC = parseInt(e.target.value); 
+                State.gameSettings.volumenPC = parseInt(e.target.value);
                 document.getElementById('vol-pc-val').innerText = `${State.gameSettings.volumenPC}%`; 
                 if(this.applyAudioCallback) this.applyAudioCallback(); 
             };
             volPC.onchange = () => { localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); };
         }
 
-        // EFECTOS
-        const volEf = document.getElementById('setting-volumen-efectos'); 
+        const volEf = document.getElementById('setting-volumen-efectos');
         volEf.value = State.gameSettings.volumenEfectos; 
         document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`;
-        
         volEf.oninput = (e) => { 
-            State.gameSettings.volumenEfectos = parseInt(e.target.value); 
+            State.gameSettings.volumenEfectos = parseInt(e.target.value);
             document.getElementById('vol-efectos-val').innerText = `${State.gameSettings.volumenEfectos}%`; 
             if(this.applyAudioCallback) this.applyAudioCallback(); 
         };
         volEf.onchange = () => { localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); };
 
-        // Mostrar FPS
+        // SISTEMA (FPS y MONEDAS)
         const fpsCheck = document.getElementById('setting-showfps'); fpsCheck.checked = State.gameSettings.mostrarFps;
         fpsCheck.onchange = (e) => { 
-            State.gameSettings.mostrarFps = e.target.checked; 
+            State.gameSettings.mostrarFps = e.target.checked;
             localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); 
             this.applySettingsCallback(); 
         };
+
+        const coinsCheck = document.getElementById('setting-showcoins'); 
+        if(coinsCheck) {
+            coinsCheck.checked = State.gameSettings.mostrarMonedas;
+            coinsCheck.onchange = (e) => { 
+                State.gameSettings.mostrarMonedas = e.target.checked;
+                localStorage.setItem('ff_settings', JSON.stringify(State.gameSettings)); 
+                this.applySettingsCallback(); 
+            };
+        }
     },
 
     renderInventory() {
@@ -126,7 +126,6 @@ export const UIManager = {
             group.categories.forEach(catKey => {
                 const catData = State.inventoryData[catKey]; if(!catData) return;
                 const btn = document.createElement('button'); 
-
                 btn.className = `cat-btn ${catKey === this.currentCategory ? 'active' : ''}`;
                 btn.innerHTML = `<span class="cat-icon-emoji">${catData.emoji}</span> <span>${catData.label}</span>`;
                 btn.onclick = () => { this.currentCategory = catKey; this.renderInventory(); };
@@ -137,12 +136,10 @@ export const UIManager = {
 
         const catData = State.inventoryData[this.currentCategory];
         if (!catData) return;
-
         for (let itemId in catData.items) {
             const item = catData.items[itemId];
             let isEq = catData.type === 'multiple' ? catData.equipped.includes(itemId) : catData.equipped === itemId;
             const card = document.createElement('div'); card.className = 'item-card';
-            
             const prev = document.createElement('div'); prev.className = 'item-preview';
             if (item.preview) { 
                 const img = document.createElement('img');
@@ -151,7 +148,8 @@ export const UIManager = {
             } else prev.innerHTML = `<span>${catData.emoji}</span>`;
             
             let btn = item.owned ?
-                (isEq ? `<button class="item-btn btn-equipped" onclick="window.equipItem('${this.currentCategory}', '${itemId}')">${catData.type === 'multiple' ? 'Quitar ✓' : 'Equipado ✓'}</button>` : `<button class="item-btn btn-equip" onclick="window.equipItem('${this.currentCategory}', '${itemId}')">Equipar</button>`) : `<button class="item-btn btn-buy" onclick="window.buyItem('${this.currentCategory}', '${itemId}')">Comprar 🪙${item.price}</button>`;
+            (isEq ? `<button class="item-btn btn-equipped" onclick="window.equipItem('${this.currentCategory}', '${itemId}')">${catData.type === 'multiple' ? 'Quitar ✓' : 'Equipado ✓'}</button>` : `<button class="item-btn btn-equip" onclick="window.equipItem('${this.currentCategory}', '${itemId}')">Equipar</button>`) : `<button class="item-btn btn-buy" onclick="window.buyItem('${this.currentCategory}', '${itemId}')">Comprar 🪙${item.price}</button>`;
+            
             card.innerHTML = `<div>${prev.outerHTML}<h4>${item.name}</h4><div class="item-price">${item.owned ? 'Adquirido' : `🪙 ${item.price}`}</div></div>${btn}`; content.appendChild(card);
         }
     },
