@@ -8,6 +8,8 @@ export const WeatherSystem = {
     actualizarIluminacion(focoDiaMesh, luzFocoDia, isMobileUA, lunariRef) {
         const hora = new Date().getHours();
         let colorHex, lightInt, emInt, dist;
+        
+        // Lógica de colores según la hora local del dispositivo
         if (hora >= 6 && hora < 9) { colorHex = 0xffe4b5; lightInt = 0.8; emInt = 0.8; dist = 35; }
         else if (hora >= 9 && hora < 17) { colorHex = 0xffffff; lightInt = 1.5; emInt = 1.5; dist = 50; }
         else if (hora >= 17 && hora < 19) { colorHex = 0xff8c00; lightInt = 0.7; emInt = 0.7; dist = 40; }
@@ -17,152 +19,68 @@ export const WeatherSystem = {
             luzFocoDia.color.setHex(colorHex);
             luzFocoDia.intensity = lightInt; 
             luzFocoDia.distance = dist; 
-            luzFocoDia.castShadow = State.gameSettings.sombras > 0;
-            // CORRECCIÓN DE SOMBRAS CLIMA: Eliminamos distorsión en la pared opuesta
-            luzFocoDia.shadow.bias = -0.002;
-            luzFocoDia.shadow.normalBias = 0.05;
+            // La sombra del foco de día depende de si la luz general está prendida
+            luzFocoDia.castShadow = State.lightOn; 
         }
         
-        if (focoDiaMesh) { 
-            const mat = focoDiaMesh.material;
-            mat.emissive.setHex(colorHex); 
-            mat.emissiveIntensity = emInt; 
-            mat.needsUpdate = true; 
-        }
-
-        const isDay = hora >= 6 && hora < 19;
-        this.esDeDiaLocal = isDay;
-
-        if (lunariRef && typeof lunariRef.evaluateState === 'function') {
-            lunariRef.evaluateState(isDay, this.lastWeatherCode);
+        if (focoDiaMesh) {
+            focoDiaMesh.material.emissive.setHex(colorHex);
+            focoDiaMesh.material.emissiveIntensity = emInt;
         }
     },
 
-    setupWeatherVideo(loader, scene, applyMaterialLogic, loadedSlotMeshes, checkLoading) {
-        const safeCheckLoading = () => {
-            if (typeof checkLoading === 'function') checkLoading();
-        };
+    // --- NUEVA LÓGICA DE CLIMA SILENCIOSA POR IP ---
+    async initClima(lunariRef) {
+        const weatherStatus = document.getElementById('weather-status');
+        if (weatherStatus) weatherStatus.innerText = '🌍 Detectando ubicación...';
 
-        const hora = new Date().getHours();
-        this.esDeDiaLocal = hora >= 6 && hora < 19;
-
-        if (!navigator.onLine) {
-            this.loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, this.esDeDiaLocal ? 'dia_soleado.mp4' : 'noche_despejada.mp4');
-            return;
-        }
-
-        let isResolved = false;
-        const useIPFallback = () => {
-            if(isResolved) return;
-            isResolved = true;
-            this.fetchWeatherByIP(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
-        };
-
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    if(isResolved) return;
-                    isResolved = true;
-                    this.fetchWeather(position.coords.latitude, position.coords.longitude, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
-                },
-                useIPFallback,
-                { timeout: 5000 }
-            );
-        } else {
-            useIPFallback();
-        }
-    },
-
-    async fetchWeatherByIP(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading) {
         try {
-            const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
-            const data = await res.json();
-            this.fetchWeather(data.latitude, data.longitude, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
-        } catch(e) {
-            this.fetchWeather(-12.0464, -77.0428, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading);
-        }
-    },
+            // 1. OBTENER COORDENADAS POR IP (Sin pedir permisos molestos al usuario)
+            const ipResponse = await fetch('https://get.geojs.io/v1/ip/geo.json');
+            if (!ipResponse.ok) throw new Error("Fallo al obtener IP");
+            const ipData = await ipResponse.json();
+            
+            const lat = ipData.latitude;
+            const lon = ipData.longitude;
+            const ciudad = ipData.city || "tu zona";
 
-    async fetchWeather(lat, lon, loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading) {
-        const statusBox = document.getElementById('weather-status');
-        let weatherCode = 0; let temperature = "--";
-        try {
-            const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`);
-            const data = await response.json();
-            weatherCode = data.current_weather.weathercode;
-            temperature = data.current_weather.temperature;
-            this.lastWeatherCode = weatherCode;
-        } catch (error) { console.error('Error del clima', error); }
+            if (weatherStatus) weatherStatus.innerText = '☁️ Sincronizando clima...';
 
-        const hora = new Date().getHours();
-        const isDay = hora >= 6 && hora < 19;
-        this.esDeDiaLocal = isDay;
+            // 2. CONSULTAR EL CLIMA CON LAS COORDENADAS OBTENIDAS
+            const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`);
+            if (!weatherRes.ok) throw new Error("Fallo al obtener clima");
+            const weatherData = await weatherRes.json();
 
-        let videoFile = isDay ? 'dia_soleado.mp4' : 'noche_despejada.mp4';
-        let weatherEmoji = isDay ? "☀️" : "🌙";
-        let weatherName = isDay ? "Soleado" : "Despejado";
-        
-        try {
-            if ([45, 48].includes(weatherCode)) { 
-                weatherEmoji = "🌫️";
-                weatherName = "Niebla"; 
-                videoFile = isDay ? 'dia_niebla.mp4' : 'noche_niebla.mp4';
-            } 
-            else if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)) { 
-                weatherEmoji = "🌧️";
-                weatherName = "Lluvioso"; 
-                videoFile = isDay ? 'dia_lluvia.mp4' : 'noche_lluvia.mp4';
-            } 
-            else if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) { 
-                weatherEmoji = "❄️";
-                weatherName = "Nevado"; 
-                videoFile = isDay ? 'dia_nieve.mp4' : 'noche_nieve.mp4';
-            } 
-            else if ([95, 96, 99].includes(weatherCode)) { 
-                weatherEmoji = "⛈️";
-                weatherName = "Tormenta"; 
-                videoFile = isDay ? 'dia_tormenta.mp4' : 'noche_tormenta.mp4';
-            } 
-            else if ([1, 2, 3].includes(weatherCode)) { 
-                weatherEmoji = "☁️";
-                weatherName = "Nublado"; 
-                videoFile = isDay ? 'dia_nublado.mp4' : 'noche_nublada.mp4';
+            // 3. ACTUALIZAR ESTADOS
+            this.esDeDiaLocal = weatherData.current_weather.is_day === 1;
+            this.lastWeatherCode = weatherData.current_weather.weathercode;
+
+            // 4. ACTUALIZAR INTERFAZ Y LUNARI
+            if (weatherStatus) {
+                // Muestra un pequeño texto con la ciudad detectada por IP si lo deseas
+                const icono = this.esDeDiaLocal ? '☀️' : '🌙';
+                weatherStatus.innerText = `${icono} Clima en ${ciudad}`;
             }
-        } catch (error) { weatherEmoji = "❌"; weatherName = "Clima offline"; }
 
-        if (statusBox) statusBox.innerHTML = temperature !== "--" ? `${weatherEmoji} ${weatherName} | ${temperature}°C` : `${weatherEmoji} ${weatherName}`;
-        
-        this.loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, videoFile);
-    },
+            if (lunariRef && lunariRef.updateLunariText) {
+                lunariRef.updateLunariText(this.esDeDiaLocal, this.lastWeatherCode);
+            }
 
-loadCuadro(loader, scene, applyMaterialLogic, loadedSlotMeshes, safeCheckLoading, videoFile) {
-        const video = document.createElement('video');
-        video.loop = true; video.muted = true; video.crossOrigin = 'anonymous'; video.playsInline = true;
-        video.src = videoFile; 
-        video.play().catch(e => console.log('Autoplay blocked'));
+            return { isDay: this.esDeDiaLocal, weatherCode: this.lastWeatherCode };
 
-        const videoTexture = new THREE.VideoTexture(video); 
-        videoTexture.minFilter = THREE.LinearFilter; 
-        videoTexture.magFilter = THREE.LinearFilter; 
-        videoTexture.format = THREE.RGBAFormat; 
-        videoTexture.encoding = THREE.sRGBEncoding;
-        videoTexture.generateMipmaps = false; // OPTIMIZACIÓN VRAM
-
-        loader.load(getFreshUrl('cuadro.glb'), (gltf) => {
-            const cuadroModel = gltf.scene;
-            cuadroModel.traverse((node) => {
-                if (node.isMesh && node.material) {
-                    if (Array.isArray(node.material)) { node.material.forEach(mat => { mat.map = videoTexture; mat.emissive = new THREE.Color(0xffffff); mat.emissiveMap = videoTexture; mat.emissiveIntensity = 1.0; mat.needsUpdate = true; }); } 
-                    else { node.material.map = videoTexture; node.material.emissive = new THREE.Color(0xffffff); node.material.emissiveMap = videoTexture; node.material.emissiveIntensity = 1.0; node.material.needsUpdate = true; }
-                }
-            });
-            applyMaterialLogic(cuadroModel, 'cuadro');
-            loadedSlotMeshes['cuadro'] = cuadroModel;
-           
-            scene.add(cuadroModel);
-            safeCheckLoading(); 
-        }, undefined, () => {
-            safeCheckLoading(); 
-        });
+        } catch (error) {
+            console.error("Error en el sistema de clima silencioso:", error);
+            if (weatherStatus) weatherStatus.innerText = '⚠️ Error de conexión';
+            
+            // Valores de respaldo por si falla el internet o los servidores
+            this.esDeDiaLocal = new Date().getHours() >= 6 && new Date().getHours() < 18;
+            this.lastWeatherCode = 0; // Despejado por defecto
+            
+            if (lunariRef && lunariRef.updateLunariText) {
+                lunariRef.updateLunariText(this.esDeDiaLocal, this.lastWeatherCode);
+            }
+            
+            return { isDay: this.esDeDiaLocal, weatherCode: this.lastWeatherCode };
+        }
     }
 };
