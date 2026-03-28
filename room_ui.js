@@ -111,42 +111,28 @@ export const UIManager = {
         }
     },
 
-    // --- LÓGICA REDISEÑADA DEL INVENTARIO PARA CHIPS HORIZONTALES ---
     renderInventory() {
         const sidebar = document.getElementById('inv-sidebar'), content = document.getElementById('inv-content');
         sidebar.innerHTML = ''; content.innerHTML = '';
         
-        const groupsContainer = document.createElement('div');
-        groupsContainer.className = 'groups-container';
-        
-        const catsContainer = document.createElement('div');
-        catsContainer.className = 'cats-container';
-
         inventoryGroups.forEach(group => {
-            const groupBtn = document.createElement('button'); 
-            groupBtn.className = `group-btn ${this.openGroup === group.id ? 'active' : ''}`;
-            groupBtn.innerHTML = `<span>${group.emoji} <span class="group-name">${group.label}</span></span>`;
-            groupBtn.onclick = () => { 
-                this.openGroup = group.id; 
-                if(group.categories.length > 0) this.currentCategory = group.categories[0];
-                this.renderInventory(); 
-            };
-            groupsContainer.appendChild(groupBtn);
+            const groupDiv = document.createElement('div'); groupDiv.className = 'inv-group';
+            const groupBtn = document.createElement('button'); groupBtn.className = 'group-btn';
+            groupBtn.innerHTML = `<span>${group.emoji} ${group.label}</span> <span style="transition:0.3s; transform: ${this.openGroup === group.id ? 'rotate(90deg)' : 'rotate(0deg)'}">▶</span>`;
+            groupBtn.onclick = () => { this.openGroup = this.openGroup === group.id ? null : group.id; this.renderInventory(); };
+            groupDiv.appendChild(groupBtn);
             
-            if (this.openGroup === group.id) {
-                group.categories.forEach(catKey => {
-                    const catData = State.inventoryData[catKey]; if(!catData) return;
-                    const btn = document.createElement('button'); 
-                    btn.className = `cat-btn ${catKey === this.currentCategory ? 'active' : ''}`;
-                    btn.innerHTML = `<span>${catData.label}</span>`;
-                    btn.onclick = () => { this.currentCategory = catKey; this.renderInventory(); };
-                    catsContainer.appendChild(btn);
-                });
-            }
+            const groupContent = document.createElement('div'); groupContent.className = `group-content ${this.openGroup === group.id ? 'open' : ''}`;
+            group.categories.forEach(catKey => {
+                const catData = State.inventoryData[catKey]; if(!catData) return;
+                const btn = document.createElement('button'); 
+                btn.className = `cat-btn ${catKey === this.currentCategory ? 'active' : ''}`;
+                btn.innerHTML = `<span class="cat-icon-emoji">${catData.emoji}</span> <span>${catData.label}</span>`;
+                btn.onclick = () => { this.currentCategory = catKey; this.renderInventory(); };
+                groupContent.appendChild(btn);
+            });
+            groupDiv.appendChild(groupContent); sidebar.appendChild(groupDiv);
         });
-
-        sidebar.appendChild(groupsContainer);
-        sidebar.appendChild(catsContainer);
 
         const catData = State.inventoryData[this.currentCategory];
         if (!catData) return;
