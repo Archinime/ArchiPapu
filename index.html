@@ -4,14 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Habitación 3D - Inventario y Lunari</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="room_style.css">
 </head>
-<body>
-    <video id="tv-video" style="display:none;" crossorigin="anonymous" playsinline></video>
+<body class="no-coins"> <video id="tv-video" style="display:none;" crossorigin="anonymous" playsinline></video>
 
     <div id="fps-counter" style="display: none;">FPS: <span>60</span></div>
-    <div id="coin-display" title="Tus Monedas">🪙 <span id="coin-amount">0</span></div>
+    
+    <div id="coin-display" title="Tus Monedas" style="display: none;">🪙 <span id="coin-amount">0</span></div>
     <div id="weather-status">🌍 Detectando clima...</div>
     
     <div id="inventory-button" class="top-btn" title="Inventario y Tienda">🎒</div>
@@ -72,6 +71,15 @@
                                 <span class="ff-slider-round"></span>
                             </label>
                         </div>
+                        
+                        <div class="ff-setting-group">
+                            <label>Mostrar Monedas en Pantalla</label>
+                            <label class="ff-switch">
+                                <input type="checkbox" id="setting-showcoins">
+                                <span class="ff-slider-round"></span>
+                            </label>
+                        </div>
+
                         <div class="ff-setting-group" style="margin-top: 20px; color: #a5d6a7; font-size: 12px;">
                             <i>*Los cambios gráficos se ajustan automáticamente según tu dispositivo para evitar sobrecalentamiento.</i>
                         </div>
@@ -126,17 +134,9 @@
         <img id="poster-enlarged-image" src="" alt="Póster">
     </div>
 
-    <div id="cyber-loader">
-        <div class="loader-content">
-            <div class="loader-glitch-wrapper">
-                <div class="loader-glitch" data-text="LUNARI OS">LUNARI OS</div>
-            </div>
-            <div class="loader-sub">INICIALIZANDO ENTORNO 3D... <span id="loading-count">0/0</span></div>
-            <div class="loading-bar-container">
-                <div id="loading-bar"></div>
-            </div>
-            <button id="cyber-start-btn" style="display: none; opacity: 0;">▶ INICIAR ENLACE</button>
-        </div>
+    <div id="loading">
+        <div class="loading-text">Preparando habitación... <span id="loading-count">0/0</span></div>
+        <div id="loading-bar-container"><div id="loading-bar"></div></div>
     </div>
     
     <div id="light-status">💡 Luz encendida</div>
