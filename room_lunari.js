@@ -57,7 +57,7 @@ export const LunariSystem = {
             return;
         }
 
-        // 3. Verificamos persistencia de actividad (mínimo 1 hora)
+        // --- NUEVO: 3. Verificamos persistencia de actividad (mínimo 1 hora) ---
         const savedState = localStorage.getItem('room_lunari_saved_state');
         const stateUntil = parseInt(localStorage.getItem('room_lunari_state_until') || '0');
 
@@ -72,7 +72,7 @@ export const LunariSystem = {
         // 4. Evaluamos si decidirá salir o cambiar de actividad AHORA mismo
         if (!this.currentState || this.currentState === 'dormir' || this.currentState === 'afuera' || intervalTick) {
             
-            // Verificamos el descanso/cooldown de 2 horas
+            // --- NUEVO: Verificamos el descanso/cooldown de 2 horas ---
             const cooldownUntil = parseInt(localStorage.getItem('room_lunari_cooldown') || '0');
             let probSalir = 0;
 
@@ -92,19 +92,13 @@ export const LunariSystem = {
                 return;
             }
 
-            // 5. Si decidió quedarse, verificamos memoria o le asignamos otra actividad
+            // 5. Si decidió quedarse, verificamos memoria de TV y PC o le asignamos otra actividad
             const tvWasOn = localStorage.getItem('room_tv_on') === 'true';
             const pcWasOn = localStorage.getItem('room_pc_on') === 'true';
             let chosenState = 'idle';
 
-            // --- NUEVO: 5% de probabilidad de quedarse dormida de día (Mañana de 7 a 12) ---
-            let oversleepChance = (hora >= 7 && hora < 12) ? 0.05 : 0;
-
-            if (Math.random() < oversleepChance) {
-                chosenState = 'dormir';
-            }
-            // Si venimos de cumplir 1 hora activa (intervalTick), forzamos un cambio
-            else if (intervalTick && this.currentState && this.currentState !== 'dormir' && this.currentState !== 'afuera') {
+            // Si venimos de cumplir 1 hora activa (intervalTick), forzamos un cambio para que no haga lo mismo
+            if (intervalTick && this.currentState && this.currentState !== 'dormir' && this.currentState !== 'afuera') {
                 const dayStates = ['idle', 'despertar', 'jugar'].filter(s => s !== this.currentState);
                 chosenState = dayStates[Math.floor(Math.random() * dayStates.length)];
             } else {
@@ -117,7 +111,7 @@ export const LunariSystem = {
                 }
             }
             
-            // Guardamos la actividad elegida por 1 hora
+            // --- NUEVO: Guardamos la actividad elegida por 1 hora ---
             localStorage.setItem('room_lunari_saved_state', chosenState);
             localStorage.setItem('room_lunari_state_until', (Date.now() + 3600000).toString()); // +1 hora
 
@@ -127,7 +121,7 @@ export const LunariSystem = {
 
     setState(newState, esDeDiaLocal, lastWeatherCode) {
         if (this.currentState === newState) return;
-        
+        // Lógica de salida del estado actual
         if (this.currentState && statesMap[this.currentState].exit) {
             statesMap[this.currentState].exit(this);
         }
@@ -136,7 +130,7 @@ export const LunariSystem = {
         this.stateTimer = 0; 
         this.lastIsDay = esDeDiaLocal;
         this.lastWeather = lastWeatherCode;
-        
+        // Ocultamos todos los modelos. El nuevo estado activará el suyo si lo necesita.
         for (let key in this.models) {
             if (this.models[key]) this.models[key].visible = false;
         }
@@ -147,6 +141,7 @@ export const LunariSystem = {
             this.onDormirFinishedBound = (e) => this.onDormirFinished(e);
         }
 
+        // Lógica de entrada del nuevo estado
         if (statesMap[newState].enter) {
             statesMap[newState].enter(this);
         }
@@ -186,6 +181,7 @@ export const LunariSystem = {
         }
     },
 
+    // --- NUEVO: Función para detectar el doble clic ---
     triggerDoubleClickAnimation() {
         if (this.currentState === 'dormir' && statesMap.dormir.triggerRandom) {
             statesMap.dormir.triggerRandom(this);
@@ -208,14 +204,17 @@ export const LunariSystem = {
             if (this.mixers[key]) this.mixers[key].update(delta);
         }
 
+        // CONTROL DE TIEMPO: 1 Hora exacta para cambiar animaciones
         if (this.currentState && this.currentState !== 'dormir' && this.currentState !== 'afuera') {
             this.stateTimer += delta;
+            // --- ACTUALIZADO: Delegamos la evaluación completa para limpiar la lógica ---
             if (this.stateTimer >= 3600) { 
                 this.stateTimer = 0;
                 this.evaluateState(this.lastIsDay, this.lastWeather, true);
             }
         }
 
+        // Delegamos el update al estado activo
         if (this.currentState && statesMap[this.currentState].update) {
             statesMap[this.currentState].update(this, delta);
         }
