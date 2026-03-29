@@ -123,7 +123,7 @@ export const defaultInventoryConfig = {
                 baseFile: "pantalla_pc.glb", 
                 price: 0, 
                 owned: true,
-                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pc_estandar.avif"
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pc.avif"
             } 
         } 
     },
@@ -136,7 +136,7 @@ export const defaultInventoryConfig = {
                 baseFile: "pantalla.glb", 
                 price: 0, 
                 owned: true,
-                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele_estandar.avif"
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/tele.avif"
             }
         } 
     },
@@ -198,7 +198,7 @@ export const defaultInventoryConfig = {
                 file: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/maouse_pad.glb", 
                 price: 0, 
                 owned: true,
-                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/maouse_pad_estandar.avif"
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/pad.avif"
             } 
         } 
     },
@@ -371,10 +371,9 @@ export const defaultInventoryConfig = {
     videos: {
         label: "Videos TV", emoji: "📼", equipped: ["gohan_cell", "zoro_king", "rezero"], type: "multiple",
         items: {
-            "gohan_cell": { name: "Gohan vs Cell", file: "gohan_vs_cell.mp4", price: 0, owned: true,
-                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.avif"  },
-            "zoro_king": { name: "Konosuba", file: "zoro_vs_king.mp4", price: 0, owned: true },
-            "rezero": { name: "Re:Zero", file: "rezero.mp4", price: 0, owned: true }
+            "gohan_cell": { name: "Gohan vs Cell", file: "gohan_vs_cell.mp4", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/gohan.avif"  },
+            "zoro_king": { name: "Konosuba", file: "zoro_vs_king.mp4", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/konosuba.avif" },
+            "rezero": { name: "Re:Zero", file: "rezero.mp4", price: 0, owned: true, preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/rezero.avif" }
         }
     }
 };
