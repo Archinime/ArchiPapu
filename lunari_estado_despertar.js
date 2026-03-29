@@ -17,20 +17,29 @@ export const LunariDespertar = {
     },
 
     update(system, delta) {
-        // Nada especial en el bucle de la TV por ahora
     },
 
     onFinished(system, event) {},
 
     getDialogue(isDay, weatherCode) {
-        return "Este anime está muy interesante.<br>¡Shhh! Estoy prestando atención.";
+        const lines = [
+            "Este anime está muy interesante.<br>¡Shhh! Estoy prestando atención.",
+            "¡Wow, la animación de esta escena es increíble!",
+            "¿Tú también lo estás viendo? El prota es genial.",
+            "Siempre me dejan con intriga al final del episodio..."
+        ];
+        return lines[Math.floor(Math.random() * lines.length)];
     },
 
     complainAboutTV(system) {
+        const complaints = [
+            "¡Oye! ¡Estoy viendo mi programa favorito!<br>Déjame ver la tele tranquila... 📺😠",
+            "¡No cambies! Estaba en la mejor parte... 🥺",
+            "¡Devuélveme el control! ¡Quiero seguir viendo! 😤"
+        ];
         const dialogBox = document.getElementById('dialogue-text');
         if (dialogBox) {
-            dialogBox.innerHTML = "¡Oye! ¡Estoy viendo mi programa favorito!<br>Déjame ver la tele tranquila... 📺😠";
-            
+            dialogBox.innerHTML = complaints[Math.floor(Math.random() * complaints.length)];
             setTimeout(() => {
                 if (system.currentState === 'despertar') {
                     system.updateLunariText(system.lastIsDay, system.lastWeather);
