@@ -22,24 +22,17 @@ export const SceneSetup = {
         }
         this.camera.position.set(0, camPosY, camPosZ);
         
-        // OPTIMIZACIÓN: powerPreference y precision ayudan a la GPU del móvil
-        this.renderer = new THREE.WebGLRenderer({ 
-            antialias: gameSettings.calidad !== 'baja', 
-            powerPreference: "high-performance",
-            precision: gameSettings.calidad === 'baja' ? 'mediump' : 'highp'
-        });
+        this.renderer = new THREE.WebGLRenderer({ antialias: gameSettings.calidad !== 'baja', powerPreference: "high-performance" });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.outputEncoding = THREE.sRGBEncoding; 
         
+        // OPTIMIZACIÓN: Desactivar ACESFilmic en gama baja desde el inicio
         this.renderer.toneMapping = gameSettings.calidad === 'baja' ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = gameSettings.calidad === 'baja' ? 1.0 : 1.2;
-
-        // OPTIMIZACIÓN CRÍTICA: Límite de Pixel Ratio para evitar crash por RAM en pantallas de alta densidad
-        const maxPixelRatio = gameSettings.calidad === 'baja' ? 1 : (isMobileUA ? 1.5 : Math.min(window.devicePixelRatio, 2));
-        this.renderer.setPixelRatio(maxPixelRatio);
+        this.renderer.toneMappingExposure = 1.0;
         
-        this.renderer.shadowMap.enabled = true; // LAS SOMBRAS NO SE BORRAN
-        this.renderer.shadowMap.type = gameSettings.calidad === 'alta' ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; 
+        // SOMBRAS: Se asigna el tipo correcto desde el inicio
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; 
         
         document.body.appendChild(this.renderer.domElement);
 
@@ -51,7 +44,6 @@ export const SceneSetup = {
         this.controls.maxDistance = 16;
         this.controls.enablePan = false;
         
-        // LAS LUCES SE MANTIENEN INTACTAS
         this.ambient = new THREE.AmbientLight(0xffffff, 0.3); 
         this.scene.add(this.ambient);
         
@@ -65,21 +57,14 @@ export const SceneSetup = {
         this.mainLight.penumbra = 0.8;
         this.mainLight.castShadow = true;
         
-        // OPTIMIZACIÓN DE VRAM: Sombras adaptativas según calidad
-        if (gameSettings.calidad === 'baja') {
-            this.mainLight.shadow.mapSize.width = 256;
-            this.mainLight.shadow.mapSize.height = 256;
-        } else if (gameSettings.calidad === 'media') {
-            this.mainLight.shadow.mapSize.width = 512;
-            this.mainLight.shadow.mapSize.height = 512;
-        } else {
-            this.mainLight.shadow.mapSize.width = 1024;
-            this.mainLight.shadow.mapSize.height = 1024;
-        }
-        
+        // CORRECCIÓN DE ACNÉ DE SOMBRAS: Mayor tolerancia en el Bias
         this.mainLight.shadow.bias = -0.001;
-        this.mainLight.shadow.camera.near = 1;
-        this.mainLight.shadow.camera.far = 50;
+        this.mainLight.shadow.normalBias = 0.05;
+        
+        // Ajustamos la resolución según la calidad
+        this.mainLight.shadow.mapSize.width = gameSettings.calidad === 'alta' ? 2048 : 1024;
+        this.mainLight.shadow.mapSize.height = gameSettings.calidad === 'alta' ? 2048 : 1024;
+
         this.scene.add(this.mainLight);
     }
 };

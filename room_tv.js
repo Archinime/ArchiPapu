@@ -36,209 +36,205 @@ export const TVManager = {
         document.body.appendChild(this.tvEffectVideoOn);
         this.tvEffectVideoOn.style.display = 'none';
 
-        this.tvTexture = new THREE.VideoTexture(this.tvVideo);
-        this.tvTexture.minFilter = THREE.LinearFilter;
+        this.tvVideo.playsInline = true;
+        this.tvVideo.setAttribute('playsinline', '');
+        this.tvVideo.setAttribute('webkit-playsinline', '');
+        
+        this.tvTexture = new THREE.VideoTexture(this.tvVideo); 
+        this.tvTexture.minFilter = THREE.LinearFilter; 
         this.tvTexture.magFilter = THREE.LinearFilter;
         this.tvTexture.format = THREE.RGBAFormat;
         this.tvTexture.encoding = THREE.sRGBEncoding;
-        this.tvTexture.generateMipmaps = false; // OPTIMIZADO
+        this.tvTexture.generateMipmaps = false; 
 
         this.tvEffectTextureOff = new THREE.VideoTexture(this.tvEffectVideoOff);
-        this.tvEffectTextureOff.minFilter = THREE.LinearFilter;
-        this.tvEffectTextureOff.magFilter = THREE.LinearFilter;
+        this.tvEffectTextureOff.minFilter = THREE.LinearFilter; 
+        this.tvEffectTextureOff.magFilter = THREE.LinearFilter; 
         this.tvEffectTextureOff.format = THREE.RGBAFormat;
-        this.tvEffectTextureOff.encoding = THREE.sRGBEncoding;
-        this.tvEffectTextureOff.generateMipmaps = false; // OPTIMIZADO
+        this.tvEffectTextureOff.generateMipmaps = false; 
 
         this.tvEffectTextureOn = new THREE.VideoTexture(this.tvEffectVideoOn);
         this.tvEffectTextureOn.minFilter = THREE.LinearFilter;
         this.tvEffectTextureOn.magFilter = THREE.LinearFilter;
         this.tvEffectTextureOn.format = THREE.RGBAFormat;
-        this.tvEffectTextureOn.encoding = THREE.sRGBEncoding;
-        this.tvEffectTextureOn.generateMipmaps = false; // OPTIMIZADO
+        this.tvEffectTextureOn.generateMipmaps = false; 
 
+        this.setupControls();
         this.updatePlaylist();
-        this.setupUI();
-        
-        const savedTvState = localStorage.getItem('room_tv_on');
-        if (savedTvState === 'true') {
-            this.turnOnAutomatically();
-        }
+
+        this.tvVideo.addEventListener('ended', () => {
+            if (this.isTvOn && !this.tvTransitioning) {
+                this.playNextTv(false);
+            }
+        });
+
+        this.setupStartScreen();
+    },
+
+    setupStartScreen() {
+        const btn = document.getElementById('cyber-start-btn');
+        const loader = document.getElementById('cyber-loader');
+
+        if(!btn || !loader) return;
+
+        btn.addEventListener('click', () => {
+            this.hasInteracted = true;
+            State.isRoomStarted = true; 
+            
+            this.tvVideo.muted = false;
+            this.tvVideo.play().catch(()=>{});
+            if (!this.isTvOn || this.tvTransitioning) {
+                this.tvVideo.pause();
+            }
+ 
+            this.audioBotonTV.play().catch(()=>{});
+            this.audioBotonTV.pause();
+            this.audioBotonTV.currentTime = 0;
+
+            PCManager.canPlayAudio = true; 
+            
+            if (PCManager.isGamingMode && PCManager.isPcOn) {
+                PCManager.survVideo.muted = false;
+                PCManager.survVideo.volume = (State.gameSettings.volumenPC !== undefined ? State.gameSettings.volumenPC : 50) / 100;
+                PCManager.survVideo.play().catch(()=>{});
+            }
+
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 500);
+
+            if (this.pendingAutoTurnOn) {
+                this.turnOnAutomatically();
+            }
+        });
     },
 
     updatePlaylist() {
-        const tvEquipped = State.inventoryData.tele.equipped;
-        this.tvPlaylist = [];
-        tvEquipped.forEach(id => {
-            const item = State.inventoryData.tele.items[id];
-            if (item && item.file && item.file.endsWith('.mp4')) this.tvPlaylist.push(item.file);
-        });
-        if (this.tvPlaylist.length > 0) {
-            if (this.currentTvIndex >= this.tvPlaylist.length) this.currentTvIndex = 0;
-            if (this.currentTvIndex === -1) this.currentTvIndex = 0;
-            this.tvVideo.src = this.tvPlaylist[this.currentTvIndex];
-            if (this.isTvOn && !this.tvTransitioning) {
-                this.tvVideo.play().catch(() => {});
-            }
-        } else {
-            this.currentTvIndex = -1;
-            this.tvVideo.src = "";
-            if (this.isTvOn && !this.tvTransitioning) {
-                this.applyEffectAndTurnOff();
-            }
+        this.tvPlaylist = State.inventoryData.videos.equipped.map(id => State.inventoryData.videos.items[id].file);
+        if(this.tvPlaylist.length === 0) this.tvVideo.pause();
+    },
+
+    playNextTv(random = false) {
+        this.updatePlaylist();
+        if(this.tvPlaylist.length === 0) return;
+        
+        this.currentTvIndex = random ? Math.floor(Math.random() * this.tvPlaylist.length) : (this.currentTvIndex + 1) % this.tvPlaylist.length;
+        this.tvVideo.src = this.tvPlaylist[this.currentTvIndex];
+        this.tvVideo.volume = State.gameSettings.volumenTV / 100;
+        
+        if (this.isTvOn && !this.tvTransitioning) {
+            this.tvVideo.play().catch(e => console.warn('Aún necesita interacción', e));
         }
     },
 
-    setupUI() {
-        const tvControls = document.getElementById('tv-controls');
-        const tvPowerBtn = document.getElementById('tv-power');
-        const tvNextBtn = document.getElementById('tv-next');
+    playButtonSound() { 
+        this.audioBotonTV.currentTime = 0;
+        this.audioBotonTV.play().catch(e=>{});
+    },
+
+    setupControls() {
+        const tvPrevBtn = document.getElementById('tv-prev'), 
+              tvPlayPauseBtn = document.getElementById('tv-play-pause'), 
+              tvNextBtn = document.getElementById('tv-next'), 
+              tvPowerBtn = document.getElementById('tv-power');
+              
+        tvPrevBtn.onclick = () => { 
+            this.playButtonSound();
+            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } 
+            if (!this.isTvOn || this.tvTransitioning) return;
+            this.updatePlaylist(); 
+            if(this.tvPlaylist.length===0)return;
+            this.currentTvIndex = (this.currentTvIndex - 1 + this.tvPlaylist.length) % this.tvPlaylist.length; 
+            this.tvVideo.src = this.tvPlaylist[this.currentTvIndex]; 
+            this.tvVideo.play();
+        };
+        
+        tvPlayPauseBtn.onclick = () => { 
+            this.playButtonSound();
+            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } 
+            if (!this.isTvOn || this.tvTransitioning) return;
+            if(this.tvVideo.paused) this.tvVideo.play(); 
+            else this.tvVideo.pause(); 
+        };
+        
+        tvNextBtn.onclick = () => { 
+            this.playButtonSound();
+            if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } 
+            if (this.isTvOn && !this.tvTransitioning) this.playNextTv(false);
+        };
 
         if (tvPowerBtn) {
-            tvPowerBtn.onclick = () => {
-                const now = Date.now();
-                if (now - this.lastTvClickTime < 1000 || this.tvTransitioning) return;
-                this.lastTvClickTime = now;
-                
+            tvPowerBtn.addEventListener('click', () => {
                 this.playButtonSound();
-
-                if (!this.isTvOn) {
-                    if (this.tvPlaylist.length === 0) {
-                        alert("¡Equipa al menos un canal (video) en la tienda para ver la tele!");
-                        return;
-                    }
-                    this.isTvOn = true;
-                    this.tvTransitioning = true;
-                    localStorage.setItem('room_tv_on', 'true');
-                    
-                    tvPowerBtn.innerText = '🟢';
-                    tvPowerBtn.style.color = '#00ff00';
-                    tvPowerBtn.style.textShadow = '0 0 5px #00ff00';
-                    tvControls.style.display = 'none';
-
-                    if (this.tvScreenMesh) {
-                        const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
-                        mats.forEach(mat => {
-                            mat.map = this.tvEffectTextureOn;
-                            mat.emissiveMap = this.tvEffectTextureOn;
-                            mat.color.setHex(0xffffff);
-                            mat.emissive.setHex(0xffffff);
-                            mat.emissiveIntensity = 1.0;
-                            mat.needsUpdate = true;
-                        });
-                    }
-                    
-                    this.tvEffectVideoOn.currentTime = 0;
-                    this.tvEffectVideoOn.play().catch(e => console.log('Effect blocked', e));
-                    
-                    const onEffectEnded = () => {
-                        this.tvTransitioning = false;
-                        if (this.tvScreenMesh && this.isTvOn) {
-                            const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
-                            mats.forEach(mat => { mat.map = this.tvTexture; mat.emissiveMap = this.tvTexture; mat.needsUpdate = true; });
-                        }
-                        this.tvVideo.play().catch(e => console.log('Video blocked', e));
-                    };
-                    this.tvEffectVideoOn.addEventListener('ended', onEffectEnded, { once: true });
-                } else {
-                    if (LunariSystem.currentState === 'despertar') {
-                        if (LunariSystem.actions.despertar_base && LunariSystem.actions.despertar_base.isRunning()) {
-                            LunariSystem.complainAboutTV(LunariSystem);
-                            tvControls.style.display = 'none';
-                            this.isTvOn = true; 
-                            localStorage.setItem('room_tv_on', 'true');
-                            return; 
-                        }
-                    }
-
-                    this.applyEffectAndTurnOff();
-                }
-            };
-        }
-
-        if (tvNextBtn) {
-            tvNextBtn.onclick = () => {
-                if (!this.isTvOn || this.tvTransitioning || this.tvPlaylist.length <= 1) return;
+                if (LunariSystem.currentState === 'despertar') { LunariSystem.complainAboutTV(); return; } 
                 
-                if (LunariSystem.currentState === 'despertar') {
-                    if (LunariSystem.actions.despertar_base && LunariSystem.actions.despertar_base.isRunning()) {
-                        LunariSystem.complainAboutTV(LunariSystem);
-                        tvControls.style.display = 'none';
-                        return;
-                    }
-                }
-
-                this.playButtonSound();
-                this.currentTvIndex = (this.currentTvIndex + 1) % this.tvPlaylist.length;
-                this.tvVideo.src = this.tvPlaylist[this.currentTvIndex];
+                if (this.tvTransitioning || !this.tvScreenMesh) return;
                 
-                this.tvTransitioning = true;
+                this.tvTransitioning = true; 
                 this.tvVideo.pause();
+       
+                const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
+                const effectVideo = this.isTvOn ? this.tvEffectVideoOff : this.tvEffectVideoOn; 
+                const effectTexture = this.isTvOn ? this.tvEffectTextureOff : this.tvEffectTextureOn;
+
+                mats.forEach(mat => { 
+                    mat.map = effectTexture; 
+                    mat.emissiveMap = effectTexture; 
+                    mat.color.setHex(0xffffff); 
+                    mat.emissive.setHex(0xffffff);
+                    mat.emissiveIntensity = 1.0; 
+                    mat.needsUpdate = true; 
+                });
                 
-                if (this.tvScreenMesh) {
-                    const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
-                    mats.forEach(mat => { mat.map = this.tvEffectTextureOn; mat.emissiveMap = this.tvEffectTextureOn; mat.needsUpdate = true; });
-                }
-                
-                this.tvEffectVideoOn.currentTime = 0;
-                this.tvEffectVideoOn.play().catch(e => console.log('Effect blocked', e));
+                effectVideo.currentTime = 0;
+                effectVideo.play().catch(e=>{});
                 
                 const onEffectEnded = () => {
-                    this.tvTransitioning = false;
-                    if (this.tvScreenMesh && this.isTvOn) {
-                        const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
-                        mats.forEach(mat => { mat.map = this.tvTexture; mat.emissiveMap = this.tvTexture; mat.needsUpdate = true; });
+                    effectVideo.removeEventListener('ended', onEffectEnded);
+                    this.tvTransitioning = false; 
+
+                    if (this.isTvOn) {
+                        this.isTvOn = false;
+                        localStorage.setItem('room_tv_on', 'false');
+                        tvPowerBtn.innerText = '🔴'; 
+                        tvPowerBtn.style.color = 'red'; 
+                        tvPowerBtn.style.textShadow = '0 0 5px red';
+                        
+                        mats.forEach(mat => { 
+                            mat.map = null; 
+                            mat.emissiveMap = null; 
+                            mat.color.setHex(0x000000); 
+                            mat.emissive.setHex(0x000000); 
+                            mat.emissiveIntensity = 0; 
+                            mat.needsUpdate = true; 
+                        });
+                    } else {
+                        this.isTvOn = true;
+                        localStorage.setItem('room_tv_on', 'true');
+                        tvPowerBtn.innerText = '🟢'; 
+                        tvPowerBtn.style.color = '#00ff00'; 
+                        tvPowerBtn.style.textShadow = '0 0 5px #00ff00';
+                        
+                        mats.forEach(mat => { 
+                            mat.map = this.tvTexture; 
+                            mat.emissiveMap = this.tvTexture; 
+                            mat.color.setHex(0xffffff); 
+                            mat.emissive.setHex(0xffffff); 
+                            mat.emissiveIntensity = 1.0; 
+                            mat.needsUpdate = true; 
+                        });
+                        
+                        if (this.tvPlaylist.length > 0 && !this.tvVideo.src) {
+                            this.playNextTv(true);
+                        } else if (this.tvPlaylist.length > 0) {
+                            this.tvVideo.currentTime = 0;
+                            this.tvVideo.play().catch(e=>{});
+                        }
                     }
-                    this.tvVideo.play().catch(e => console.log('Video blocked', e));
                 };
-                this.tvEffectVideoOn.addEventListener('ended', onEffectEnded, { once: true });
-            };
-        }
-    },
-
-    applyEffectAndTurnOff() {
-        this.isTvOn = false;
-        this.tvTransitioning = true;
-        localStorage.setItem('room_tv_on', 'false');
-        
-        const tvPowerBtn = document.getElementById('tv-power');
-        if(tvPowerBtn) {
-            tvPowerBtn.innerText = '🔴';
-            tvPowerBtn.style.color = 'red';
-            tvPowerBtn.style.textShadow = '0 0 5px red';
-        }
-        const tvControls = document.getElementById('tv-controls');
-        if(tvControls) tvControls.style.display = 'none';
-
-        this.tvVideo.pause();
-
-        if (this.tvScreenMesh) {
-            const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
-            mats.forEach(mat => {
-                mat.map = this.tvEffectTextureOff;
-                mat.emissiveMap = this.tvEffectTextureOff;
-                mat.needsUpdate = true;
+                
+                effectVideo.addEventListener('ended', onEffectEnded, { once: true });
             });
         }
-
-        this.tvEffectVideoOff.currentTime = 0;
-        this.tvEffectVideoOff.play().catch(e => console.log('Effect blocked', e));
-
-        const onEffectEnded = () => {
-            this.tvTransitioning = false;
-            if (this.tvScreenMesh && !this.isTvOn) {
-                const mats = Array.isArray(this.tvScreenMesh.material) ? this.tvScreenMesh.material : [this.tvScreenMesh.material];
-                mats.forEach(mat => {
-                    mat.map = null;
-                    mat.emissiveMap = null;
-                    mat.color.setHex(0x111111);
-                    mat.emissive.setHex(0x000000);
-                    mat.emissiveIntensity = 0.0;
-                    mat.needsUpdate = true;
-                });
-            }
-        };
-        this.tvEffectVideoOff.addEventListener('ended', onEffectEnded, { once: true });
     },
 
     turnOnAutomatically() {
@@ -272,20 +268,13 @@ export const TVManager = {
             });
         }
 
-        if (this.tvPlaylist.length > 0) {
-            this.tvVideo.play().catch(e => console.log('Auto-play blocked', e));
-        }
+        this.playNextTv(true);
     },
-
-    setVolume(volTV, volEf) {
+    
+    setVolumes(volTv, volEf) {
+        if(this.tvVideo) this.tvVideo.volume = volTv / 100;
+        this.tvEffectVideoOff.volume = volEf / 100;
+        this.tvEffectVideoOn.volume = volEf / 100;
         this.audioBotonTV.volume = volEf / 100;
-        this.tvVideo.volume = volTV / 100;
-    },
-
-    playButtonSound() {
-        if (PCManager.canPlayAudio) { 
-            this.audioBotonTV.currentTime = 0;
-            this.audioBotonTV.play().catch(e => console.log('Audio error:', e));
-        }
     }
 };
