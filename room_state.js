@@ -23,42 +23,33 @@ for (let cat in defaultInventoryConfig) {
     if (State.inventoryData[cat].type === 'multiple') {
         if (!Array.isArray(State.inventoryData[cat].equipped)) State.inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
     } else {
-        if (!State.inventoryData[cat].items[State.inventoryData[cat].equipped]) State.inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
+        if (!State.inventoryData[cat].equipped) State.inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
     }
-    for(let item in defaultInventoryConfig[cat].items) {
-        if(!State.inventoryData[cat].items[item]) State.inventoryData[cat].items[item] = defaultInventoryConfig[cat].items[item];
+    for (let item in defaultInventoryConfig[cat].items) {
+        if (!State.inventoryData[cat].items[item]) State.inventoryData[cat].items[item] = defaultInventoryConfig[cat].items[item];
         else {
-            State.inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file;
+            State.inventoryData[cat].items[item].price = defaultInventoryConfig[cat].items[item].price;
             State.inventoryData[cat].items[item].name = defaultInventoryConfig[cat].items[item].name;
-            if(defaultInventoryConfig[cat].items[item].baseFile) State.inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile;
-            if(defaultInventoryConfig[cat].items[item].preview) State.inventoryData[cat].items[item].preview = defaultInventoryConfig[cat].items[item].preview;
+            State.inventoryData[cat].items[item].preview = defaultInventoryConfig[cat].items[item].preview;
+            State.inventoryData[cat].items[item].file = defaultInventoryConfig[cat].items[item].file;
+            if (defaultInventoryConfig[cat].items[item].baseFile) State.inventoryData[cat].items[item].baseFile = defaultInventoryConfig[cat].items[item].baseFile;
         }
     }
 }
 
-const ua = navigator.userAgent;
-export const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-const deviceMemory = navigator.deviceMemory || 4;
-const cpuCores = navigator.hardwareConcurrency || 4;
-let baseTier = 'alta';
-if (isMobileUA || deviceMemory <= 4 || cpuCores <= 4) baseTier = 'media';
-if (isMobileUA && (deviceMemory <= 2 || cpuCores <= 2)) baseTier = 'baja';
+export const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
 
-State.gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
-    calidad: baseTier, 
-    sombras: baseTier === 'baja' ? 0 : (baseTier === 'media' ? 1 : 2),
-    fps: baseTier === 'baja' ? 30 : 60,
-    volumenTV: 50,
-    volumenEfectos: 50,
-    volumenPC: 50,
+const defaultSettings = {
+    calidad: isMobileUA ? 'baja' : 'media',
+    sombras: !isMobileUA,
     mostrarFps: false,
-    mostrarMonedas: false // NUEVA CONFIGURACIÓN: Oculto por defecto
+    volumen: 50,
+    volumenPC: 50
 };
 
-// Conversión y seguridad de datos
-if(State.gameSettings.mostrarMonedas === undefined) State.gameSettings.mostrarMonedas = false;
-if(State.gameSettings.volumen) { 
-    State.gameSettings.volumenTV = State.gameSettings.volumen; 
+State.gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || defaultSettings;
+if(State.gameSettings.volumenMusica === undefined) {
+    State.gameSettings.volumenMusica = State.gameSettings.volumen; 
     State.gameSettings.volumenEfectos = State.gameSettings.volumen; 
     delete State.gameSettings.volumen;
 }
@@ -86,15 +77,33 @@ export function getFreshUrl(url) {
     return `${url}${separator}nocache=${Date.now()}`;
 }
 
+// OPTIMIZACIÓN DE MEMORIA PROFUNDA: Destruir todas las texturas asociadas.
 export function disposeThreeJSObject(node) {
     if (!node) return;
-    if (node.geometry) node.geometry.dispose();
+    if (node.geometry) {
+        node.geometry.dispose();
+    }
     if (node.material) {
-        if (Array.isArray(node.material)) {
-            node.material.forEach(mat => { if(mat.map) mat.map.dispose(); mat.dispose(); });
-        } else {
-            if(node.material.map) node.material.map.dispose(); node.material.dispose();
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        materials.forEach(mat => {
+            // Eliminar de memoria todos los tipos de mapas que puedan estar en el material
+            if (mat.map) mat.map.dispose();
+            if (mat.lightMap) mat.lightMap.dispose();
+            if (mat.bumpMap) mat.bumpMap.dispose();
+            if (mat.normalMap) mat.normalMap.dispose();
+            if (mat.specularMap) mat.specularMap.dispose();
+            if (mat.envMap) mat.envMap.dispose();
+            if (mat.emissiveMap) mat.emissiveMap.dispose();
+            if (mat.roughnessMap) mat.roughnessMap.dispose();
+            if (mat.metalnessMap) mat.metalnessMap.dispose();
+            
+            mat.dispose(); // Finalmente destruir el material
+        });
+    }
+    if (node.children) {
+        // Recorrer recursivamente y no usar let i in node.children para mayor seguridad
+        for (let i = node.children.length - 1; i >= 0; i--) {
+            disposeThreeJSObject(node.children[i]);
         }
     }
-    if (node.children) node.children.forEach(child => disposeThreeJSObject(child));
 }

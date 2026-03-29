@@ -22,17 +22,26 @@ export const SceneSetup = {
         }
         this.camera.position.set(0, camPosY, camPosZ);
         
-        this.renderer = new THREE.WebGLRenderer({ antialias: gameSettings.calidad !== 'baja', powerPreference: "high-performance" });
+        // OPTIMIZACIÓN: Solo activar antialias en calidad alta. En baja/media consume demasiados recursos.
+        this.renderer = new THREE.WebGLRenderer({ 
+            antialias: gameSettings.calidad === 'alta', 
+            powerPreference: "high-performance",
+            alpha: false // Mejora el rendimiento si no necesitas fondo transparente en el canvas
+        });
+        
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.outputEncoding = THREE.sRGBEncoding; 
         
-        // OPTIMIZACIÓN: Desactivar ACESFilmic en gama baja desde el inicio
+        // OPTIMIZACIÓN CRÍTICA: Limitar el Pixel Ratio. 
+        // Los móviles baratos tienen ratios de 2 o 3, lo que multiplica los píxeles a renderizar y crashea la app.
+        const maxPixelRatio = (gameSettings.calidad === 'baja' || isMobileUA) ? 1.0 : (gameSettings.calidad === 'media' ? 1.5 : Math.min(window.devicePixelRatio, 2));
+        this.renderer.setPixelRatio(maxPixelRatio);
+        
         this.renderer.toneMapping = gameSettings.calidad === 'baja' ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.0;
         
-        // SOMBRAS: Se asigna el tipo correcto desde el inicio
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; 
+        this.renderer.shadowMap.enabled = gameSettings.sombras;
+        this.renderer.shadowMap.type = (gameSettings.calidad === 'alta') ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; 
         
         document.body.appendChild(this.renderer.domElement);
 
@@ -57,14 +66,14 @@ export const SceneSetup = {
         this.mainLight.penumbra = 0.8;
         this.mainLight.castShadow = true;
         
-        // CORRECCIÓN DE ACNÉ DE SOMBRAS: Mayor tolerancia en el Bias
+        // CORRECCIÓN DE ACNÉ DE SOMBRAS
         this.mainLight.shadow.bias = -0.001;
-        this.mainLight.shadow.normalBias = 0.05;
         
-        // Ajustamos la resolución según la calidad
-        this.mainLight.shadow.mapSize.width = gameSettings.calidad === 'alta' ? 2048 : 1024;
-        this.mainLight.shadow.mapSize.height = gameSettings.calidad === 'alta' ? 2048 : 1024;
-
+        // OPTIMIZACIÓN: Reducir resolución de sombras en móviles/baja calidad para liberar memoria.
+        const shadowResolution = gameSettings.calidad === 'baja' ? 512 : (gameSettings.calidad === 'media' ? 1024 : 2048);
+        this.mainLight.shadow.mapSize.width = shadowResolution;
+        this.mainLight.shadow.mapSize.height = shadowResolution;
+        
         this.scene.add(this.mainLight);
     }
 };
