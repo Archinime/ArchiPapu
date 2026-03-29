@@ -198,10 +198,20 @@ function applyMaterialLogic(model, categoryKey) {
     const allowShadows = State.gameSettings.sombras > 0;
     const isStructureCategory = ['paredes', 'piso', 'techo', 'puerta'].includes(categoryKey);
     const isBaja = State.gameSettings.calidad === 'baja';
+
     model.traverse((node) => {
         if (node.isMesh) {
             if (node.name === 'LunariHitbox') return;
-            node.frustumCulled = false; 
+            
+            // --- OPTIMIZACIÓN CRÍTICA: Frustum Culling ---
+            // Solo Lunari se dibuja siempre para evitar bugs de huesos.
+            // El resto de objetos dejarán de procesarse si la cámara no los ve.
+            if (categoryKey === 'lunari') {
+                node.frustumCulled = false; 
+            } else {
+                node.frustumCulled = true; 
+            }
+
             if (isFoco || isFocoDia) {
                 node.castShadow = false; node.receiveShadow = false;
                 if (node.material) {
@@ -212,6 +222,7 @@ function applyMaterialLogic(model, categoryKey) {
                 let nodeIsStructure = isStructureCategory || node.name.toLowerCase().includes('pared') || node.name.toLowerCase().includes('piso') || node.name.toLowerCase().includes('techo');
                 node.castShadow = nodeIsStructure ? false : allowShadows;
                 node.receiveShadow = allowShadows;
+                
                 if(node.material) {
                     let mats = Array.isArray(node.material) ? node.material : [node.material];
                     mats.forEach(m => {

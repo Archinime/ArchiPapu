@@ -15,16 +15,19 @@ export const State = {
 };
 
 if (State.inventoryData.base_foco) delete State.inventoryData.base_foco;
+
 for (let cat in defaultInventoryConfig) {
     if(!State.inventoryData[cat]) State.inventoryData[cat] = defaultInventoryConfig[cat];
     State.inventoryData[cat].emoji = defaultInventoryConfig[cat].emoji;
     State.inventoryData[cat].label = defaultInventoryConfig[cat].label;
     State.inventoryData[cat].type = defaultInventoryConfig[cat].type || 'single';
+    
     if (State.inventoryData[cat].type === 'multiple') {
         if (!Array.isArray(State.inventoryData[cat].equipped)) State.inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
     } else {
         if (!State.inventoryData[cat].items[State.inventoryData[cat].equipped]) State.inventoryData[cat].equipped = defaultInventoryConfig[cat].equipped;
     }
+    
     for(let item in defaultInventoryConfig[cat].items) {
         if(!State.inventoryData[cat].items[item]) State.inventoryData[cat].items[item] = defaultInventoryConfig[cat].items[item];
         else {
@@ -40,9 +43,16 @@ const ua = navigator.userAgent;
 export const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 const deviceMemory = navigator.deviceMemory || 4;
 const cpuCores = navigator.hardwareConcurrency || 4;
+
 let baseTier = 'alta';
-if (isMobileUA || deviceMemory <= 4 || cpuCores <= 4) baseTier = 'media';
-if (isMobileUA && (deviceMemory <= 2 || cpuCores <= 2)) baseTier = 'baja';
+// --- OPTIMIZACIÓN DE HARDWARE ---
+// Si es móvil y tiene 4GB o menos de RAM, forzamos gama baja por defecto para evitar crasheos.
+if (isMobileUA) {
+    if (deviceMemory <= 4 || cpuCores <= 4) baseTier = 'baja';
+    else baseTier = 'media';
+} else {
+    if (deviceMemory <= 4 || cpuCores <= 4) baseTier = 'media';
+}
 
 State.gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
     calidad: baseTier, 
@@ -52,13 +62,12 @@ State.gameSettings = JSON.parse(localStorage.getItem('ff_settings')) || {
     volumenEfectos: 50,
     volumenPC: 50,
     mostrarFps: false,
-    mostrarMonedas: false // NUEVA CONFIGURACIÓN: Oculto por defecto
+    mostrarMonedas: false
 };
 
-// Conversión y seguridad de datos
 if(State.gameSettings.mostrarMonedas === undefined) State.gameSettings.mostrarMonedas = false;
 if(State.gameSettings.volumen) { 
-    State.gameSettings.volumenTV = State.gameSettings.volumen; 
+    State.gameSettings.volumenTV = State.gameSettings.volumen;
     State.gameSettings.volumenEfectos = State.gameSettings.volumen; 
     delete State.gameSettings.volumen;
 }
@@ -67,6 +76,7 @@ if(State.gameSettings.volumenPC === undefined) State.gameSettings.volumenPC = 50
 export function checkDailyReward() {
     let lastLogin = localStorage.getItem('room_last_login');
     let today = new Date().toDateString();
+
     if (lastLogin !== today) {
         State.playerCoins += 100;
         localStorage.setItem('room_last_login', today);

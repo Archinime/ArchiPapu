@@ -22,15 +22,19 @@ export const SceneSetup = {
         }
         this.camera.position.set(0, camPosY, camPosZ);
         
-        this.renderer = new THREE.WebGLRenderer({ antialias: gameSettings.calidad !== 'baja', powerPreference: "high-performance" });
+        // --- OPTIMIZACIÓN CRÍTICA PARA GAMA BAJA ---
+        // Se añade 'precision' para evitar cierres (Out Of Memory) en móviles humildes
+        this.renderer = new THREE.WebGLRenderer({ 
+            antialias: gameSettings.calidad !== 'baja', 
+            powerPreference: "high-performance",
+            precision: gameSettings.calidad === 'baja' ? 'mediump' : 'highp' 
+        });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.outputEncoding = THREE.sRGBEncoding; 
-        
-        // OPTIMIZACIÓN: Desactivar ACESFilmic en gama baja desde el inicio
+        this.renderer.outputEncoding = THREE.sRGBEncoding;
+
         this.renderer.toneMapping = gameSettings.calidad === 'baja' ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.0;
         
-        // SOMBRAS: Se asigna el tipo correcto desde el inicio
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = gameSettings.sombras >= 2 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; 
         
@@ -43,25 +47,22 @@ export const SceneSetup = {
         this.controls.minDistance = 2.5; 
         this.controls.maxDistance = 16;
         this.controls.enablePan = false;
-        
+
         this.ambient = new THREE.AmbientLight(0xffffff, 0.3); 
         this.scene.add(this.ambient);
         
         this.hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4); 
         this.hemiLight.position.set(0, 20, 0);
         this.scene.add(this.hemiLight);
-        
+
         this.mainLight = new THREE.SpotLight(0xffeedd, 6); 
         this.mainLight.position.set(2, 22, 2); 
         this.mainLight.angle = Math.PI / 3;
         this.mainLight.penumbra = 0.8;
         this.mainLight.castShadow = true;
-        
-        // CORRECCIÓN DE ACNÉ DE SOMBRAS: Mayor tolerancia en el Bias
         this.mainLight.shadow.bias = -0.001;
         this.mainLight.shadow.normalBias = 0.05;
         
-        // Ajustamos la resolución según la calidad
         this.mainLight.shadow.mapSize.width = gameSettings.calidad === 'alta' ? 2048 : 1024;
         this.mainLight.shadow.mapSize.height = gameSettings.calidad === 'alta' ? 2048 : 1024;
 
