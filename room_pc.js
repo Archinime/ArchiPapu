@@ -29,21 +29,28 @@ export const PCManager = {
         this.survVideoTexture.minFilter = THREE.LinearFilter;
         this.survVideoTexture.magFilter = THREE.LinearFilter;
         this.survVideoTexture.format = THREE.RGBAFormat;
-        // OPTIMIZACIÓN: Evitar que ThreeJS genere múltiples tamaños del video en VRAM
-        this.survVideoTexture.generateMipmaps = false; 
+        this.survVideoTexture.wrapS = THREE.RepeatWrapping;
+        this.survVideoTexture.wrapT = THREE.RepeatWrapping;
+        this.survVideoTexture.generateMipmaps = false; // CLAVE PARA NO SOBRECARGAR LA VRAM EN MÓVILES
+        this.survVideoTexture.encoding = THREE.sRGBEncoding;
+
+        const logoImage = new Image();
+        logoImage.src = 'logo.avif';
+        logoImage.onload = () => {
+            this.logoTexture = new THREE.Texture(logoImage);
+            this.logoTexture.needsUpdate = true;
+            this.logoTexture.encoding = THREE.sRGBEncoding;
+            this.logoTexture.flipY = false;
+            this.logoTexture.minFilter = THREE.LinearFilter; 
+            this.logoTexture.generateMipmaps = false; // OPTIMIZADO
+            if (!this.isPcOn) this.updateScreens(); 
+        };
+
+        this.setupUI();
         
-        const textureLoader = new THREE.TextureLoader();
-        this.logoTexture = textureLoader.load('logo.avif');
-        this.logoTexture.colorSpace = THREE.SRGBColorSpace;
-        
-        // El resto del código de PCManager se mantiene exactamente igual...
-        // [CÓDIGO POSTERIOR MANTENIDO]
-        this.setupEventListeners();
-        
-        const savedState = localStorage.getItem('room_pc_on');
-        if (savedState === 'true') {
+        const savedPcState = localStorage.getItem('room_pc_on');
+        if (savedPcState === 'true') {
             this.isPcOn = true;
-            this.survVideo.play().catch(e => console.log("Autoplay bloqueado"));
             const pcPowerBtn = document.getElementById('pc-power');
             if(pcPowerBtn) {
                 pcPowerBtn.innerText = '🟢';
@@ -53,10 +60,6 @@ export const PCManager = {
         }
     },
 
-    setCanPlayAudio(canPlay) {
-        this.canPlayAudio = canPlay;
-    },
-
     setGamingMode(isGaming) {
         this.isGamingMode = isGaming;
         if (this.isPcOn) {
@@ -64,74 +67,64 @@ export const PCManager = {
         }
     },
 
-    playButtonSound() {
-        if (!this.canPlayAudio) return;
-        this.audioBotonPC.currentTime = 0;
-        this.audioBotonPC.play().catch(e => console.log('Audio error:', e));
-    },
-
     updateScreens() {
-        if (this.pcScreenMeshes.length === 0) return;
-
-        let targetTexture = null;
-        let emIntensity = 0;
-
-        if (this.isPcOn) {
-            targetTexture = this.isGamingMode ? this.survVideoTexture : this.logoTexture;
-            emIntensity = 1.0; 
-        }
-
         this.pcScreenMeshes.forEach(mesh => {
-            if (mesh && mesh.material) {
-                const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-                materials.forEach(mat => {
-                    mat.map = targetTexture;
-                    mat.emissiveMap = targetTexture;
-                    
-                    if (this.isPcOn) {
-                        mat.color.setHex(0xffffff);
-                        mat.emissive.setHex(0xffffff);
-                    } else {
-                        mat.color.setHex(0x111111);
-                        mat.emissive.setHex(0x000000);
+            const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+            mats.forEach(mat => {
+                if (this.isPcOn) {
+                    if (this.isGamingMode && this.survVideoTexture) {
+                        mat.map = this.survVideoTexture;
+                        mat.emissiveMap = this.survVideoTexture;
+                        this.survVideo.play().catch(e => console.log('Autoplay blocked', e));
+                    } else if (this.logoTexture) {
+                        mat.map = this.logoTexture;
+                        mat.emissiveMap = this.logoTexture;
+                        this.survVideo.pause();
                     }
-                    
-                    mat.emissiveIntensity = emIntensity;
-                    mat.needsUpdate = true;
-                });
-            }
+                    mat.color.setHex(0xffffff);
+                    mat.emissive.setHex(0xffffff);
+                    mat.emissiveIntensity = 1.0;
+                } else {
+                    mat.map = null;
+                    mat.emissiveMap = null;
+                    mat.color.setHex(0x111111);
+                    mat.emissive.setHex(0x000000);
+                    mat.emissiveIntensity = 0.0;
+                    this.survVideo.pause();
+                }
+                mat.needsUpdate = true;
+            });
         });
     },
 
-    setupEventListeners() {
+    setupUI() {
+        const pcControls = document.getElementById('pc-controls');
         const pcPowerBtn = document.getElementById('pc-power');
-        const pcOpenBtn = document.getElementById('pc-open');
-        const pcModal = document.getElementById('pc-interface');
-        const pcIframe = document.getElementById('pc-iframe');
+        const pcOpenBtn = document.getElementById('pc-open-full');
+        const pcModal = document.getElementById('pc-full-modal');
         const closePcBtn = document.getElementById('close-pc');
+        const pcIframe = document.getElementById('pc-iframe');
 
         if (pcPowerBtn) {
             pcPowerBtn.onclick = () => {
-                this.playButtonSound();
-                if (this.pcTransitioning) return;
-                
                 const now = Date.now();
-                if (now - this.lastPcClickTime < 1000) return; 
+                if (now - this.lastPcClickTime < 500) return;
                 this.lastPcClickTime = now;
+                
+                this.playButtonSound();
 
                 if (!this.isPcOn) {
                     this.isPcOn = true;
-                    localStorage.setItem('room_pc_on', 'true'); // GUARDADO DE ESTADO
-                    this.survVideo.play().catch(e => console.log("Autoplay de surv bloqueado"));
+                    localStorage.setItem('room_pc_on', 'true');
                     this.updateScreens();
                     
                     pcPowerBtn.innerText = '🟢';
                     pcPowerBtn.style.color = '#00ff00';
                     pcPowerBtn.style.textShadow = '0 0 5px #00ff00';
-                    document.getElementById('pc-controls').style.display = 'flex';
+                    document.getElementById('pc-controls').style.display = 'none'; 
                 } else {
                     this.isPcOn = false;
-                    localStorage.setItem('room_pc_on', 'false'); // GUARDADO DE ESTADO
+                    localStorage.setItem('room_pc_on', 'false'); 
                     this.survVideo.pause();
                     this.updateScreens();
                     
@@ -171,5 +164,13 @@ export const PCManager = {
 
     setVolume(volPc, volEf) {
         this.audioBotonPC.volume = volEf / 100;
+        this.survVideo.volume = volPc / 100;
+    },
+
+    playButtonSound() {
+        if (this.canPlayAudio) {
+            this.audioBotonPC.currentTime = 0;
+            this.audioBotonPC.play().catch(e => console.log('Audio error:', e));
+        }
     }
 };

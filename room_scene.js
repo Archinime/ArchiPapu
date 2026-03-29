@@ -22,26 +22,24 @@ export const SceneSetup = {
         }
         this.camera.position.set(0, camPosY, camPosZ);
         
-        // OPTIMIZACIÓN: Solo activar antialias en calidad alta. En baja/media consume demasiados recursos.
+        // OPTIMIZACIÓN: powerPreference y precision ayudan a la GPU del móvil
         this.renderer = new THREE.WebGLRenderer({ 
-            antialias: gameSettings.calidad === 'alta', 
+            antialias: gameSettings.calidad !== 'baja', 
             powerPreference: "high-performance",
-            alpha: false // Mejora el rendimiento si no necesitas fondo transparente en el canvas
+            precision: gameSettings.calidad === 'baja' ? 'mediump' : 'highp'
         });
-        
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.outputEncoding = THREE.sRGBEncoding; 
         
-        // OPTIMIZACIÓN CRÍTICA: Limitar el Pixel Ratio. 
-        // Los móviles baratos tienen ratios de 2 o 3, lo que multiplica los píxeles a renderizar y crashea la app.
-        const maxPixelRatio = (gameSettings.calidad === 'baja' || isMobileUA) ? 1.0 : (gameSettings.calidad === 'media' ? 1.5 : Math.min(window.devicePixelRatio, 2));
+        this.renderer.toneMapping = gameSettings.calidad === 'baja' ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = gameSettings.calidad === 'baja' ? 1.0 : 1.2;
+
+        // OPTIMIZACIÓN CRÍTICA: Límite de Pixel Ratio para evitar crash por RAM en pantallas de alta densidad
+        const maxPixelRatio = gameSettings.calidad === 'baja' ? 1 : (isMobileUA ? 1.5 : Math.min(window.devicePixelRatio, 2));
         this.renderer.setPixelRatio(maxPixelRatio);
         
-        this.renderer.toneMapping = gameSettings.calidad === 'baja' ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.0;
-        
-        this.renderer.shadowMap.enabled = gameSettings.sombras;
-        this.renderer.shadowMap.type = (gameSettings.calidad === 'alta') ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; 
+        this.renderer.shadowMap.enabled = true; // LAS SOMBRAS NO SE BORRAN
+        this.renderer.shadowMap.type = gameSettings.calidad === 'alta' ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; 
         
         document.body.appendChild(this.renderer.domElement);
 
@@ -53,6 +51,7 @@ export const SceneSetup = {
         this.controls.maxDistance = 16;
         this.controls.enablePan = false;
         
+        // LAS LUCES SE MANTIENEN INTACTAS
         this.ambient = new THREE.AmbientLight(0xffffff, 0.3); 
         this.scene.add(this.ambient);
         
@@ -66,14 +65,21 @@ export const SceneSetup = {
         this.mainLight.penumbra = 0.8;
         this.mainLight.castShadow = true;
         
-        // CORRECCIÓN DE ACNÉ DE SOMBRAS
+        // OPTIMIZACIÓN DE VRAM: Sombras adaptativas según calidad
+        if (gameSettings.calidad === 'baja') {
+            this.mainLight.shadow.mapSize.width = 256;
+            this.mainLight.shadow.mapSize.height = 256;
+        } else if (gameSettings.calidad === 'media') {
+            this.mainLight.shadow.mapSize.width = 512;
+            this.mainLight.shadow.mapSize.height = 512;
+        } else {
+            this.mainLight.shadow.mapSize.width = 1024;
+            this.mainLight.shadow.mapSize.height = 1024;
+        }
+        
         this.mainLight.shadow.bias = -0.001;
-        
-        // OPTIMIZACIÓN: Reducir resolución de sombras en móviles/baja calidad para liberar memoria.
-        const shadowResolution = gameSettings.calidad === 'baja' ? 512 : (gameSettings.calidad === 'media' ? 1024 : 2048);
-        this.mainLight.shadow.mapSize.width = shadowResolution;
-        this.mainLight.shadow.mapSize.height = shadowResolution;
-        
+        this.mainLight.shadow.camera.near = 1;
+        this.mainLight.shadow.camera.far = 50;
         this.scene.add(this.mainLight);
     }
 };
