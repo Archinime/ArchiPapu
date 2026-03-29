@@ -21,7 +21,6 @@ export const LunariIdle = {
     },
 
     update(system, delta) {
-        // Efectos especiales para interacciones (Click sostenido)
         if (system.activeAction && system.actions.idle_holds.includes(system.activeAction)) {
             if (system.activeAction.userData) {
                 const fileName = system.activeAction.userData.fileName;
@@ -45,7 +44,6 @@ export const LunariIdle = {
             }
         }
 
-        // Animaciones aleatorias en espera
         if (system.activeAction === system.actions.idle_base) {
             system.idleTimer += delta;
             if (system.idleTimer >= 30) {
@@ -81,11 +79,27 @@ export const LunariIdle = {
 
     getDialogue(isDay, weatherCode) {
         if (!isDay) { 
-            return "¡Qué noche tan tranquila!<br>¿Deberíamos dormir pronto?";
+            const night = [
+                "¡Qué noche tan tranquila!<br>¿Deberíamos dormir pronto?",
+                "Las estrellas se ven bonitas hoy, ¿no crees?",
+                "Tengo un poco de sueño, pero quiero quedarme un rato más contigo."
+            ];
+            return night[Math.floor(Math.random() * night.length)];
         } else if ([51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99].includes(weatherCode)) {
-            return "El clima está feo afuera.<br>¡Mejor nos quedamos viendo anime!";
+            const badWeather = [
+                "El clima está feo afuera.<br>¡Mejor nos quedamos viendo anime!",
+                "Con esta lluvia, lo mejor es una bebida caliente y una buena serie.",
+                "Escuchar la lluvia desde aquí adentro es súper relajante."
+            ];
+            return badWeather[Math.floor(Math.random() * badWeather.length)];
         } else {
-            return "¡Hola!<br>Qué bueno verte por aquí.<br>¿Qué hacemos hoy?";
+            const normal = [
+                "¡Hola!<br>Qué bueno verte por aquí.<br>¿Qué hacemos hoy?",
+                "¡Hoy es un gran día! ¿Jugamos algo?",
+                "Me alegra que estés aquí. ¿Te cuento lo que soñé?",
+                "¿Ya comiste? ¡Asegúrate de cuidarte mucho!"
+            ];
+            return normal[Math.floor(Math.random() * normal.length)];
         }
     }
 };

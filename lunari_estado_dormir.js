@@ -16,13 +16,17 @@ export const LunariDormir = {
         if (system.activeAction === system.actions.dormir_base) {
             system.dormirTimer += delta;
             if (system.dormirTimer >= 60) {
-                system.dormirTimer = 0;
-                if (system.actions.dormir_random) {
-                    system.activeAction.fadeOut(0.5);
-                    system.activeAction = system.actions.dormir_random;
-                    system.activeAction.reset().fadeIn(0.5).play();
-                }
+                this.triggerRandom(system);
             }
+        }
+    },
+
+    triggerRandom(system) {
+        if (system.actions.dormir_random && system.activeAction === system.actions.dormir_base) {
+            system.activeAction.fadeOut(0.5);
+            system.activeAction = system.actions.dormir_random;
+            system.activeAction.reset().fadeIn(0.5).play();
+            system.dormirTimer = 0;
         }
     },
 
@@ -36,6 +40,24 @@ export const LunariDormir = {
     },
 
     getDialogue(isDay, weatherCode) {
-        return "Zzz...<br>(Lunari está profundamente dormida)";
+        if (isDay) {
+            const dayDialogues = [
+                "Zzz... 5 minutos más...",
+                "Déjame dormir más... zzz...",
+                "Mmm... apaga la luz, por favor...",
+                "Zzz... no quiero levantarme todavía...",
+                "Solo un ratito más... zzz..."
+            ];
+            return dayDialogues[Math.floor(Math.random() * dayDialogues.length)];
+        } else {
+            const nightDialogues = [
+                "Zzz...<br>(Lunari está profundamente dormida)",
+                "Mmm... dulces sueños...",
+                "(Respira suavemente mientras duerme...)",
+                "Zzz... anime... zzz...",
+                "(Se abraza a la almohada...)"
+            ];
+            return nightDialogues[Math.floor(Math.random() * nightDialogues.length)];
+        }
     }
 };

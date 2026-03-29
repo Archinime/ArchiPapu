@@ -17,6 +17,12 @@ export const LunariJugar = {
     onFinished(system, event) {},
 
     getDialogue(isDay, weatherCode) {
-        return "¡Estoy en plena partida en Survev.io!<br>¡Cuidado, no me distraigas o perderé!";
+        const lines = [
+            "¡Estoy en plena partida en Survev.io!<br>¡Cuidado, no me distraigas o perderé!",
+            "¡Uy, casi me matan! ¡Tengo que cubrirme!",
+            "¡Vamos, vamos, un kill más y gano la partida!",
+            "Este teclado es súper cómodo para jugar, ¡me encanta!"
+        ];
+        return lines[Math.floor(Math.random() * lines.length)];
     }
 };
