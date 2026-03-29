@@ -371,8 +371,9 @@ export const defaultInventoryConfig = {
     videos: {
         label: "Videos TV", emoji: "📼", equipped: ["gohan_cell", "zoro_king", "rezero"], type: "multiple",
         items: {
-            "gohan_cell": { name: "Gohan vs Cell", file: "gohan_vs_cell.mp4", price: 0, owned: true },
-            "zoro_king": { name: "Zoro vs King", file: "zoro_vs_king.mp4", price: 0, owned: true },
+            "gohan_cell": { name: "Gohan vs Cell", file: "gohan_vs_cell.mp4", price: 0, owned: true,
+                preview: "https://cdn.jsdelivr.net/gh/Archinime/ArchiPapu@main/libros.avif"  },
+            "zoro_king": { name: "Konosuba", file: "zoro_vs_king.mp4", price: 0, owned: true },
             "rezero": { name: "Re:Zero", file: "rezero.mp4", price: 0, owned: true }
         }
     }
